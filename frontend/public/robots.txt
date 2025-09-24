@@ -1,0 +1,3 @@
+# Robots.txt for SEO
+User-agent: *
+Allow: /

@@ -1,0 +1,26 @@
+-- Create site_transfers table if it doesn't exist
+CREATE TABLE IF NOT EXISTS `site_transfers` (
+  `transfer_id` int NOT NULL AUTO_INCREMENT,
+  `from_project_id` int NOT NULL,
+  `to_project_id` int NOT NULL,
+  `material_id` int NOT NULL,
+  `quantity` int NOT NULL,
+  `transfer_date` date NOT NULL,
+  `transfer_reason` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `status` enum('PENDING','APPROVED','COMPLETED','CANCELLED') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'PENDING',
+  `requested_by_user_id` int NOT NULL,
+  `approved_by_user_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`transfer_id`),
+  KEY `fk_site_transfers_from_project` (`from_project_id`),
+  KEY `fk_site_transfers_to_project` (`to_project_id`),
+  KEY `fk_site_transfers_material` (`material_id`),
+  KEY `fk_site_transfers_requested_by` (`requested_by_user_id`),
+  KEY `fk_site_transfers_approved_by` (`approved_by_user_id`),
+  CONSTRAINT `fk_site_transfers_from_project` FOREIGN KEY (`from_project_id`) REFERENCES `projects` (`project_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_site_transfers_to_project` FOREIGN KEY (`to_project_id`) REFERENCES `projects` (`project_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_site_transfers_material` FOREIGN KEY (`material_id`) REFERENCES `materials` (`material_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_site_transfers_requested_by` FOREIGN KEY (`requested_by_user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_site_transfers_approved_by` FOREIGN KEY (`approved_by_user_id`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
