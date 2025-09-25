@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, Settings, Plus } from 'lucide-react';
-import { commercialAPI, projectsAPI, materialsAPI, usersAPI } from '../services/api';
+import { commercialAPI, projectsAPI, materialsAPI, usersAPI, materialManagementAPI } from '../services/api';
 
 interface MaterialReturnFormProps {
   isOpen: boolean;
@@ -40,6 +40,7 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
     material_return_id: 'MR000001',
     return_from: '',
     return_to_inventory: 'dp',
+    warehouse_id: '',
     tags: '',
     checked_by: '',
     remarks: ''
@@ -49,6 +50,7 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
   const [projects, setProjects] = useState<Project[]>([]);
   const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -60,15 +62,17 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
 
   const fetchInitialData = async () => {
     try {
-      const [projectsRes, materialsRes, usersRes] = await Promise.all([
+      const [projectsRes, materialsRes, usersRes, warehousesRes] = await Promise.all([
         projectsAPI.getProjects(),
         materialsAPI.getMaterials(),
-        usersAPI.getUsers()
+        usersAPI.getUsers(),
+        materialManagementAPI.getWarehouses()
       ]);
 
       setProjects(projectsRes.data.projects || []);
       setAllMaterials(materialsRes.data.materials || []);
       setUsers(usersRes.data.users || []);
+      setWarehouses(warehousesRes.data.warehouses || []);
     } catch (error) {
       console.error('Error fetching initial data:', error);
     }
@@ -104,6 +108,7 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
 
     if (!formData.project_id) newErrors.project_id = 'Project is required';
     if (!formData.return_from) newErrors.return_from = 'Return from is required';
+    if (!formData.warehouse_id) newErrors.warehouse_id = 'Warehouse location is required';
     if (!formData.checked_by) newErrors.checked_by = 'Checked by is required';
     if (materials.length === 0) newErrors.materials = 'At least one material is required';
 
@@ -133,6 +138,7 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
         material_return_id: formData.material_return_id,
         return_from: formData.return_from,
         return_to_inventory: formData.return_to_inventory,
+        warehouse_id: formData.warehouse_id ? parseInt(formData.warehouse_id) : null,
         tags: formData.tags,
         checked_by: parseInt(formData.checked_by),
         remarks: formData.remarks,
@@ -162,6 +168,7 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
       material_return_id: 'MR000001',
       return_from: '',
       return_to_inventory: 'dp',
+      warehouse_id: '',
       tags: '',
       checked_by: '',
       remarks: ''
@@ -244,6 +251,27 @@ const MaterialReturnForm: React.FC<MaterialReturnFormProps> = ({ isOpen, onClose
                   />
                   <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                 </div>
+              </div>
+
+              {/* Warehouse Selection */}
+              <div>
+                <label className="label">Warehouse Location*</label>
+                <div className="relative">
+                  <select
+                    value={formData.warehouse_id}
+                    onChange={(e) => handleInputChange('warehouse_id', e.target.value)}
+                    className={`input ${errors.warehouse_id ? 'border-red-500' : ''}`}
+                  >
+                    <option value="">Select Warehouse</option>
+                    {warehouses.map(warehouse => (
+                      <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
+                        {warehouse.warehouse_name} - {warehouse.address}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+                {errors.warehouse_id && <p className="text-red-500 text-sm mt-1">{errors.warehouse_id}</p>}
               </div>
 
               {/* Tags */}

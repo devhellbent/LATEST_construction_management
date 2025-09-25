@@ -20,6 +20,15 @@ interface MaterialReturn {
   material?: { name: string };
   returned_by?: { name: string };
   approved_by?: { name: string };
+  warehouse?: { warehouse_id: number; warehouse_name: string; address: string };
+  material_issue?: {
+    issue_id: number;
+    issue_date: string;
+    quantity_issued: number;
+    issued_to: string;
+    issue_purpose?: string;
+    location?: string;
+  };
 }
 
 const CommercialMaterialReturn: React.FC = () => {
@@ -217,12 +226,18 @@ const CommercialMaterialReturn: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Returned By
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Warehouse
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    On Behalf Of Material Issue
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center">
+                    <td colSpan={10} className="px-6 py-12 text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
                       <p className="mt-2 text-gray-600">Loading returns...</p>
                     </td>
@@ -265,7 +280,35 @@ const CommercialMaterialReturn: React.FC = () => {
                         {new Date(returnItem.return_date).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {returnItem.returned_by?.name || 'N/A'}
+                        {typeof returnItem.returned_by === 'string' ? returnItem.returned_by : returnItem.returned_by?.name || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {returnItem.warehouse ? (
+                          <div>
+                            <div className="font-medium">{returnItem.warehouse.warehouse_name}</div>
+                            <div className="text-xs text-gray-500">{returnItem.warehouse.address}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">N/A</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {returnItem.material_issue ? (
+                          <div>
+                            <div className="font-medium">Issue #{returnItem.material_issue.issue_id}</div>
+                            <div className="text-xs text-gray-500">
+                              Date: {new Date(returnItem.material_issue.issue_date).toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Qty: {returnItem.material_issue.quantity_issued}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Issued to: {returnItem.material_issue.issued_to || 'N/A'}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">Direct Return</span>
+                        )}
                       </td>
                     </tr>
                   ))

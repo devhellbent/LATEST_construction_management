@@ -2,34 +2,57 @@ import React, { useState, useEffect } from 'react';
 import { 
   purchaseOrdersAPI, 
   materialReceiptsAPI,
-  projectsAPI 
+  projectsAPI,
+  materialManagementAPI
 } from '../services/api';
 
 interface PurchaseOrder {
   po_id: number;
   po_reference_id: string;
   supplier_id: number;
-  supplier_name: string;
+  supplier_name?: string; // Direct field (fallback)
   supplier?: {
     supplier_name: string;
+    contact_person?: string;
   };
   project_id: number;
-  project_name: string;
+  project_name?: string; // Direct field (fallback)
+  project?: {
+    name: string;
+    description?: string;
+  };
   po_date: string;
   expected_delivery_date: string;
   status: string;
   items: Array<{
     po_item_id: number;
     item_id: number;
-    item_name: string;
-    item_code?: string;
+    item_name?: string; // Direct field (fallback)
+    item_code?: string; // Direct field (fallback)
     quantity_ordered: number;
     unit_price: number;
     unit_id: number;
-    unit_name: string;
+    unit_name?: string; // Direct field (fallback)
     total_amount: number;
     quantity_received?: number;
+    item?: {
+      item_name: string;
+      item_code: string;
+    };
+    unit?: {
+      unit_name: string;
+      unit_symbol: string;
+    };
   }>;
+}
+
+interface Warehouse {
+  warehouse_id: number;
+  warehouse_name: string;
+  address: string;
+  contact_person?: string;
+  contact_phone?: string;
+  contact_email?: string;
 }
 
 interface ReceiptFormData {
@@ -44,6 +67,7 @@ interface ReceiptFormData {
   condition_status: 'GOOD' | 'DAMAGED' | 'PARTIAL' | 'REJECTED';
   notes: string;
   delivery_notes: string;
+  warehouse_id: number;
   items: Array<{
     po_item_id: number;
     item_id: number;
@@ -64,6 +88,7 @@ const MaterialReceiptManagement: React.FC = () => {
   const [showReceiptForm, setShowReceiptForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [existingReceipts, setExistingReceipts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [formData, setFormData] = useState<ReceiptFormData>({
     po_id: 0,
     project_id: 0,
@@ -76,13 +101,24 @@ const MaterialReceiptManagement: React.FC = () => {
     condition_status: 'GOOD',
     notes: '',
     delivery_notes: '',
+    warehouse_id: 0,
     items: []
   });
 
   useEffect(() => {
     loadPendingPos();
     loadExistingReceipts();
+    loadWarehouses();
   }, []);
+
+  const loadWarehouses = async () => {
+    try {
+      const response = await materialManagementAPI.getWarehouses();
+      setWarehouses(response.data.warehouses || []);
+    } catch (error) {
+      console.error('Error loading warehouses:', error);
+    }
+  };
 
   const loadExistingReceipts = async () => {
     try {
@@ -138,6 +174,7 @@ const MaterialReceiptManagement: React.FC = () => {
         condition_status: existingReceipt.condition_status || 'GOOD',
         notes: existingReceipt.notes || '',
         delivery_notes: existingReceipt.delivery_notes || '',
+        warehouse_id: existingReceipt.warehouse_id || 0,
         items: existingReceipt.items?.map((item: any) => ({
           po_item_id: item.po_item_id,
           item_id: item.item_id,
@@ -165,6 +202,7 @@ const MaterialReceiptManagement: React.FC = () => {
         condition_status: 'GOOD',
         notes: '',
         delivery_notes: '',
+        warehouse_id: 0,
         items: po.items.map(item => ({
           po_item_id: item.po_item_id,
           item_id: item.item_id,
@@ -205,8 +243,8 @@ const MaterialReceiptManagement: React.FC = () => {
       // Check if this is verification, update, or new creation
       const existingReceipt = existingReceipts.find(receipt => receipt.po_id === formData.po_id);
       
-      if (existingReceipt?.status === 'PENDING') {
-        // Verify pending receipt
+      if (existingReceipt?.status === 'PENDING' || existingReceipt?.status === 'RECEIVED') {
+        // Verify pending/received receipt - this will update inventory
         const verificationData = {
           verification_notes: formData.notes,
           items: formData.items
@@ -221,18 +259,24 @@ const MaterialReceiptManagement: React.FC = () => {
         await materialReceiptsAPI.verifyReceipt(existingReceipt.receipt_id, verificationData);
         alert('Material receipt verified successfully! Inventory has been updated.');
       } else if (existingReceipt) {
-        // Update existing receipt
-        await materialReceiptsAPI.updateReceipt(existingReceipt.receipt_id, {
-          ...formData,
-          po_id: formData.po_id,
-          project_id: formData.project_id,
-          received_date: formData.received_date,
-          delivery_date: formData.delivery_date,
-          items: formData.items.filter(item => item.quantity_received > 0)
-        });
-        alert('Material receipt updated successfully!');
+        // Update existing receipt - this should NOT update inventory
+        // Use the receive endpoint to update quantities without updating inventory
+        const receiveData = {
+          items: formData.items
+            .filter(item => item.quantity_received > 0)
+            .map(item => ({
+              receipt_item_id: item.receipt_item_id || item.po_item_id,
+              quantity_actually_received: item.quantity_received,
+              received_condition: item.condition_status,
+              received_notes: item.notes
+            })),
+          notes: formData.notes
+        };
+        
+        await materialReceiptsAPI.updateReceiptReceive(existingReceipt.receipt_id, receiveData);
+        alert('Material receipt updated successfully! Inventory will be updated when verified.');
       } else {
-        // Create new receipt
+        // Create new receipt - this should NOT update inventory
         await materialReceiptsAPI.createReceipt({
           ...formData,
           po_id: formData.po_id,
@@ -241,7 +285,7 @@ const MaterialReceiptManagement: React.FC = () => {
           delivery_date: formData.delivery_date,
           items: formData.items.filter(item => item.quantity_received > 0)
         });
-        alert('Material receipt created successfully!');
+        alert('Material receipt created successfully! Inventory will be updated when verified.');
       }
 
       setShowReceiptForm(false);
@@ -300,21 +344,27 @@ const MaterialReceiptManagement: React.FC = () => {
                           </span>
                           {existingReceipts.find(receipt => receipt.po_id === po.po_id) && (
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING' 
-                                ? 'bg-yellow-100 text-yellow-800' 
-                                : 'bg-green-100 text-green-800'
+                              (() => {
+                                const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                                if (status === 'PENDING') return 'bg-yellow-100 text-yellow-800';
+                                if (status === 'RECEIVED') return 'bg-blue-100 text-blue-800';
+                                return 'bg-green-100 text-green-800';
+                              })()
                             }`}>
-                              {existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING' 
-                                ? 'PENDING VERIFICATION' 
-                                : 'VERIFIED'}
+                              {(() => {
+                                const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                                if (status === 'PENDING') return 'PENDING VERIFICATION';
+                                if (status === 'RECEIVED') return 'RECEIVED - PENDING VERIFICATION';
+                                return 'VERIFIED';
+                              })()}
                             </span>
                           )}
                         </div>
                         <p className="text-gray-600 mb-1">
-                          <span className="font-medium">Supplier:</span> {po.supplier_name || 'N/A'}
+                          <span className="font-medium">Supplier:</span> {po.supplier?.supplier_name || po.supplier_name || 'N/A'}
                         </p>
                         <p className="text-gray-600 mb-1">
-                          <span className="font-medium">Project:</span> {po.project_name || 'N/A'}
+                          <span className="font-medium">Project:</span> {po.project?.name || po.project_name || 'N/A'}
                         </p>
                         <p className="text-gray-600 mb-3">
                           Expected Delivery: {new Date(po.expected_delivery_date).toLocaleDateString()}
@@ -323,10 +373,10 @@ const MaterialReceiptManagement: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {po.items.map((item) => (
                             <div key={item.po_item_id} className="bg-gray-50 p-3 rounded-lg">
-                              <h4 className="font-medium text-gray-900">{item.item_name}</h4>
+                              <h4 className="font-medium text-gray-900">{item.item?.item_name || item.item_name || 'Unknown Item'}</h4>
                               <div className="text-sm text-gray-600 mt-1">
-                                <p>Ordered: {item.quantity_ordered} {item.unit_name}</p>
-                                <p>Price: ₹{item.unit_price}/{item.unit_name}</p>
+                                <p>Ordered: {item.quantity_ordered} {item.unit?.unit_name || item.unit_name}</p>
+                                <p>Price: ₹{item.unit_price}/{item.unit?.unit_name || item.unit_name}</p>
                                 <p className="font-medium">Total: ₹{item.total_amount}</p>
                               </div>
                             </div>
@@ -339,22 +389,22 @@ const MaterialReceiptManagement: React.FC = () => {
                           onClick={() => handleSelectPo(po)}
                           disabled={existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'}
                           className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                            existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'
-                              ? 'bg-gray-400 cursor-not-allowed'
-                              : existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING'
-                                ? 'bg-orange-600 hover:bg-orange-700'
-                                : existingReceipts.find(receipt => receipt.po_id === po.po_id)
-                                  ? 'bg-purple-600 hover:bg-purple-700'
-                                  : 'bg-blue-600 hover:bg-blue-700'
+                            (() => {
+                              const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                              if (status === 'APPROVED') return 'bg-gray-400 cursor-not-allowed';
+                              if (status === 'PENDING' || status === 'RECEIVED') return 'bg-orange-600 hover:bg-orange-700';
+                              if (existingReceipts.find(receipt => receipt.po_id === po.po_id)) return 'bg-purple-600 hover:bg-purple-700';
+                              return 'bg-blue-600 hover:bg-blue-700';
+                            })()
                           }`}
                         >
-                          {existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'
-                            ? '✓ Verified'
-                            : existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING'
-                              ? 'Verify Receipt'
-                              : existingReceipts.find(receipt => receipt.po_id === po.po_id)
-                                ? 'Update Receipt'
-                                : 'Record Receipt'}
+                          {(() => {
+                            const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                            if (status === 'APPROVED') return '✓ Verified';
+                            if (status === 'PENDING' || status === 'RECEIVED') return 'Verify Receipt';
+                            if (existingReceipts.find(receipt => receipt.po_id === po.po_id)) return 'Update Receipt';
+                            return 'Record Receipt';
+                          })()}
                         </button>
                       </div>
                     </div>
@@ -469,6 +519,25 @@ const MaterialReceiptManagement: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Warehouse *
+                </label>
+                <select
+                  value={formData.warehouse_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, warehouse_id: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value={0}>Select Warehouse</option>
+                  {warehouses.map((warehouse) => (
+                    <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
+                      {warehouse.warehouse_name} - {warehouse.address}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Overall Condition Status
                 </label>
                 <select
@@ -493,15 +562,15 @@ const MaterialReceiptManagement: React.FC = () => {
                     <div key={item.po_item_id} className="border border-gray-200 rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <div>
-                          <h4 className="font-medium text-gray-900">{poItem?.item_name}</h4>
+                          <h4 className="font-medium text-gray-900">{poItem?.item?.item_name || poItem?.item_name || 'Unknown Item'}</h4>
                           <p className="text-sm text-gray-600">
-                            Ordered: {poItem?.quantity_ordered} {poItem?.unit_name}
+                            Ordered: {poItem?.quantity_ordered} {poItem?.unit?.unit_name || poItem?.unit_name}
                           </p>
                           <p className="text-xs text-blue-600 font-medium">
                             Vendor: {selectedPo?.supplier?.supplier_name || selectedPo?.supplier_name || 'N/A'}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Item Code: {poItem?.item_code || 'N/A'}
+                            Item Code: {poItem?.item?.item_code || poItem?.item_code || 'N/A'}
                           </p>
                         </div>
                         
@@ -634,7 +703,7 @@ const MaterialReceiptManagement: React.FC = () => {
                 className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
                   (() => {
                     const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
-                    if (existingReceipt?.status === 'PENDING') {
+                    if (existingReceipt?.status === 'PENDING' || existingReceipt?.status === 'RECEIVED') {
                       return 'bg-orange-600 hover:bg-orange-700';
                     } else if (existingReceipt) {
                       return 'bg-purple-600 hover:bg-purple-700';
@@ -646,7 +715,7 @@ const MaterialReceiptManagement: React.FC = () => {
               >
                 {loading ? 'Processing...' : (() => {
                   const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
-                  if (existingReceipt?.status === 'PENDING') {
+                  if (existingReceipt?.status === 'PENDING' || existingReceipt?.status === 'RECEIVED') {
                     return 'Verify Receipt';
                   } else if (existingReceipt) {
                     return 'Update Receipt';

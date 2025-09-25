@@ -243,279 +243,341 @@ const MrrFlowComponent: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Material Requirement Requests</h1>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Create New MRR
-        </button>
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Material Requirement Requests</h1>
+            <p className="text-gray-600 mt-2">Manage material requirement requests and track their approval workflow</p>
+          </div>
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="btn btn-primary"
+          >
+            Create New MRR
+          </button>
+        </div>
       </div>
 
       {/* MRR List */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {mrrs.map((mrr) => (
-            <li key={mrr.mrr_id} className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {mrr.mrr_number}
-                    </h3>
-                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(mrr.status)}`}>
-                      {mrr.status}
-                    </span>
-                    <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(mrr.priority)}`}>
-                      {mrr.priority}
-                    </span>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">MRR List</h2>
+        
+        {mrrs.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">No material requirement requests found</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {mrrs.map((mrr) => (
+              <div key={mrr.mrr_id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-4 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {mrr.mrr_number}
+                      </h3>
+                      <span className={`status-badge ${getStatusColor(mrr.status)}`}>
+                        {mrr.status}
+                      </span>
+                      <span className={`status-badge ${getPriorityColor(mrr.priority)}`}>
+                        {mrr.priority}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Required Date:</span>
+                        <p>{new Date(mrr.required_date).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Total Items:</span>
+                        <p>{mrr.items?.length || 0}</p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Estimated Cost:</span>
+                        <p className="font-semibold text-gray-900">₹{mrr.total_estimated_cost?.toLocaleString() || 0}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    <p>Required Date: {new Date(mrr.required_date).toLocaleDateString()}</p>
-                    <p>Total Items: {mrr.items?.length || 0}</p>
-                    <p>Estimated Cost: ₹{mrr.total_estimated_cost?.toLocaleString() || 0}</p>
+                  
+                  <div className="ml-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => { setDetailsTarget(mrr); setShowDetailsModal(true); }}
+                      className="btn btn-secondary text-sm"
+                    >
+                      View Details
+                    </button>
+                    {mrr.status === 'APPROVED' && (
+                      <button
+                        onClick={() => handleCreatePO(mrr.mrr_id)}
+                        className="btn btn-primary text-sm"
+                      >
+                        Create PO
+                      </button>
+                    )}
+                    {mrr.status === 'DRAFT' && (
+                      <button
+                        onClick={() => handleSubmitMrr(mrr.mrr_id)}
+                        className="btn btn-primary text-sm"
+                      >
+                        Submit
+                      </button>
+                    )}
+                    {mrr.status === 'SUBMITTED' && (
+                      <>
+                        <button
+                          onClick={() => handleApproveMrr(mrr.mrr_id, 'approve')}
+                          className="btn btn-success text-sm"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleApproveMrr(mrr.mrr_id, 'reject')}
+                          className="btn btn-danger text-sm"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {['DRAFT','SUBMITTED','APPROVED','PROCESSING','COMPLETED'].includes(mrr.status) && (
+                      <button
+                        onClick={() => { setInventoryCheckTarget(mrr); setShowInventoryCheck(true); }}
+                        className="btn btn-primary text-sm"
+                      >
+                        Check Inventory
+                      </button>
+                    )}
+                    {(user?.role === 'Admin' || user?.role === 'Project Manager') && mrr.status !== 'CANCELLED' && (
+                      <button
+                        onClick={() => { 
+                          setStatusTarget(mrr); 
+                          setNewStatus(mrr.status);
+                          setShowStatusModal(true); 
+                        }}
+                        className="btn btn-warning text-sm"
+                      >
+                        Change Status
+                      </button>
+                    )}
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => { setDetailsTarget(mrr); setShowDetailsModal(true); }}
-                    className="bg-gray-600 hover:bg-gray-700 text-white text-sm font-bold py-1 px-3 rounded"
-                  >
-                    View Details
-                  </button>
-                  {mrr.status === 'APPROVED' && (
-                    <button
-                      onClick={() => handleCreatePO(mrr.mrr_id)}
-                      className="bg-purple-500 hover:bg-purple-700 text-white text-sm font-bold py-1 px-3 rounded"
-                    >
-                      Create PO
-                    </button>
-                  )}
-                  {mrr.status === 'DRAFT' && (
-                    <button
-                      onClick={() => handleSubmitMrr(mrr.mrr_id)}
-                      className="bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold py-1 px-3 rounded"
-                    >
-                      Submit
-                    </button>
-                  )}
-                  {mrr.status === 'SUBMITTED' && (
-                    <>
-                      <button
-                        onClick={() => handleApproveMrr(mrr.mrr_id, 'approve')}
-                        className="bg-green-500 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleApproveMrr(mrr.mrr_id, 'reject')}
-                        className="bg-red-500 hover:bg-red-700 text-white text-sm font-bold py-1 px-3 rounded"
-                      >
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {['DRAFT','SUBMITTED','APPROVED','PROCESSING','COMPLETED'].includes(mrr.status) && (
-                    <button
-                      onClick={() => { setInventoryCheckTarget(mrr); setShowInventoryCheck(true); }}
-                      className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold py-1 px-3 rounded"
-                    >
-                      Check Inventory
-                    </button>
-                  )}
-                  {(user?.role === 'Admin' || user?.role === 'Project Manager') && mrr.status !== 'CANCELLED' && (
-                    <button
-                      onClick={() => { 
-                        setStatusTarget(mrr); 
-                        setNewStatus(mrr.status);
-                        setShowStatusModal(true); 
-                      }}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold py-1 px-3 rounded"
-                    >
-                      Change Status
-                    </button>
-                  )}
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Create MRR Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Create Material Requirement Request</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Project</label>
-                  <select
-                    value={formData.project_id}
-                    onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Project</option>
-                    {projects.map((project) => (
-                      <option key={project.project_id} value={project.project_id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Required Date</label>
-                  <input
-                    type="date"
-                    value={formData.required_date}
-                    onChange={(e) => setFormData({ ...formData, required_date: e.target.value })}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Priority</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
-                    <option value="URGENT">Urgent</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Notes</label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={3}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center">
-                    <label className="block text-sm font-medium text-gray-700">Items</label>
-                    <button
-                      onClick={addItem}
-                      className="bg-green-500 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded"
+          <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-md bg-white">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-semibold text-gray-900">Create Material Requirement Request</h3>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateMrr(); }} className="space-y-6">
+              {/* Basic Information */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Project <span className="text-red-500">*</span></label>
+                    <select
+                      value={formData.project_id}
+                      onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                      className="input"
+                      required
                     >
-                      Add Item
-                    </button>
+                      <option value="">Select Project</option>
+                      {projects.map((project) => (
+                        <option key={project.project_id} value={project.project_id}>
+                          {project.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  
-                  {formData.items.map((item, index) => (
-                    <div key={index} className="mt-2 p-3 border rounded-md">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700">Item</label>
-                          <select
-                            value={item.item_id}
-                            onChange={(e) => updateItem(index, 'item_id', parseInt(e.target.value))}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value={0}>Select Item</option>
-                            {items.map((itemOption) => (
-                              <option key={itemOption.item_id} value={itemOption.item_id}>
-                                {itemOption.item_name} ({itemOption.item_code})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700">Quantity</label>
-                          <input
-                            type="number"
-                            value={item.quantity_requested}
-                            onChange={(e) => updateItem(index, 'quantity_requested', parseInt(e.target.value))}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
+                  <div>
+                    <label className="label">Required Date <span className="text-red-500">*</span></label>
+                    <input
+                      type="date"
+                      value={formData.required_date}
+                      onChange={(e) => setFormData({ ...formData, required_date: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700">Unit</label>
-                          <select
-                            value={item.unit_id}
-                            onChange={(e) => updateItem(index, 'unit_id', parseInt(e.target.value))}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          >
-                            <option value={0}>Select Unit</option>
-                            {units.map((unit) => (
-                              <option key={unit.unit_id} value={unit.unit_id}>
-                                {unit.unit_name} ({unit.unit_symbol})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                  <div>
+                    <label className="label">Priority</label>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="input"
+                    >
+                      <option value="LOW">Low</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HIGH">High</option>
+                      <option value="URGENT">Urgent</option>
+                    </select>
+                  </div>
 
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700">Cost per Unit</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={item.estimated_cost_per_unit}
-                            onChange={(e) => updateItem(index, 'estimated_cost_per_unit', parseFloat(e.target.value))}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-gray-700">Purpose</label>
-                          <input
-                            type="text"
-                            value={item.purpose}
-                            onChange={(e) => updateItem(index, 'purpose', e.target.value)}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-
-                        <div className="md:col-span-2">
-                          <label className="block text-xs font-medium text-gray-700">Specifications</label>
-                          <input
-                            type="text"
-                            value={item.specifications}
-                            onChange={(e) => updateItem(index, 'specifications', e.target.value)}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                      </div>
-                      
-                      <button
-                        onClick={() => removeItem(index)}
-                        className="mt-2 bg-red-500 hover:bg-red-700 text-white text-sm font-bold py-1 px-3 rounded"
-                      >
-                        Remove Item
-                      </button>
-                    </div>
-                  ))}
+                  <div className="md:col-span-2">
+                    <label className="label">Notes</label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                      rows={3}
+                      className="input"
+                      placeholder="Additional notes about the requirement..."
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
+              {/* Items Section */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="text-lg font-semibold text-gray-800">Items</h4>
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    className="btn btn-success text-sm"
+                  >
+                    Add Item
+                  </button>
+                </div>
+                
+                {formData.items.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No items added yet. Click "Add Item" to get started.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {formData.items.map((item, index) => (
+                      <div key={index} className="bg-white p-4 border border-gray-200 rounded-lg">
+                        <div className="flex justify-between items-center mb-3">
+                          <h5 className="font-medium text-gray-900">Item {index + 1}</h5>
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            className="btn btn-danger text-sm"
+                          >
+                            Remove Item
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div>
+                            <label className="label">Item <span className="text-red-500">*</span></label>
+                            <select
+                              value={item.item_id}
+                              onChange={(e) => updateItem(index, 'item_id', parseInt(e.target.value))}
+                              className="input"
+                              required
+                            >
+                              <option value={0}>Select Item</option>
+                              {items.map((itemOption) => (
+                                <option key={itemOption.item_id} value={itemOption.item_id}>
+                                  {itemOption.item_name} ({itemOption.item_code})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="label">Quantity <span className="text-red-500">*</span></label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity_requested}
+                              onChange={(e) => updateItem(index, 'quantity_requested', parseInt(e.target.value))}
+                              className="input"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="label">Unit <span className="text-red-500">*</span></label>
+                            <select
+                              value={item.unit_id}
+                              onChange={(e) => updateItem(index, 'unit_id', parseInt(e.target.value))}
+                              className="input"
+                              required
+                            >
+                              <option value={0}>Select Unit</option>
+                              {units.map((unit) => (
+                                <option key={unit.unit_id} value={unit.unit_id}>
+                                  {unit.unit_name} ({unit.unit_symbol})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="label">Cost per Unit</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.estimated_cost_per_unit}
+                              onChange={(e) => updateItem(index, 'estimated_cost_per_unit', parseFloat(e.target.value))}
+                              className="input"
+                              placeholder="0.00"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="label">Purpose</label>
+                            <input
+                              type="text"
+                              value={item.purpose}
+                              onChange={(e) => updateItem(index, 'purpose', e.target.value)}
+                              className="input"
+                              placeholder="Purpose of this item..."
+                            />
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="label">Specifications</label>
+                            <input
+                              type="text"
+                              value={item.specifications}
+                              onChange={(e) => updateItem(index, 'specifications', e.target.value)}
+                              className="input"
+                              placeholder="Technical specifications..."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
                 <button
+                  type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateMrr}
+                  type="submit"
                   disabled={loading}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+                  className="btn btn-primary disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create MRR'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
@@ -548,61 +610,74 @@ const MrrFlowComponent: React.FC = () => {
       {showStatusModal && statusTarget && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
                 Update MRR Status - {statusTarget.mrr_number}
               </h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="SUBMITTED">Submitted</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REJECTED">Rejected</option>
-                    <option value="PROCESSING">Processing</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Notes</label>
-                  <textarea
-                    value={statusNotes}
-                    onChange={(e) => setStatusNotes(e.target.value)}
-                    rows={3}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Add notes about the status change..."
-                  />
-                </div>
+              <button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setStatusTarget(null);
+                  setNewStatus('');
+                  setStatusNotes('');
+                }}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={(e) => { e.preventDefault(); handleUpdateStatus(); }} className="space-y-4">
+              <div>
+                <label className="label">Status</label>
+                <select
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                  className="input"
+                  required
+                >
+                  <option value="DRAFT">Draft</option>
+                  <option value="SUBMITTED">Submitted</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="PROCESSING">Processing</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
               </div>
 
-              <div className="flex justify-end space-x-3 mt-6">
+              <div>
+                <label className="label">Notes</label>
+                <textarea
+                  value={statusNotes}
+                  onChange={(e) => setStatusNotes(e.target.value)}
+                  rows={3}
+                  className="input"
+                  placeholder="Add notes about the status change..."
+                />
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
                 <button
+                  type="button"
                   onClick={() => {
                     setShowStatusModal(false);
                     setStatusTarget(null);
                     setNewStatus('');
                     setStatusNotes('');
                   }}
-                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleUpdateStatus}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  type="submit"
+                  className="btn btn-primary"
                 >
                   Update Status
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
@@ -744,10 +819,10 @@ const MrrFlowComponent: React.FC = () => {
             </div>
 
             {/* Close Button */}
-            <div className="flex justify-end mt-6">
+            <div className="flex justify-end pt-6 border-t border-gray-200">
               <button
                 onClick={() => { setShowDetailsModal(false); setDetailsTarget(null); }}
-                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded"
+                className="btn btn-secondary"
               >
                 Close
               </button>

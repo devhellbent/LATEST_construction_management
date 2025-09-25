@@ -241,6 +241,7 @@ const UnifiedMaterialIssue: React.FC = () => {
           issue_date: formData.issue_date,
           issue_purpose: formData.notes || '',
           location: 'Project Site',
+          issued_to: formData.issued_to || '',
           issued_by_user_id: 1, // This should come from auth context
           received_by_user_id: 1, // This should come from auth context
           is_for_mrr: Boolean(formData.is_mrr_based)

@@ -15,6 +15,7 @@ interface MaterialIssue {
   issue_date: string;
   issue_purpose: string;
   location: string;
+  issued_to?: string;
   issued_by_user_id: number;
   received_by_user_id: number;
   created_by: number;
@@ -316,7 +317,7 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {issue.location || 'N/A'}
+                    {issue.issued_to || 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {issue.created_by_user?.name || 'N/A'}

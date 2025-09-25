@@ -527,6 +527,8 @@ export const materialReceiptsAPI = {
     api.post('/material-receipts', receiptData),
   updateReceipt: (id: number, receiptData: any) =>
     api.put(`/material-receipts/${id}`, receiptData),
+  updateReceiptReceive: (id: number, receiveData: any) =>
+    api.put(`/material-receipts/${id}/receive`, receiveData),
   verifyReceipt: (id: number, verificationData: any) =>
     api.post(`/material-receipts/${id}/verify`, verificationData),
   deleteReceipt: (id: number) =>

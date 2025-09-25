@@ -143,6 +143,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('condition_status').optional().isIn(['GOOD', 'DAMAGED', 'PARTIAL', 'REJECTED']),
   body('notes').optional().trim(),
   body('delivery_notes').optional().trim(),
+  body('warehouse_id').isInt().withMessage('Warehouse ID must be an integer'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.po_item_id').isInt().withMessage('PO Item ID must be an integer'),
   body('items.*.item_id').isInt().withMessage('Item ID must be an integer'),
@@ -170,6 +171,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       condition_status,
       notes,
       delivery_notes,
+      warehouse_id,
       items
     } = req.body;
 
@@ -224,6 +226,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       status: 'PENDING',
       notes,
       delivery_notes,
+      warehouse_id,
       total_items: 0
     });
 
@@ -314,9 +317,9 @@ router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project M
       });
     }
 
-    // Update receipt status to COMPLETED
+    // Update receipt status to RECEIVED (not COMPLETED - inventory update happens only on verification)
     await receipt.update({
-      status: 'COMPLETED',
+      status: 'RECEIVED',
       notes: notes || receipt.notes
     });
 
@@ -348,6 +351,8 @@ router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project 
     // Find the receipt with items
     const receipt = await MaterialReceipt.findByPk(id, {
       include: [
+        { model: PurchaseOrder, as: 'purchaseOrder' },
+        { model: Project, as: 'project' },
         { 
           model: MaterialReceiptItem, 
           as: 'items',
@@ -355,8 +360,7 @@ router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project 
             { model: ItemMaster, as: 'item' },
             { model: Unit, as: 'unit' }
           ]
-        },
-        { model: Project, as: 'project' }
+        }
       ]
     });
 
@@ -375,7 +379,8 @@ router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project 
         let material = await Material.findOne({
           where: {
             item_id: item.item_id,
-            project_id: receipt.project_id || null
+            project_id: receipt.project_id || null,
+            warehouse_id: receipt.warehouse_id || null
           }
         });
 
@@ -384,6 +389,7 @@ router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project 
           material = await Material.create({
             item_id: item.item_id,
             project_id: receipt.project_id || null,
+            warehouse_id: receipt.warehouse_id || null,
             name: item.item.item_name,
             item_code: item.item.item_code,
             unit: item.unit.unit_symbol,
@@ -531,6 +537,7 @@ router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project M
     const receipt = await MaterialReceipt.findByPk(id, {
       include: [
         { model: Project, as: 'project' },
+        { model: PurchaseOrder, as: 'purchaseOrder' },
         { 
           model: MaterialReceiptItem, 
           as: 'items',
@@ -580,7 +587,8 @@ router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project M
         let material = await Material.findOne({
           where: {
             item_id: item.item_id,
-            project_id: receipt.project_id
+            project_id: receipt.project_id,
+            warehouse_id: receipt.warehouse_id || null
           }
         });
 
@@ -596,6 +604,7 @@ router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project M
           material = await Material.create({
             item_id: item.item_id,
             project_id: receipt.project_id,
+            warehouse_id: receipt.warehouse_id || null,
             name: item.item.item_name,
             item_code: item.item.item_code,
             category: item.item.category?.category_name || 'General',

@@ -126,8 +126,10 @@ SiteTransfer.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approved_
 // MaterialReturn associations
 MaterialReturn.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 MaterialReturn.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
-MaterialReturn.belongsTo(User, { foreignKey: 'returned_by_user_id', as: 'returned_by' });
+MaterialReturn.belongsTo(User, { foreignKey: 'returned_by_user_id', as: 'returned_by_user' });
 MaterialReturn.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approved_by' });
+MaterialReturn.belongsTo(MaterialIssue, { foreignKey: 'issue_id', as: 'material_issue' });
+MaterialReturn.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 
 // MaterialConsumption associations
 MaterialConsumption.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });

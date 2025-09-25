@@ -35,6 +35,10 @@ const MaterialReturn = sequelize.define('MaterialReturn', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  returned_by: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   condition_status: {
     type: DataTypes.ENUM('GOOD', 'DAMAGED', 'USED', 'EXPIRED'),
     defaultValue: 'GOOD'
@@ -58,6 +62,46 @@ const MaterialReturn = sequelize.define('MaterialReturn', {
   status: {
     type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
     defaultValue: 'PENDING'
+  },
+  mrr_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'material_requirement_requests',
+      key: 'mrr_id'
+    }
+  },
+  po_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'purchase_orders',
+      key: 'po_id'
+    }
+  },
+  issue_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'material_issues',
+      key: 'issue_id'
+    }
+  },
+  return_type: {
+    type: DataTypes.ENUM('STORE_RETURN', 'PO_RETURN', 'DAMAGE_RETURN'),
+    defaultValue: 'STORE_RETURN'
+  },
+  reference_number: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  warehouse_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'warehouses',
+      key: 'warehouse_id'
+    }
   }
 }, {
   tableName: 'material_returns',

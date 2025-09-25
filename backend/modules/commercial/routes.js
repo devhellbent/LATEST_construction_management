@@ -422,7 +422,8 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
   body('issue_date').isDate().withMessage('Invalid issue date'),
   body('location').trim().isLength({ min: 1 }).withMessage('Location is required'),
   body('issued_by_user_id').isInt().withMessage('Issued by user ID is required'),
-  body('received_by_user_id').isInt().withMessage('Received by user ID is required')
+  body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
+  body('issued_to').optional().trim().isLength({ min: 1 }).withMessage('Issued to information is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -430,7 +431,7 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { project_id, material_id, quantity_issued, issue_date, issue_purpose, location, issued_by_user_id, received_by_user_id, status } = req.body;
+    const { project_id, material_id, quantity_issued, issue_date, issue_purpose, location, issued_by_user_id, received_by_user_id, issued_to, status } = req.body;
 
     // Verify project exists
     const project = await Project.findByPk(project_id);
@@ -469,6 +470,7 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
       issue_date,
       issue_purpose: issue_purpose || '',
       location,
+      issued_to: issued_to || '',
       issued_by_user_id,
       received_by_user_id,
       created_by: req.user.user_id,
@@ -791,6 +793,7 @@ router.post('/material-return', authenticateToken, authorizeRoles('Admin', 'Proj
       quantity: materials.reduce((sum, m) => sum + m.quantity, 0),
       return_date: new Date().toISOString().split('T')[0],
       return_reason: remarks || '',
+      returned_by: return_from || '',
       condition_status: materials[0].condition_status,
       returned_by_user_id: req.user.user_id,
       approved_by_user_id: checked_by,

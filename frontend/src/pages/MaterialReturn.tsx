@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   commercialAPI, 
   materialsAPI, 
-  projectsAPI 
+  projectsAPI,
+  materialManagementAPI
 } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +32,7 @@ interface ReturnFormData {
   project_id: number;
   return_date: string;
   returned_by: string;
+  warehouse_id: number;
   notes: string;
   items: Array<{
     issue_id: number;
@@ -46,6 +48,7 @@ const MaterialReturn: React.FC = () => {
   const { user } = useAuth();
   const [materialIssues, setMaterialIssues] = useState<MaterialIssue[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [materialReturns, setMaterialReturns] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
@@ -54,6 +57,7 @@ const MaterialReturn: React.FC = () => {
     project_id: 0,
     return_date: new Date().toISOString().split('T')[0],
     returned_by: '',
+    warehouse_id: 0,
     notes: '',
     items: []
   });
@@ -66,17 +70,19 @@ const MaterialReturn: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [issuesRes, projectsRes] = await Promise.all([
+      const [issuesRes, projectsRes, warehousesRes] = await Promise.all([
         commercialAPI.getMaterialIssues({ 
           status: 'ISSUED',
           include_project: true,
           include_mrr: true
         }),
-        projectsAPI.getProjects()
+        projectsAPI.getProjects(),
+        materialManagementAPI.getWarehouses()
       ]);
 
       setMaterialIssues(issuesRes.data.issues || []);
       setProjects(projectsRes.data.projects || []);
+      setWarehouses(warehousesRes.data.warehouses || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -87,7 +93,7 @@ const MaterialReturn: React.FC = () => {
   const loadMaterialReturns = async () => {
     setRecordsLoading(true);
     try {
-      const response = await commercialAPI.getMaterialReturns({
+      const response = await materialManagementAPI.getMaterialReturns({
         include_project: true,
         limit: 50
       });
@@ -126,8 +132,8 @@ const MaterialReturn: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.issue_id || !formData.returned_by || formData.items.length === 0) {
-      alert('Please fill in all required fields');
+    if (!formData.issue_id || !formData.returned_by || !formData.warehouse_id || formData.items.length === 0) {
+      alert('Please fill in all required fields including warehouse selection');
       return;
     }
 
@@ -136,23 +142,19 @@ const MaterialReturn: React.FC = () => {
       // Transform data to match the backend API expectations
       const returnData = {
         project_id: formData.project_id,
-        material_return_id: `MR${Date.now()}`, // Generate unique ID
-        return_from: 'Project Site',
-        return_to_inventory: 'Main Warehouse',
-        checked_by: user?.user_id || 1, // Use current user ID
-        materials: formData.items
-          .filter(item => item.quantity_returned > 0)
-          .map(item => ({
-            material_id: item.item_id,
-            quantity: item.quantity_returned,
-            condition_status: item.quality_status
-          })),
-        tags: '',
-        remarks: formData.notes
+        material_id: formData.items[0].item_id,
+        quantity: formData.items[0].quantity_returned,
+        return_date: formData.return_date,
+        return_reason: formData.notes,
+        returned_by: formData.returned_by,
+        condition_status: formData.items[0].quality_status,
+        returned_by_user_id: user?.user_id || 1,
+        issue_id: formData.issue_id,
+        warehouse_id: formData.warehouse_id
       };
 
       console.log('Sending return data:', returnData);
-      await commercialAPI.createMaterialReturn(returnData);
+      await materialManagementAPI.createMaterialReturn(returnData);
 
       alert('Material return recorded successfully!');
       setFormData({
@@ -160,6 +162,7 @@ const MaterialReturn: React.FC = () => {
         project_id: 0,
         return_date: new Date().toISOString().split('T')[0],
         returned_by: '',
+        warehouse_id: 0,
         notes: '',
         items: []
       });
@@ -225,6 +228,25 @@ const MaterialReturn: React.FC = () => {
                 placeholder="Contractor/Site name"
                 required
               />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Warehouse Location *
+              </label>
+              <select
+                value={formData.warehouse_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, warehouse_id: parseInt(e.target.value) }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value={0}>Select Warehouse</option>
+                {warehouses.map((warehouse) => (
+                  <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
+                    {warehouse.warehouse_name} - {warehouse.address}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div>
@@ -379,7 +401,10 @@ const MaterialReturn: React.FC = () => {
                     Returned By
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Warehouse
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    On Behalf Of Material Issue
                   </th>
                 </tr>
               </thead>
@@ -412,17 +437,40 @@ const MaterialReturn: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {returnItem.returned_by?.name || 'N/A'}
+                      {returnItem.returned_by || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        returnItem.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                        returnItem.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        returnItem.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {returnItem.status}
-                      </span>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.warehouse ? (
+                        <div>
+                          <div className="font-medium">{returnItem.warehouse.warehouse_name}</div>
+                          <div className="text-xs text-gray-500">{returnItem.warehouse.address}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">N/A</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.material_issue ? (
+                        <div>
+                          <div className="font-medium">Issue #{returnItem.material_issue.issue_id}</div>
+                          <div className="text-xs text-gray-500">
+                            Date: {new Date(returnItem.material_issue.issue_date).toLocaleDateString()}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Qty: {returnItem.material_issue.quantity_issued}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Issued to: {returnItem.material_issue.issued_to || 'N/A'}
+                          </div>
+                          {returnItem.material_issue.issue_purpose && (
+                            <div className="text-xs text-gray-500">
+                              Purpose: {returnItem.material_issue.issue_purpose}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">Direct Return</span>
+                      )}
                     </td>
                   </tr>
                 ))}

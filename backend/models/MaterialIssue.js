@@ -39,6 +39,10 @@ const MaterialIssue = sequelize.define('MaterialIssue', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
+  issued_to: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   issued_by_user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -74,6 +78,38 @@ const MaterialIssue = sequelize.define('MaterialIssue', {
   status: {
     type: DataTypes.ENUM('PENDING', 'ISSUED', 'RECEIVED', 'CANCELLED'),
     defaultValue: 'PENDING'
+  },
+  mrr_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'material_requirement_requests',
+      key: 'mrr_id'
+    }
+  },
+  po_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'purchase_orders',
+      key: 'po_id'
+    }
+  },
+  receipt_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'material_receipts',
+      key: 'receipt_id'
+    }
+  },
+  issue_type: {
+    type: DataTypes.ENUM('STORE_ISSUE', 'PO_ISSUE', 'TRANSFER'),
+    defaultValue: 'STORE_ISSUE'
+  },
+  reference_number: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   }
 }, {
   tableName: 'material_issues',

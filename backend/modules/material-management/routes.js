@@ -26,6 +26,7 @@ router.get('/inventory', authenticateToken, [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
   query('project_id').optional().isInt(),
+  query('warehouse_id').optional().isInt(),
   query('category').optional().trim(),
   query('brand').optional().trim(),
   query('status').optional().isIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED']),
@@ -41,10 +42,11 @@ router.get('/inventory', authenticateToken, [
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const { project_id, category, brand, status, search, low_stock } = req.query;
+    const { project_id, warehouse_id, category, brand, status, search, low_stock } = req.query;
 
     const whereClause = {};
     if (project_id) whereClause.project_id = project_id;
+    if (warehouse_id) whereClause.warehouse_id = warehouse_id;
     if (category) whereClause.category = category;
     if (brand) whereClause.brand = brand;
     if (status) whereClause.status = status;
@@ -330,6 +332,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
   body('location').trim().isLength({ min: 1 }).withMessage('Location is required'),
   body('issued_by_user_id').isInt().withMessage('Issued by user ID is required'),
   body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
+  body('issued_to').optional().trim().isLength({ min: 1 }).withMessage('Issued to information is required'),
   body('is_for_mrr').optional().isBoolean(),
   body('mrr_id').optional().isInt(),
   body('issue_purpose').optional().trim()
@@ -342,7 +345,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
 
     const { 
       project_id, material_id, quantity_issued, issue_date, location, 
-      issued_by_user_id, received_by_user_id, is_for_mrr, mrr_id, issue_purpose 
+      issued_by_user_id, received_by_user_id, issued_to, is_for_mrr, mrr_id, issue_purpose 
     } = req.body;
 
     // Validate MRR requirement
@@ -397,6 +400,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
       issue_date,
       issue_purpose: issue_purpose || '',
       location,
+      issued_to: issued_to || '',
       issued_by_user_id,
       received_by_user_id,
       created_by: req.user.user_id,
@@ -542,8 +546,10 @@ router.get('/returns', authenticateToken, async (req, res) => {
       include: [
         { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
-        { model: User, as: 'returned_by', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
+        { model: User, as: 'returned_by_user', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] },
+        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] },
+        { model: MaterialIssue, as: 'material_issue', attributes: ['issue_id', 'issue_date', 'quantity_issued', 'issued_to', 'issue_purpose', 'location'] },
+        { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name', 'address'] }
       ],
       limit,
       offset,
@@ -572,8 +578,11 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('return_date').isDate().withMessage('Invalid return date'),
   body('return_reason').optional().trim(),
+  body('returned_by').optional().trim().isLength({ min: 1 }).withMessage('Returned by information is required'),
   body('condition_status').isIn(['GOOD', 'DAMAGED', 'USED', 'EXPIRED']).withMessage('Invalid condition status'),
-  body('returned_by_user_id').isInt().withMessage('Returned by user ID is required')
+  body('returned_by_user_id').isInt().withMessage('Returned by user ID is required'),
+  body('issue_id').optional().isInt().withMessage('Issue ID must be an integer'),
+  body('warehouse_id').optional().isInt().withMessage('Warehouse ID must be an integer')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -581,7 +590,7 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { project_id, material_id, quantity, return_date, return_reason, condition_status, returned_by_user_id } = req.body;
+    const { project_id, material_id, quantity, return_date, return_reason, returned_by, condition_status, returned_by_user_id, issue_id, warehouse_id } = req.body;
 
     // Verify project exists
     const project = await Project.findByPk(project_id);
@@ -608,10 +617,21 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
       quantity,
       return_date,
       return_reason: return_reason || '',
+      returned_by: returned_by || '',
       condition_status,
       returned_by_user_id,
+      issue_id: issue_id || null,
+      warehouse_id: warehouse_id || null,
       status: 'PENDING'
     });
+
+    // Get warehouse name for location if warehouse_id is provided
+    let location = 'Store';
+    if (warehouse_id) {
+      const { Warehouse } = require('../../models');
+      const warehouse = await Warehouse.findByPk(warehouse_id);
+      location = warehouse ? warehouse.warehouse_name : 'Store';
+    }
 
     // Record inventory transaction
     await InventoryService.recordTransaction({
@@ -622,14 +642,14 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
       quantity_change: quantity,
       reference_number: `RETURN-${materialReturn.return_id}`,
       description: `Material returned: ${return_reason || 'No description'}`,
-      location: 'Store',
+      location: location,
       performed_by_user_id: req.user.user_id
     });
 
     // Emit socket event
     socketService.emitToProject(project_id, 'materialReturn', {
       returnId: materialReturn.return_id,
-      materialId,
+      materialId: material_id,
       quantity,
       projectId: project_id
     });

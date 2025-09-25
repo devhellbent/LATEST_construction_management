@@ -28,6 +28,14 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
       key: 'project_id'
     }
   },
+  warehouse_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'warehouses',
+      key: 'warehouse_id'
+    }
+  },
   received_date: {
     type: DataTypes.DATEONLY,
     allowNull: false
@@ -93,7 +101,7 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
     defaultValue: 'GOOD'
   },
   status: {
-    type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'),
+    type: DataTypes.ENUM('PENDING', 'RECEIVED', 'APPROVED', 'REJECTED', 'COMPLETED'),
     defaultValue: 'PENDING'
   },
   total_items: {
