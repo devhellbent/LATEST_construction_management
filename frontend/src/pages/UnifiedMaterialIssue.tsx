@@ -59,6 +59,8 @@ const UnifiedMaterialIssue: React.FC = () => {
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [materialIssues, setMaterialIssues] = useState<any[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
   const [formData, setFormData] = useState<IssueFormData>({
     project_id: 0,
     issued_to: '',
@@ -70,6 +72,7 @@ const UnifiedMaterialIssue: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    loadMaterialIssues();
   }, []);
 
   const loadData = async () => {
@@ -116,6 +119,22 @@ const UnifiedMaterialIssue: React.FC = () => {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMaterialIssues = async () => {
+    setRecordsLoading(true);
+    try {
+      const response = await materialManagementAPI.getMaterialIssues({
+        include_project: true,
+        include_mrr: true,
+        limit: 50
+      });
+      setMaterialIssues(response.data.issues || []);
+    } catch (error) {
+      console.error('Error loading material issues:', error);
+    } finally {
+      setRecordsLoading(false);
     }
   };
 
@@ -253,6 +272,7 @@ const UnifiedMaterialIssue: React.FC = () => {
         is_mrr_based: false,
         items: []
       });
+      loadMaterialIssues(); // Refresh the records
     } catch (error) {
       console.error('Error issuing material:', error);
       console.error('Error response:', error.response?.data);
@@ -492,6 +512,108 @@ const UnifiedMaterialIssue: React.FC = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Material Issues Records Section */}
+      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900">Material Issue Records</h2>
+          <button
+            onClick={loadMaterialIssues}
+            disabled={recordsLoading}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            {recordsLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {recordsLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Issue ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Material
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Project
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Issue Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Issued To
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    MRR Reference
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {materialIssues.map((issue) => (
+                  <tr key={issue.issue_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{issue.issue_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {issue.material?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {issue.project?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {issue.quantity_issued} {issue.material?.unit || ''}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(issue.issue_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {issue.issued_to || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {issue.mrr?.mrr_number ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {issue.mrr.mrr_number}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">Direct Issue</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        issue.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
+                        issue.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        issue.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {issue.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {materialIssues.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No material issues found.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

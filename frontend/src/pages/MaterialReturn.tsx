@@ -47,6 +47,8 @@ const MaterialReturn: React.FC = () => {
   const [materialIssues, setMaterialIssues] = useState<MaterialIssue[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [materialReturns, setMaterialReturns] = useState<any[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
   const [formData, setFormData] = useState<ReturnFormData>({
     issue_id: 0,
     project_id: 0,
@@ -58,6 +60,7 @@ const MaterialReturn: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    loadMaterialReturns();
   }, []);
 
   const loadData = async () => {
@@ -78,6 +81,21 @@ const MaterialReturn: React.FC = () => {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMaterialReturns = async () => {
+    setRecordsLoading(true);
+    try {
+      const response = await commercialAPI.getMaterialReturns({
+        include_project: true,
+        limit: 50
+      });
+      setMaterialReturns(response.data.returns || []);
+    } catch (error) {
+      console.error('Error loading material returns:', error);
+    } finally {
+      setRecordsLoading(false);
     }
   };
 
@@ -145,6 +163,7 @@ const MaterialReturn: React.FC = () => {
         notes: '',
         items: []
       });
+      loadMaterialReturns(); // Refresh the records
       loadData();
     } catch (error) {
       console.error('Error recording return:', error);
@@ -314,6 +333,109 @@ const MaterialReturn: React.FC = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Material Returns Records Section */}
+      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-900">Material Return Records</h2>
+          <button
+            onClick={loadMaterialReturns}
+            disabled={recordsLoading}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+          >
+            {recordsLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
+        {recordsLoading ? (
+          <div className="flex items-center justify-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Return ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Material
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Project
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Quantity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Return Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Condition
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Returned By
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {materialReturns.map((returnItem) => (
+                  <tr key={returnItem.return_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      #{returnItem.return_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.material?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.project?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.quantity} {returnItem.material?.unit || ''}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(returnItem.return_date).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        returnItem.condition_status === 'GOOD' ? 'bg-green-100 text-green-800' :
+                        returnItem.condition_status === 'DAMAGED' ? 'bg-yellow-100 text-yellow-800' :
+                        returnItem.condition_status === 'DEFECTIVE' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {returnItem.condition_status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {returnItem.returned_by?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        returnItem.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                        returnItem.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        returnItem.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {returnItem.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {materialReturns.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No material returns found.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
