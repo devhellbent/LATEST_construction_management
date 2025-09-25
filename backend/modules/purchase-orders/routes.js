@@ -98,8 +98,34 @@ const router = express.Router();
 router.get('/', authenticateToken, [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
-  query('status').optional().isIn(['DRAFT', 'APPROVED', 'PLACED', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'FULLY_RECEIVED', 'CANCELLED', 'CLOSED']),
-  query('project_id').optional().isInt().withMessage('Project ID must be an integer'),
+  query('status').optional().custom((value) => {
+    if (Array.isArray(value)) {
+      // Handle array of statuses
+      const validStatuses = ['DRAFT', 'APPROVED', 'PLACED', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'FULLY_RECEIVED', 'CANCELLED', 'CLOSED'];
+      for (const status of value) {
+        if (!validStatuses.includes(status)) {
+          throw new Error(`Invalid status: ${status}`);
+        }
+      }
+      return true;
+    } else {
+      // Handle single status
+      const validStatuses = ['DRAFT', 'APPROVED', 'PLACED', 'ACKNOWLEDGED', 'PARTIALLY_RECEIVED', 'FULLY_RECEIVED', 'CANCELLED', 'CLOSED'];
+      if (!validStatuses.includes(value)) {
+        throw new Error(`Invalid status: ${value}`);
+      }
+      return true;
+    }
+  }),
+  query('project_id').custom((value) => {
+    if (value === 'null' || value === null || value === undefined || value === '') {
+      return true; // Allow null/empty values
+    }
+    if (!Number.isInteger(Number(value))) {
+      throw new Error('Project ID must be an integer');
+    }
+    return true;
+  }),
   query('supplier_id').optional().isInt().withMessage('Supplier ID must be an integer'),
   query('search').optional().trim()
 ], async (req, res) => {
@@ -116,8 +142,18 @@ router.get('/', authenticateToken, [
 
     // Build where clause
     const whereClause = {};
-    if (status) whereClause.status = status;
-    if (project_id) whereClause.project_id = project_id;
+    if (status) {
+      if (Array.isArray(status)) {
+        whereClause.status = { [Op.in]: status };
+      } else {
+        whereClause.status = status;
+      }
+    }
+    if (project_id === 'null') {
+      whereClause.project_id = null;
+    } else if (project_id) {
+      whereClause.project_id = project_id;
+    }
     if (supplier_id) whereClause.supplier_id = supplier_id;
     
     if (search) {
@@ -130,7 +166,7 @@ router.get('/', authenticateToken, [
     const { count, rows: purchaseOrders } = await PurchaseOrder.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Project, as: 'project', attributes: ['name'] },
+        { model: Project, as: 'project', attributes: ['name'], required: false },
         { model: Supplier, as: 'supplier', attributes: ['supplier_name', 'contact_person'] },
         { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
@@ -165,7 +201,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id, {
       include: [
-        { model: Project, as: 'project', attributes: ['name', 'description'] },
+        { model: Project, as: 'project', attributes: ['name', 'description'], required: false },
         { model: Supplier, as: 'supplier', attributes: ['supplier_name', 'contact_person', 'phone', 'email', 'address'] },
         { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
@@ -314,7 +350,15 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
 
 // Create standalone Purchase Order
 router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
-  body('project_id').isInt().withMessage('Project ID must be an integer'),
+  body('project_id').custom((value) => {
+    if (value === null || value === undefined || value === '') {
+      return true; // Allow null/empty values
+    }
+    if (!Number.isInteger(Number(value))) {
+      throw new Error('Project ID must be an integer');
+    }
+    return true;
+  }),
   body('supplier_id').isInt().withMessage('Supplier ID must be an integer'),
   body('expected_delivery_date').optional().isISO8601().withMessage('Expected delivery date must be a valid date'),
   body('payment_terms').optional().trim(),
@@ -335,6 +379,9 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
     }
 
     const { project_id, supplier_id, expected_delivery_date, payment_terms, delivery_terms, notes, items } = req.body;
+    
+    // Handle optional project_id - convert empty string to null
+    const finalProjectId = project_id === '' || project_id === undefined ? null : project_id;
 
     // Calculate totals
     let subtotal = 0;
@@ -370,7 +417,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
     // Create Purchase Order
     const purchaseOrder = await PurchaseOrder.create({
       po_number: poNumber,
-      project_id,
+      project_id: finalProjectId,
       supplier_id,
       po_date: new Date(),
       expected_delivery_date,
@@ -497,6 +544,16 @@ router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin'), asy
 
 // Update Purchase Order
 router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+  body('project_id').custom((value) => {
+    if (value === null || value === undefined || value === '') {
+      return true; // Allow null/empty values
+    }
+    if (!Number.isInteger(Number(value))) {
+      throw new Error('Project ID must be an integer');
+    }
+    return true;
+  }),
+  body('supplier_id').optional().isInt().withMessage('Supplier ID must be an integer'),
   body('expected_delivery_date').optional().isISO8601().withMessage('Expected delivery date must be a valid date'),
   body('payment_terms').optional().trim(),
   body('delivery_terms').optional().trim(),
@@ -517,7 +574,13 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager')
       return res.status(400).json({ message: 'Only draft Purchase Orders can be updated' });
     }
 
-    await purchaseOrder.update(req.body);
+    // Handle optional project_id - convert empty string to null
+    const updateData = { ...req.body };
+    if (updateData.project_id === '' || updateData.project_id === undefined) {
+      updateData.project_id = null;
+    }
+
+    await purchaseOrder.update(updateData);
 
     res.json({
       message: 'Purchase Order updated successfully',

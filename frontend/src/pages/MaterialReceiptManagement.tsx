@@ -10,6 +10,9 @@ interface PurchaseOrder {
   po_reference_id: string;
   supplier_id: number;
   supplier_name: string;
+  supplier?: {
+    supplier_name: string;
+  };
   project_id: number;
   project_name: string;
   po_date: string;
@@ -19,6 +22,7 @@ interface PurchaseOrder {
     po_item_id: number;
     item_id: number;
     item_name: string;
+    item_code?: string;
     quantity_ordered: number;
     unit_price: number;
     unit_id: number;
@@ -31,16 +35,26 @@ interface PurchaseOrder {
 interface ReceiptFormData {
   po_id: number;
   project_id: number;
-  receipt_date: string;
+  received_date: string;
+  delivery_date: string;
   received_by: string;
+  supplier_delivery_note: string;
+  vehicle_number: string;
+  driver_name: string;
+  condition_status: 'GOOD' | 'DAMAGED' | 'PARTIAL' | 'REJECTED';
   notes: string;
+  delivery_notes: string;
   items: Array<{
     po_item_id: number;
     item_id: number;
     quantity_received: number;
     unit_id: number;
-    quality_status: 'GOOD' | 'DAMAGED' | 'DEFECTIVE';
-    remarks: string;
+    unit_price: number;
+    condition_status: 'GOOD' | 'DAMAGED' | 'REJECTED';
+    batch_number: string;
+    expiry_date: string;
+    notes: string;
+    receipt_item_id?: number; // Optional for new items
   }>;
 }
 
@@ -49,24 +63,42 @@ const MaterialReceiptManagement: React.FC = () => {
   const [selectedPo, setSelectedPo] = useState<PurchaseOrder | null>(null);
   const [showReceiptForm, setShowReceiptForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [existingReceipts, setExistingReceipts] = useState<any[]>([]);
   const [formData, setFormData] = useState<ReceiptFormData>({
     po_id: 0,
     project_id: 0,
-    receipt_date: new Date().toISOString().split('T')[0],
+    received_date: new Date().toISOString().split('T')[0],
+    delivery_date: '',
     received_by: '',
+    supplier_delivery_note: '',
+    vehicle_number: '',
+    driver_name: '',
+    condition_status: 'GOOD',
     notes: '',
+    delivery_notes: '',
     items: []
   });
 
   useEffect(() => {
     loadPendingPos();
+    loadExistingReceipts();
   }, []);
+
+  const loadExistingReceipts = async () => {
+    try {
+      const response = await materialReceiptsAPI.getReceipts({});
+      setExistingReceipts(response.data.receipts || []);
+    } catch (error) {
+      console.error('Error loading existing receipts:', error);
+    }
+  };
 
   const loadPendingPos = async () => {
     setLoading(true);
     try {
+      // Load POs with status APPROVED or PLACED that have material receipts
       const response = await purchaseOrdersAPI.getPurchaseOrders({ 
-        status: 'APPROVED',
+        status: ['APPROVED', 'PLACED'],
         include_items: true,
         include_supplier: true,
         include_project: true
@@ -81,22 +113,73 @@ const MaterialReceiptManagement: React.FC = () => {
   };
 
   const handleSelectPo = (po: PurchaseOrder) => {
+    // Check if there's an existing receipt for this PO
+    const existingReceipt = existingReceipts.find(receipt => receipt.po_id === po.po_id);
+    
+    // Don't open form for verified receipts
+    if (existingReceipt?.status === 'APPROVED') {
+      alert('This receipt has already been verified and cannot be modified.');
+      return;
+    }
+    
     setSelectedPo(po);
-    setFormData({
-      po_id: po.po_id,
-      project_id: po.project_id,
-      receipt_date: new Date().toISOString().split('T')[0],
-      received_by: '',
-      notes: '',
-      items: po.items.map(item => ({
-        po_item_id: item.po_item_id,
-        item_id: item.item_id,
-        quantity_received: item.quantity_ordered,
-        unit_id: item.unit_id || 1,
-        quality_status: 'GOOD' as const,
-        remarks: ''
-      }))
-    });
+    
+    if (existingReceipt) {
+      // Load existing receipt data
+      setFormData({
+        po_id: po.po_id,
+        project_id: po.project_id,
+        received_date: existingReceipt.received_date,
+        delivery_date: existingReceipt.delivery_date || '',
+        received_by: existingReceipt.receivedBy?.name || '',
+        supplier_delivery_note: existingReceipt.supplier_delivery_note || '',
+        vehicle_number: existingReceipt.vehicle_number || '',
+        driver_name: existingReceipt.driver_name || '',
+        condition_status: existingReceipt.condition_status || 'GOOD',
+        notes: existingReceipt.notes || '',
+        delivery_notes: existingReceipt.delivery_notes || '',
+        items: existingReceipt.items?.map((item: any) => ({
+          po_item_id: item.po_item_id,
+          item_id: item.item_id,
+          quantity_received: item.quantity_received,
+          unit_id: item.unit_id || 1,
+          unit_price: item.unit_price || 0,
+          condition_status: item.condition_status || 'GOOD' as const,
+          batch_number: item.batch_number || '',
+          expiry_date: item.expiry_date || '',
+          notes: item.notes || '',
+          receipt_item_id: item.receipt_item_id // Include receipt_item_id for existing items
+        })) || []
+      });
+    } else {
+      // Create new receipt form
+      setFormData({
+        po_id: po.po_id,
+        project_id: po.project_id,
+        received_date: new Date().toISOString().split('T')[0],
+        delivery_date: '',
+        received_by: '',
+        supplier_delivery_note: '',
+        vehicle_number: '',
+        driver_name: '',
+        condition_status: 'GOOD',
+        notes: '',
+        delivery_notes: '',
+        items: po.items.map(item => ({
+          po_item_id: item.po_item_id,
+          item_id: item.item_id,
+          quantity_received: item.quantity_ordered,
+          unit_id: item.unit_id || 1,
+          unit_price: item.unit_price || 0,
+          condition_status: 'GOOD' as const,
+          batch_number: '',
+          expiry_date: '',
+          notes: '',
+          receipt_item_id: undefined // New items don't have receipt_item_id yet
+        }))
+      });
+    }
+    
     setShowReceiptForm(true);
   };
 
@@ -119,21 +202,55 @@ const MaterialReceiptManagement: React.FC = () => {
 
     setLoading(true);
     try {
-      await materialReceiptsAPI.createReceipt({
-        ...formData,
-        po_id: formData.po_id,
-        project_id: formData.project_id,
-        receipt_date: formData.receipt_date,
-        items: formData.items.filter(item => item.quantity_received > 0)
-      });
+      // Check if this is verification, update, or new creation
+      const existingReceipt = existingReceipts.find(receipt => receipt.po_id === formData.po_id);
+      
+      if (existingReceipt?.status === 'PENDING') {
+        // Verify pending receipt
+        const verificationData = {
+          verification_notes: formData.notes,
+          items: formData.items
+            .filter(item => item.quantity_received > 0)
+            .map(item => ({
+              receipt_item_id: item.receipt_item_id || item.po_item_id, // Use po_item_id as fallback
+              verified_quantity: item.quantity_received,
+              verification_notes: item.notes
+            }))
+        };
+        
+        await materialReceiptsAPI.verifyReceipt(existingReceipt.receipt_id, verificationData);
+        alert('Material receipt verified successfully! Inventory has been updated.');
+      } else if (existingReceipt) {
+        // Update existing receipt
+        await materialReceiptsAPI.updateReceipt(existingReceipt.receipt_id, {
+          ...formData,
+          po_id: formData.po_id,
+          project_id: formData.project_id,
+          received_date: formData.received_date,
+          delivery_date: formData.delivery_date,
+          items: formData.items.filter(item => item.quantity_received > 0)
+        });
+        alert('Material receipt updated successfully!');
+      } else {
+        // Create new receipt
+        await materialReceiptsAPI.createReceipt({
+          ...formData,
+          po_id: formData.po_id,
+          project_id: formData.project_id,
+          received_date: formData.received_date,
+          delivery_date: formData.delivery_date,
+          items: formData.items.filter(item => item.quantity_received > 0)
+        });
+        alert('Material receipt created successfully!');
+      }
 
-      alert('Material receipt recorded successfully!');
       setShowReceiptForm(false);
       setSelectedPo(null);
       loadPendingPos();
+      loadExistingReceipts();
     } catch (error) {
-      console.error('Error creating receipt:', error);
-      alert('Error recording material receipt');
+      console.error('Error saving receipt:', error);
+      alert('Error saving material receipt. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -173,12 +290,32 @@ const MaterialReceiptManagement: React.FC = () => {
                           <h3 className="text-lg font-semibold text-gray-900">
                             {po.po_reference_id}
                           </h3>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                            APPROVED
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
+                            PO ID: {po.po_id}
                           </span>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            po.status === 'PLACED' ? 'bg-indigo-100 text-indigo-800' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {po.status}
+                          </span>
+                          {existingReceipts.find(receipt => receipt.po_id === po.po_id) && (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING' 
+                                ? 'PENDING VERIFICATION' 
+                                : 'VERIFIED'}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-gray-600 mb-1">Supplier: {po.supplier_name}</p>
-                        <p className="text-gray-600 mb-1">Project: {po.project_name}</p>
+                        <p className="text-gray-600 mb-1">
+                          <span className="font-medium">Supplier:</span> {po.supplier_name || 'N/A'}
+                        </p>
+                        <p className="text-gray-600 mb-1">
+                          <span className="font-medium">Project:</span> {po.project_name || 'N/A'}
+                        </p>
                         <p className="text-gray-600 mb-3">
                           Expected Delivery: {new Date(po.expected_delivery_date).toLocaleDateString()}
                         </p>
@@ -200,9 +337,24 @@ const MaterialReceiptManagement: React.FC = () => {
                       <div className="ml-4">
                         <button
                           onClick={() => handleSelectPo(po)}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                          disabled={existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'}
+                          className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                            existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'
+                              ? 'bg-gray-400 cursor-not-allowed'
+                              : existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING'
+                                ? 'bg-orange-600 hover:bg-orange-700'
+                                : existingReceipts.find(receipt => receipt.po_id === po.po_id)
+                                  ? 'bg-purple-600 hover:bg-purple-700'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
                         >
-                          Record Receipt
+                          {existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'
+                            ? '✓ Verified'
+                            : existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'PENDING'
+                              ? 'Verify Receipt'
+                              : existingReceipts.find(receipt => receipt.po_id === po.po_id)
+                                ? 'Update Receipt'
+                                : 'Record Receipt'}
                         </button>
                       </div>
                     </div>
@@ -216,7 +368,16 @@ const MaterialReceiptManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              Record Material Receipt - {selectedPo?.po_reference_id}
+              {(() => {
+                const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
+                if (existingReceipt?.status === 'PENDING') {
+                  return 'Verify Material Receipt';
+                } else if (existingReceipt) {
+                  return 'Update Material Receipt';
+                } else {
+                  return 'Record Material Receipt';
+                }
+              })()} - {selectedPo?.po_reference_id}
             </h2>
             <button
               onClick={() => setShowReceiptForm(false)}
@@ -244,15 +405,82 @@ const MaterialReceiptManagement: React.FC = () => {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Receipt Date
+                  Received Date *
                 </label>
                 <input
                   type="date"
-                  value={formData.receipt_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, receipt_date: e.target.value }))}
+                  value={formData.received_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, received_date: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Delivery Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.delivery_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, delivery_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Supplier Delivery Note
+                </label>
+                <input
+                  type="text"
+                  value={formData.supplier_delivery_note}
+                  onChange={(e) => setFormData(prev => ({ ...prev, supplier_delivery_note: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Delivery note number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vehicle Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.vehicle_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, vehicle_number: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Vehicle registration number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driver Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.driver_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, driver_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Driver name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Overall Condition Status
+                </label>
+                <select
+                  value={formData.condition_status}
+                  onChange={(e) => setFormData(prev => ({ ...prev, condition_status: e.target.value as any }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="GOOD">Good</option>
+                  <option value="DAMAGED">Damaged</option>
+                  <option value="PARTIAL">Partial</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
               </div>
             </div>
 
@@ -268,6 +496,12 @@ const MaterialReceiptManagement: React.FC = () => {
                           <h4 className="font-medium text-gray-900">{poItem?.item_name}</h4>
                           <p className="text-sm text-gray-600">
                             Ordered: {poItem?.quantity_ordered} {poItem?.unit_name}
+                          </p>
+                          <p className="text-xs text-blue-600 font-medium">
+                            Vendor: {selectedPo?.supplier?.supplier_name || selectedPo?.supplier_name || 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Item Code: {poItem?.item_code || 'N/A'}
                           </p>
                         </div>
                         
@@ -288,29 +522,69 @@ const MaterialReceiptManagement: React.FC = () => {
                         
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Quality Status
+                            Unit Price
+                          </label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.unit_price}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'unit_price', parseFloat(e.target.value) || 0)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Condition Status
                           </label>
                           <select
-                            value={item.quality_status}
-                            onChange={(e) => updateItemReceipt(item.po_item_id, 'quality_status', e.target.value)}
+                            value={item.condition_status}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'condition_status', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
                             <option value="GOOD">Good</option>
                             <option value="DAMAGED">Damaged</option>
-                            <option value="DEFECTIVE">Defective</option>
+                            <option value="REJECTED">Rejected</option>
                           </select>
                         </div>
                         
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Remarks
+                            Batch Number
                           </label>
                           <input
                             type="text"
-                            value={item.remarks}
-                            onChange={(e) => updateItemReceipt(item.po_item_id, 'remarks', e.target.value)}
+                            value={item.batch_number}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'batch_number', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Quality notes"
+                            placeholder="Batch/Lot number"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Expiry Date
+                          </label>
+                          <input
+                            type="date"
+                            value={item.expiry_date}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'expiry_date', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Notes
+                          </label>
+                          <input
+                            type="text"
+                            value={item.notes}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'notes', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Quality notes and remarks"
                           />
                         </div>
                       </div>
@@ -333,6 +607,19 @@ const MaterialReceiptManagement: React.FC = () => {
               />
             </div>
 
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Delivery Notes
+              </label>
+              <textarea
+                value={formData.delivery_notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, delivery_notes: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                placeholder="Notes about delivery conditions..."
+              />
+            </div>
+
             <div className="flex justify-end space-x-4">
               <button
                 type="button"
@@ -344,9 +631,29 @@ const MaterialReceiptManagement: React.FC = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                className={`px-4 py-2 text-white rounded-lg transition-colors disabled:opacity-50 ${
+                  (() => {
+                    const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
+                    if (existingReceipt?.status === 'PENDING') {
+                      return 'bg-orange-600 hover:bg-orange-700';
+                    } else if (existingReceipt) {
+                      return 'bg-purple-600 hover:bg-purple-700';
+                    } else {
+                      return 'bg-blue-600 hover:bg-blue-700';
+                    }
+                  })()
+                }`}
               >
-                {loading ? 'Recording...' : 'Record Receipt'}
+                {loading ? 'Processing...' : (() => {
+                  const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
+                  if (existingReceipt?.status === 'PENDING') {
+                    return 'Verify Receipt';
+                  } else if (existingReceipt) {
+                    return 'Update Receipt';
+                  } else {
+                    return 'Record Receipt';
+                  }
+                })()}
               </button>
             </div>
           </form>

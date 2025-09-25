@@ -317,8 +317,8 @@ const CreatePurchaseOrder: React.FC = () => {
       return;
     }
 
-    if (!formData.project_id || !formData.supplier_id) {
-      setError('Please select project and supplier');
+    if (!formData.supplier_id) {
+      setError('Please select supplier');
       return;
     }
 
@@ -331,7 +331,7 @@ const CreatePurchaseOrder: React.FC = () => {
       const poData = {
         ...formData,
         mrr_id: formData.mrr_id ? parseInt(formData.mrr_id) : null,
-        project_id: parseInt(formData.project_id),
+        project_id: formData.project_id ? parseInt(formData.project_id) : null,
         supplier_id: parseInt(formData.supplier_id),
         subtotal,
         tax_amount: taxAmount,
@@ -446,16 +446,15 @@ const CreatePurchaseOrder: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Project <span className="text-red-500">*</span>
+                Project
               </label>
               <select
                 name="project_id"
                 value={formData.project_id}
                 onChange={handleInputChange}
-                required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Select Project</option>
+                <option value="">Select Project (Optional)</option>
                 {projects.map((project) => (
                   <option key={project.project_id} value={project.project_id}>
                     {project.name}

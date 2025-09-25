@@ -95,7 +95,7 @@ const PurchaseOrderManagement: React.FC = () => {
     setFormData({
       mrr_id: mrr.mrr_id,
       supplier_id: 0,
-      project_id: mrr.project_id,
+      project_id: mrr.project_id || 0, // Handle case where project_id might be null
       po_date: new Date().toISOString().split('T')[0],
       expected_delivery_date: mrr.required_date,
       terms_conditions: 'Payment terms: 30 days from delivery',

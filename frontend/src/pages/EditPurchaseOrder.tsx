@@ -172,7 +172,7 @@ const EditPurchaseOrder: React.FC = () => {
         return;
       }
 
-      if (!po.project || !po.supplier) {
+      if (!po.supplier) {
         setError('Purchase order data is incomplete');
         setInitialLoading(false);
         return;
@@ -180,7 +180,7 @@ const EditPurchaseOrder: React.FC = () => {
       
       setPurchaseOrder(po);
       setFormData({
-        project_id: po.project.project_id?.toString() || '',
+        project_id: po.project?.project_id?.toString() || '',
         supplier_id: po.supplier.supplier_id?.toString() || '',
         po_date: po.po_date ? po.po_date.split('T')[0] : '',
         expected_delivery_date: po.expected_delivery_date ? po.expected_delivery_date.split('T')[0] : '',
@@ -299,7 +299,7 @@ const EditPurchaseOrder: React.FC = () => {
       setError(null);
 
       const submitData = {
-        project_id: parseInt(formData.project_id),
+        project_id: formData.project_id ? parseInt(formData.project_id) : null,
         supplier_id: parseInt(formData.supplier_id),
         po_date: formData.po_date,
         expected_delivery_date: formData.expected_delivery_date || null,

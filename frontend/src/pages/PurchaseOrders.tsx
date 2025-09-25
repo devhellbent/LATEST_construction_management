@@ -19,9 +19,9 @@ import { purchaseOrdersAPI, projectsAPI, suppliersAPI } from '../services/api';
 interface PurchaseOrder {
   po_id: number;
   po_number: string;
-  project: {
+  project?: {
     name: string;
-  };
+  } | null;
   supplier: {
     supplier_name: string;
     contact_person: string;
@@ -281,6 +281,7 @@ const PurchaseOrders: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Projects</option>
+                  <option value="null">No Project</option>
                   {projects.map((project) => (
                     <option key={project.project_id} value={project.project_id}>
                       {project.name}
@@ -374,7 +375,9 @@ const PurchaseOrders: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{po.project.name}</div>
+                    <div className="text-sm text-gray-900">
+                      {po.project?.name || 'No Project'}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>

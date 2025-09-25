@@ -22,7 +22,7 @@ const PurchaseOrder = sequelize.define('PurchaseOrder', {
   },
   project_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'projects',
       key: 'project_id'

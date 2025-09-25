@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -527,6 +527,8 @@ export const materialReceiptsAPI = {
     api.post('/material-receipts', receiptData),
   updateReceipt: (id: number, receiptData: any) =>
     api.put(`/material-receipts/${id}`, receiptData),
+  verifyReceipt: (id: number, verificationData: any) =>
+    api.post(`/material-receipts/${id}/verify`, verificationData),
   deleteReceipt: (id: number) =>
     api.delete(`/material-receipts/${id}`),
   addReceiptItem: (id: number, itemData: any) =>

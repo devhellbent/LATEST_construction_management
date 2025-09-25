@@ -9,7 +9,7 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
   },
   receipt_number: {
     type: DataTypes.STRING(50),
-    allowNull: false,
+    allowNull: true, // Allow null since database trigger will generate it
     unique: true
   },
   po_id: {
@@ -22,7 +22,7 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
   },
   project_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'projects',
       key: 'project_id'
@@ -32,6 +32,10 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
     type: DataTypes.DATEONLY,
     allowNull: false
   },
+  delivery_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true
+  },
   received_by_user_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -39,6 +43,38 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
       model: 'users',
       key: 'user_id'
     }
+  },
+  verified_by_user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  verified_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  verification_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  approved_by_user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  approved_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  rejection_reason: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   supplier_delivery_note: {
     type: DataTypes.STRING(100),
@@ -56,11 +92,19 @@ const MaterialReceipt = sequelize.define('MaterialReceipt', {
     type: DataTypes.ENUM('GOOD', 'DAMAGED', 'PARTIAL', 'REJECTED'),
     defaultValue: 'GOOD'
   },
+  status: {
+    type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'),
+    defaultValue: 'PENDING'
+  },
   total_items: {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
   notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  delivery_notes: {
     type: DataTypes.TEXT,
     allowNull: true
   }

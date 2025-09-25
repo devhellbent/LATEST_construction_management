@@ -75,6 +75,38 @@ const MaterialReceiptItem = sequelize.define('MaterialReceiptItem', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  delivery_status: {
+    type: DataTypes.ENUM('PENDING', 'DELIVERED', 'VERIFIED'),
+    defaultValue: 'PENDING'
+  },
+  delivery_quantity: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  delivery_condition: {
+    type: DataTypes.ENUM('GOOD', 'DAMAGED', 'PARTIAL', 'REJECTED'),
+    defaultValue: 'GOOD'
+  },
+  delivery_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  verified_by_user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  verified_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  verification_notes: {
+    type: DataTypes.TEXT,
+    allowNull: true
   }
 }, {
   tableName: 'material_receipt_items',

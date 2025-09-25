@@ -186,7 +186,7 @@ const PurchaseOrderReceipts: React.FC = () => {
       const receiptData = {
         ...formData,
         po_id: parseInt(id!),
-        project_id: purchaseOrder!.project.project_id,
+        project_id: purchaseOrder!.project?.project_id || null,
         items: validItems
       };
 
