@@ -24,7 +24,15 @@ import {
   IndianRupee,
   RefreshCw,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ClipboardList,
+  FileText as FileTextIcon,
+  Truck,
+  CreditCard,
+  Workflow,
+  Plus,
+  History,
+  Package2
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -36,17 +44,27 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commercialExpanded, setCommercialExpanded] = useState(false);
+  const [materialManagementExpanded, setMaterialManagementExpanded] = useState(false);
   const { user, logout } = useAuth();
   const { isConnected } = useSocket();
   const location = useLocation();
 
   const commercialSubItems = [
-    { name: 'Inventory', href: '/commercial/inventory', icon: Package },
     { name: 'Site Transfers', href: '/commercial/site-transfers', icon: ArrowRightLeft },
-    { name: 'Material Issue', href: '/commercial/material-issue', icon: ShoppingCart },
-    { name: 'Material Return', href: '/commercial/material-return', icon: RotateCcw },
     { name: 'Petty Cash', href: '/commercial/petty-cash', icon: IndianRupee },
-    { name: 'Consumptions', href: '/commercial/consumptions', icon: RefreshCw },
+  ];
+
+  const materialManagementSubItems = [
+    { name: 'Dashboard', href: '/material-management', icon: LayoutDashboard },
+    { name: 'MRR Management', href: '/material-management/mrr', icon: ClipboardList },
+    { name: 'Material Issue', href: '/material-management/issue', icon: ShoppingCart },
+    { name: 'Material Return', href: '/material-management/return', icon: RotateCcw },
+    { name: 'Material Consumption', href: '/material-management/consumption', icon: RefreshCw },
+    { name: 'Inventory Management', href: '/material-management/inventory', icon: Package },
+    { name: 'Purchase Orders', href: '/material-management/purchase-orders', icon: FileTextIcon },
+    { name: 'Material Receipts', href: '/material-management/receipts', icon: Truck },
+    { name: 'Supplier Ledger', href: '/material-management/supplier-ledger', icon: CreditCard },
+    { name: 'Workflow Tracking', href: '/material-management/workflow', icon: Workflow },
   ];
 
   const navigation = [
@@ -54,6 +72,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Projects', href: '/projects', icon: FolderOpen },
     { name: 'Project Associated Members', href: '/project-members', icon: UserCheck },
     { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+    { name: 'Purchase Orders', href: '/purchase-orders', icon: FileTextIcon },
+    { 
+      name: 'Material Management', 
+      href: '/material-management', 
+      icon: Package, 
+      subItems: materialManagementSubItems,
+      expanded: materialManagementExpanded,
+      onToggle: () => setMaterialManagementExpanded(!materialManagementExpanded)
+    },
     { 
       name: 'Commercial', 
       href: '/commercial', 
@@ -114,13 +141,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return location.pathname.startsWith('/commercial');
   };
 
+  const isMaterialManagementActive = () => {
+    return location.pathname.startsWith('/material-management');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="relative flex w-64 flex-col bg-white h-full">
-          <div className="flex h-16 items-center justify-between px-4">
+        <div className="relative sidebar-container w-64 bg-white h-full">
+          <div className="flex h-16 items-center justify-between px-4 flex-shrink-0">
             <div className="flex items-center">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
                 <span className="text-white font-bold text-sm">CE</span>
@@ -134,11 +165,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <X className="h-6 w-6" />
             </button>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-1">
+          <div className="sidebar-nav">
+            <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
               const hasSubItems = item.subItems && item.subItems.length > 0;
-              const isItemActive = hasSubItems ? isCommercialActive() : isActive(item.href);
+              const isItemActive = hasSubItems ? 
+                (item.name === 'Commercial' ? isCommercialActive() : isMaterialManagementActive()) : 
+                isActive(item.href);
               
               return (
                 <div key={item.name}>
@@ -190,14 +224,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               );
             })}
-          </nav>
+            </nav>
+          </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4">
+        <div className="sidebar-container bg-white border-r border-gray-200">
+          <div className="flex h-16 items-center px-4 flex-shrink-0">
             <div className="flex items-center">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
                 <span className="text-white font-bold text-sm">CE</span>
@@ -205,11 +240,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <span className="ml-2 text-xl font-bold text-gray-900">ConstructEase</span>
             </div>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-1">
+          <div className="sidebar-nav">
+            <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
               const hasSubItems = item.subItems && item.subItems.length > 0;
-              const isItemActive = hasSubItems ? isCommercialActive() : isActive(item.href);
+              const isItemActive = hasSubItems ? 
+                (item.name === 'Commercial' ? isCommercialActive() : isMaterialManagementActive()) : 
+                isActive(item.href);
               
               return (
                 <div key={item.name}>
@@ -259,7 +297,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               );
             })}
-          </nav>
+            </nav>
+          </div>
         </div>
       </div>
 

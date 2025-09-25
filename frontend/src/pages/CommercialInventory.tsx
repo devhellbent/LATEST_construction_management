@@ -5,6 +5,7 @@ import MaterialSelectionModal from '../components/MaterialSelectionModal';
 import MaterialForm from '../components/MaterialForm';
 import InventoryHistory from '../components/InventoryHistory';
 import { materialsAPI, commercialAPI } from '../services/api';
+import { useSocket } from '../contexts/SocketContext';
 import toast from 'react-hot-toast';
 
 interface Material {
@@ -55,6 +56,8 @@ const CommercialInventory: React.FC = () => {
   const [selectedMaterialForHistory, setSelectedMaterialForHistory] = useState<Material | null>(null);
   const [recentHistory, setRecentHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const { socket } = useSocket();
   
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,7 +78,41 @@ const CommercialInventory: React.FC = () => {
     fetchFilterOptions();
     fetchMasterData();
     fetchRecentHistory();
+    fetchRecentActivity();
   }, [selectedProjectId]);
+
+  // Real-time updates for material activities
+  useEffect(() => {
+    if (socket) {
+      const handleMaterialIssue = () => {
+        fetchRecentActivity();
+        fetchRecentHistory();
+        toast.success('New material issue detected');
+      };
+
+      const handleMaterialReturn = () => {
+        fetchRecentActivity();
+        fetchRecentHistory();
+        toast.success('New material return detected');
+      };
+
+      const handleSiteTransfer = () => {
+        fetchRecentActivity();
+        fetchRecentHistory();
+        toast.success('New site transfer detected');
+      };
+
+      socket.on('materialIssue', handleMaterialIssue);
+      socket.on('materialReturn', handleMaterialReturn);
+      socket.on('siteTransfer', handleSiteTransfer);
+
+      return () => {
+        socket.off('materialIssue', handleMaterialIssue);
+        socket.off('materialReturn', handleMaterialReturn);
+        socket.off('siteTransfer', handleSiteTransfer);
+      };
+    }
+  }, [socket]);
 
   const fetchMasterData = async () => {
     try {
@@ -192,6 +229,19 @@ const CommercialInventory: React.FC = () => {
       setRecentHistory([]);
     } finally {
       setHistoryLoading(false);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await commercialAPI.getRecentActivity({ 
+        project_id: selectedProjectId,
+        limit: 10 
+      });
+      setRecentActivity(response.data.activities || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
     }
   };
 
@@ -537,7 +587,10 @@ const CommercialInventory: React.FC = () => {
                   Recent Activity
                 </h3>
                 <button
-                  onClick={fetchRecentHistory}
+                  onClick={() => {
+                    fetchRecentHistory();
+                    fetchRecentActivity();
+                  }}
                   className="text-sm text-primary-600 hover:text-primary-700"
                 >
                   Refresh
@@ -549,39 +602,55 @@ const CommercialInventory: React.FC = () => {
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto mb-2"></div>
                   <p className="text-gray-600 text-sm">Loading recent activity...</p>
                 </div>
-              ) : recentHistory.length === 0 ? (
+              ) : recentActivity.length === 0 ? (
                 <div className="text-center py-8">
                   <History className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                   <p className="text-gray-500 text-sm">No recent activity found</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {recentHistory.map((item) => (
-                    <div key={item.history_id} className="p-3 bg-gray-50 rounded-lg">
+                  {recentActivity.map((activity) => (
+                    <div key={`${activity.type}-${activity.id}`} className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-start space-x-3">
                         <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                          item.transaction_type === 'ISSUE' ? 'bg-red-500' :
-                          item.transaction_type === 'RETURN' ? 'bg-green-500' :
-                          item.transaction_type === 'PURCHASE' ? 'bg-blue-500' :
+                          activity.type === 'ISSUE' ? 'bg-red-500' :
+                          activity.type === 'TRANSFER' ? 'bg-blue-500' :
                           'bg-gray-500'
                         }`}></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {item.material?.name || 'Unknown Material'}
+                            {activity.material?.name || 'Unknown Material'}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {item.transaction_type} • {new Date(item.transaction_date).toLocaleDateString()}
+                            {activity.type === 'ISSUE' ? 'Material Issued' : 'Site Transfer'} • {new Date(activity.date).toLocaleDateString()}
                           </p>
                           <div className="mt-1">
-                            <p className={`text-sm font-medium ${
-                              item.quantity_change > 0 ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {item.quantity_change > 0 ? '+' : ''}{item.quantity_change} {item.material?.unit || ''}
+                            <p className="text-sm font-medium text-gray-700">
+                              {activity.quantity} {activity.material?.unit || ''}
                             </p>
-                            <p className="text-xs text-gray-500">
-                              Stock: {item.quantity_after} {item.material?.unit || ''}
-                            </p>
+                            {activity.type === 'ISSUE' ? (
+                              <p className="text-xs text-gray-500">
+                                Project: {activity.project?.name} • By: {activity.user?.name}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500">
+                                From: {activity.from_project?.name} → To: {activity.to_project?.name}
+                              </p>
+                            )}
+                            {activity.description && (
+                              <p className="text-xs text-gray-400 mt-1 truncate">
+                                {activity.description}
+                              </p>
+                            )}
                           </div>
+                        </div>
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          activity.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          activity.status === 'APPROVED' || activity.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
+                          activity.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {activity.status}
                         </div>
                       </div>
                     </div>

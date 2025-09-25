@@ -23,6 +23,14 @@ const Supplier = require('./Supplier');
 const ItemMaster = require('./ItemMaster');
 const ItemSupplier = require('./ItemSupplier');
 const { PaymentType, PaymentCategory, Payment } = require('./Payment');
+const MaterialRequirementRequest = require('./MaterialRequirementRequest');
+const MrrItem = require('./MrrItem');
+const PurchaseOrder = require('./PurchaseOrder');
+const PurchaseOrderItem = require('./PurchaseOrderItem');
+const MaterialReceipt = require('./MaterialReceipt');
+const MaterialReceiptItem = require('./MaterialReceiptItem');
+const SupplierLedger = require('./SupplierLedger');
+const Warehouse = require('./Warehouse');
 
 // Role associations
 Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
@@ -69,7 +77,14 @@ Task.hasMany(Issue, { foreignKey: 'task_id', as: 'issues' });
 // Material associations
 Material.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 Material.belongsTo(ItemMaster, { foreignKey: 'item_id', as: 'item' });
+Material.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
+Material.hasMany(MaterialIssue, { foreignKey: 'material_id', as: 'issues' });
+Material.hasMany(MaterialReturn, { foreignKey: 'material_id', as: 'returns' });
+Material.hasMany(MaterialConsumption, { foreignKey: 'material_id', as: 'consumptions' });
+Material.hasMany(InventoryHistory, { foreignKey: 'material_id', as: 'history' });
 
+// Warehouse associations
+Warehouse.hasMany(Material, { foreignKey: 'warehouse_id', as: 'materials' });
 
 // Labour associations
 Labour.hasMany(LabourAttendance, { foreignKey: 'labour_id', as: 'attendance' });
@@ -171,6 +186,67 @@ Payment.belongsTo(User, { foreignKey: 'paid_by_user_id', as: 'paidByUser' });
 Payment.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedByUser' });
 Payment.belongsTo(User, { foreignKey: 'deleted_by_user_id', as: 'deletedByUser' });
 
+// MaterialRequirementRequest associations
+MaterialRequirementRequest.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+MaterialRequirementRequest.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requestedBy' });
+MaterialRequirementRequest.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
+MaterialRequirementRequest.hasMany(MrrItem, { foreignKey: 'mrr_id', as: 'items' });
+MaterialRequirementRequest.hasMany(PurchaseOrder, { foreignKey: 'mrr_id', as: 'purchaseOrders' });
+
+// MrrItem associations
+MrrItem.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+MrrItem.belongsTo(ItemMaster, { foreignKey: 'item_id', as: 'item' });
+MrrItem.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
+
+// PurchaseOrder associations
+PurchaseOrder.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+PurchaseOrder.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+PurchaseOrder.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'createdBy' });
+PurchaseOrder.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
+PurchaseOrder.hasMany(PurchaseOrderItem, { foreignKey: 'po_id', as: 'items' });
+PurchaseOrder.hasMany(MaterialReceipt, { foreignKey: 'po_id', as: 'receipts' });
+PurchaseOrder.hasMany(SupplierLedger, { foreignKey: 'po_id', as: 'ledgerEntries' });
+
+// PurchaseOrderItem associations
+PurchaseOrderItem.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+PurchaseOrderItem.belongsTo(ItemMaster, { foreignKey: 'item_id', as: 'item' });
+PurchaseOrderItem.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
+PurchaseOrderItem.hasMany(MaterialReceiptItem, { foreignKey: 'po_item_id', as: 'receiptItems' });
+
+// MaterialReceipt associations
+MaterialReceipt.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+MaterialReceipt.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+MaterialReceipt.belongsTo(User, { foreignKey: 'received_by_user_id', as: 'receivedBy' });
+MaterialReceipt.hasMany(MaterialReceiptItem, { foreignKey: 'receipt_id', as: 'items' });
+
+// MaterialReceiptItem associations
+MaterialReceiptItem.belongsTo(MaterialReceipt, { foreignKey: 'receipt_id', as: 'receipt' });
+MaterialReceiptItem.belongsTo(PurchaseOrderItem, { foreignKey: 'po_item_id', as: 'poItem' });
+MaterialReceiptItem.belongsTo(ItemMaster, { foreignKey: 'item_id', as: 'item' });
+MaterialReceiptItem.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
+
+// SupplierLedger associations
+SupplierLedger.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
+SupplierLedger.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+SupplierLedger.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'createdBy' });
+
+// Update existing associations to include MRR flow
+MaterialIssue.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+MaterialIssue.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+MaterialIssue.belongsTo(MaterialReceipt, { foreignKey: 'receipt_id', as: 'receipt' });
+
+MaterialReturn.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+MaterialReturn.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+MaterialReturn.belongsTo(MaterialIssue, { foreignKey: 'issue_id', as: 'originalIssue' });
+
+MaterialConsumption.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+MaterialConsumption.belongsTo(MaterialIssue, { foreignKey: 'issue_id', as: 'issue' });
+
+InventoryHistory.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
+InventoryHistory.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
+InventoryHistory.belongsTo(MaterialReceipt, { foreignKey: 'receipt_id', as: 'receipt' });
+
 module.exports = {
   User,
   Role,
@@ -198,5 +274,13 @@ module.exports = {
   ItemSupplier,
   PaymentType,
   PaymentCategory,
-  Payment
+  Payment,
+  MaterialRequirementRequest,
+  MrrItem,
+  PurchaseOrder,
+  PurchaseOrderItem,
+  MaterialReceipt,
+  MaterialReceiptItem,
+  SupplierLedger,
+  Warehouse
 };

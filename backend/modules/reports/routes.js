@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const { Op } = require('sequelize');
-const { Report, Project, User } = require('../../models');
+const { Report, Project, User, InventoryHistory, Material } = require('../../models');
 const { authenticateToken, authorizeRoles } = require('../../middleware/auth');
 const ReportGenerator = require('../../services/ReportGenerator');
 
@@ -13,7 +13,7 @@ router.get('/', authenticateToken, [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('project_id').optional().isInt().withMessage('Project ID must be an integer'),
-  query('report_type').optional().isIn(['PROGRESS', 'FINANCIAL', 'RESOURCE', 'ISSUE', 'CUSTOM']).withMessage('Invalid report type')
+  query('report_type').optional().isIn(['PROGRESS', 'FINANCIAL', 'RESOURCE', 'ISSUE', 'CUSTOM', 'RESTOCK']).withMessage('Invalid report type')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -59,7 +59,7 @@ router.get('/', authenticateToken, [
 // Generate report
 router.post('/generate', authenticateToken, [
   body('project_id').isInt().withMessage('Project ID is required'),
-  body('report_type').isIn(['PROGRESS', 'FINANCIAL', 'RESOURCE', 'ISSUE', 'CUSTOM']).withMessage('Invalid report type'),
+  body('report_type').isIn(['PROGRESS', 'FINANCIAL', 'RESOURCE', 'ISSUE', 'CUSTOM', 'RESTOCK']).withMessage('Invalid report type'),
   body('format').optional().isIn(['json', 'csv', 'pdf']).withMessage('Format must be json, csv, or pdf'),
   body('data').optional().isObject().withMessage('Data must be an object')
 ], async (req, res) => {
@@ -99,6 +99,10 @@ router.post('/generate', authenticateToken, [
       case 'CUSTOM':
         reportData = req.body.data || {};
         fileInfo = { filename: 'custom_report', format: 'json' };
+        break;
+      case 'RESTOCK':
+        fileInfo = await reportGenerator.generateRestockReport(req.body.project_id, format);
+        reportData = await reportGenerator.generateRestockReport(req.body.project_id, 'json');
         break;
       default:
         return res.status(400).json({ message: 'Invalid report type' });
@@ -189,6 +193,93 @@ router.post('/issue/:projectId', authenticateToken, [
   } catch (error) {
     console.error('Generate issue report error:', error);
     res.status(500).json({ message: error.message || 'Failed to generate issue report' });
+  }
+});
+
+// Generate restock report
+router.post('/restock/:projectId', authenticateToken, [
+  query('format').optional().isIn(['json', 'csv', 'pdf']).withMessage('Format must be json, csv, or pdf'),
+  query('date_from').optional().isDate().withMessage('Invalid start date'),
+  query('date_to').optional().isDate().withMessage('Invalid end date')
+], async (req, res) => {
+  try {
+    const format = req.query.format || 'json';
+    const { date_from, date_to } = req.query;
+    
+    const fileInfo = await reportGenerator.generateRestockReport(req.params.projectId, format, { date_from, date_to });
+    
+    res.json({
+      message: 'Restock report generated successfully',
+      file: fileInfo
+    });
+  } catch (error) {
+    console.error('Generate restock report error:', error);
+    res.status(500).json({ message: error.message || 'Failed to generate restock report' });
+  }
+});
+
+// Get restock summary for dashboard
+router.get('/restock/summary/:projectId', authenticateToken, async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { date_from, date_to } = req.query;
+
+    const whereClause = {
+      transaction_type: 'RESTOCK'
+    };
+    
+    if (date_from || date_to) {
+      whereClause.transaction_date = {};
+      if (date_from) whereClause.transaction_date[Op.gte] = date_from;
+      if (date_to) whereClause.transaction_date[Op.lte] = date_to;
+    }
+
+    // Get restock summary
+    const restockSummary = await InventoryHistory.findAll({
+      where: whereClause,
+      include: [
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['material_id', 'name', 'unit', 'cost_per_unit'],
+          where: { project_id: projectId }
+        }
+      ],
+      attributes: [
+        'material_id',
+        [InventoryHistory.sequelize.fn('SUM', InventoryHistory.sequelize.col('quantity_change')), 'total_restocked'],
+        [InventoryHistory.sequelize.fn('COUNT', InventoryHistory.sequelize.col('history_id')), 'restock_count']
+      ],
+      group: ['material_id'],
+      order: [[InventoryHistory.sequelize.fn('SUM', InventoryHistory.sequelize.col('quantity_change')), 'DESC']]
+    });
+
+    // Get total restock value
+    const totalRestockValue = await InventoryHistory.findAll({
+      where: whereClause,
+      include: [
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['cost_per_unit'],
+          where: { project_id: projectId }
+        }
+      ],
+      attributes: [
+        [InventoryHistory.sequelize.fn('SUM', 
+          InventoryHistory.sequelize.literal('quantity_change * material.cost_per_unit')
+        ), 'total_value']
+      ],
+      raw: true
+    });
+
+    res.json({
+      summary: restockSummary,
+      totalValue: totalRestockValue[0]?.total_value || 0
+    });
+  } catch (error) {
+    console.error('Get restock summary error:', error);
+    res.status(500).json({ message: 'Failed to fetch restock summary' });
   }
 });
 

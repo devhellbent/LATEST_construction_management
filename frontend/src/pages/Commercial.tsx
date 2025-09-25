@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  Package, 
   ArrowRightLeft, 
-  ShoppingCart, 
-  RotateCcw, 
   IndianRupee, 
-  RefreshCw,
   Building2,
   Plus,
-  Upload
+  Upload,
+  Package,
+  RefreshCw
 } from 'lucide-react';
 import ProjectSelector from '../components/ProjectSelector';
 import { commercialAPI } from '../services/api';
@@ -26,13 +24,6 @@ const Commercial: React.FC = () => {
 
   const commercialSections = [
     {
-      name: 'Inventory',
-      href: '/commercial/inventory',
-      icon: Package,
-      description: 'Manage project inventory and materials',
-      color: 'bg-blue-50 text-blue-700 border-blue-200'
-    },
-    {
       name: 'Site Transfers',
       href: '/commercial/site-transfers',
       icon: ArrowRightLeft,
@@ -40,32 +31,11 @@ const Commercial: React.FC = () => {
       color: 'bg-green-50 text-green-700 border-green-200'
     },
     {
-      name: 'Material Issue',
-      href: '/commercial/material-issue',
-      icon: ShoppingCart,
-      description: 'Issue materials to projects',
-      color: 'bg-purple-50 text-purple-700 border-purple-200'
-    },
-    {
-      name: 'Material Return',
-      href: '/commercial/material-return',
-      icon: RotateCcw,
-      description: 'Return unused materials',
-      color: 'bg-orange-50 text-orange-700 border-orange-200'
-    },
-    {
       name: 'Petty Cash',
       href: '/commercial/petty-cash',
       icon: IndianRupee,
       description: 'Manage petty cash expenses',
       color: 'bg-yellow-50 text-yellow-700 border-yellow-200'
-    },
-    {
-      name: 'Consumptions',
-      href: '/commercial/consumptions',
-      icon: RefreshCw,
-      description: 'Track material consumptions',
-      color: 'bg-red-50 text-red-700 border-red-200'
     }
   ];
 

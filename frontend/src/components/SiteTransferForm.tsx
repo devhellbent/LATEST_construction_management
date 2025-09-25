@@ -20,6 +20,7 @@ interface Material {
   type: string;
   unit: string;
   stock_qty: number;
+  available_qty: number;
 }
 
 const SiteTransferForm: React.FC<SiteTransferFormProps> = ({
@@ -94,10 +95,33 @@ const SiteTransferForm: React.FC<SiteTransferFormProps> = ({
 
   const fetchMaterialsByProject = async (projectId: number) => {
     try {
-      const response = await materialsAPI.getMaterialsByProject(projectId);
-      setAvailableMaterials(response.data.materials || []);
+      // Fetch materials that have been issued for this project
+      const response = await commercialAPI.getMaterialIssues({ project_id: projectId });
+      const issues = response.data.issues || [];
+      
+      // Get unique materials from issues and their available quantities
+      const materialMap = new Map();
+      issues.forEach((issue: any) => {
+        if (issue.material && issue.status !== 'CANCELLED') {
+          const materialId = issue.material.material_id;
+          if (materialMap.has(materialId)) {
+            materialMap.get(materialId).available_qty += issue.quantity_issued;
+          } else {
+            materialMap.set(materialId, {
+              material_id: materialId,
+              name: issue.material.name,
+              type: issue.material.type || '',
+              unit: issue.material.unit || '',
+              stock_qty: issue.material.stock_qty || 0,
+              available_qty: issue.quantity_issued
+            });
+          }
+        }
+      });
+      
+      setAvailableMaterials(Array.from(materialMap.values()));
     } catch (error) {
-      console.error('Error fetching materials:', error);
+      console.error('Error fetching issued materials:', error);
       setAvailableMaterials([]);
     }
   };
@@ -239,7 +263,7 @@ const SiteTransferForm: React.FC<SiteTransferFormProps> = ({
               <option value="">Select material</option>
               {availableMaterials.map(material => (
                 <option key={material.material_id} value={material.material_id}>
-                  {material.name} ({material.type}) - Stock: {material.stock_qty} {material.unit}
+                  {material.name} ({material.type}) - Available: {material.available_qty} {material.unit}
                 </option>
               ))}
             </select>

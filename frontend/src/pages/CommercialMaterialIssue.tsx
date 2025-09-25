@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Download, MoreHorizontal, Settings } from 'lucide-react';
+import { ShoppingCart, Plus, Download, MoreHorizontal, Settings, History } from 'lucide-react';
 import { commercialAPI } from '../services/api';
+import { useSocket } from '../contexts/SocketContext';
 import MaterialIssueForm from '../components/MaterialIssueForm';
 
 interface MaterialIssue {
@@ -27,10 +28,41 @@ const CommercialMaterialIssue: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const { socket } = useSocket();
 
   useEffect(() => {
     fetchIssues();
+    fetchRecentActivity();
   }, []);
+
+  // Real-time updates for material activities
+  useEffect(() => {
+    if (socket) {
+      const handleMaterialIssue = () => {
+        fetchIssues();
+        fetchRecentActivity();
+      };
+
+      const handleMaterialReturn = () => {
+        fetchRecentActivity();
+      };
+
+      const handleSiteTransfer = () => {
+        fetchRecentActivity();
+      };
+
+      socket.on('materialIssue', handleMaterialIssue);
+      socket.on('materialReturn', handleMaterialReturn);
+      socket.on('siteTransfer', handleSiteTransfer);
+
+      return () => {
+        socket.off('materialIssue', handleMaterialIssue);
+        socket.off('materialReturn', handleMaterialReturn);
+        socket.off('siteTransfer', handleSiteTransfer);
+      };
+    }
+  }, [socket]);
 
   const fetchIssues = async () => {
     try {
@@ -44,8 +76,19 @@ const CommercialMaterialIssue: React.FC = () => {
     }
   };
 
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await commercialAPI.getRecentActivity({ limit: 10 });
+      setRecentActivity(response.data.activities || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
+    }
+  };
+
   const handleFormSuccess = () => {
     fetchIssues(); // Refresh the list after successful creation
+    fetchRecentActivity(); // Refresh recent activity
   };
 
   return (
@@ -93,7 +136,11 @@ const CommercialMaterialIssue: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter and Action Bar */}
+      {/* Main Layout with Content and Right Sidebar */}
+      <div className="flex space-x-6">
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Filter and Action Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Filter Dropdowns */}
@@ -226,6 +273,82 @@ const CommercialMaterialIssue: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+        </div>
+
+        {/* Right Sidebar - Recent Activity */}
+        <div className="w-80">
+          <div className="card p-6 sticky top-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                <History className="h-5 w-5 mr-2 text-primary-600" />
+                Recent Activity
+              </h3>
+              <button
+                onClick={fetchRecentActivity}
+                className="text-sm text-primary-600 hover:text-primary-700"
+              >
+                Refresh
+              </button>
+            </div>
+            
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-8">
+                <History className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No recent activity found</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {recentActivity.map((activity) => (
+                  <div key={`${activity.type}-${activity.id}`} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                        activity.type === 'ISSUE' ? 'bg-red-500' :
+                        activity.type === 'TRANSFER' ? 'bg-blue-500' :
+                        'bg-gray-500'
+                      }`}></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {activity.material?.name || 'Unknown Material'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {activity.type === 'ISSUE' ? 'Material Issued' : 'Site Transfer'} • {new Date(activity.date).toLocaleDateString()}
+                        </p>
+                        <div className="mt-1">
+                          <p className="text-sm font-medium text-gray-700">
+                            {activity.quantity} {activity.material?.unit || ''}
+                          </p>
+                          {activity.type === 'ISSUE' ? (
+                            <p className="text-xs text-gray-500">
+                              Project: {activity.project?.name} • By: {activity.user?.name}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              From: {activity.from_project?.name} → To: {activity.to_project?.name}
+                            </p>
+                          )}
+                          {activity.description && (
+                            <p className="text-xs text-gray-400 mt-1 truncate">
+                              {activity.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        activity.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                        activity.status === 'APPROVED' || activity.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
+                        activity.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {activity.status}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

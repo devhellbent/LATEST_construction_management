@@ -96,4 +96,23 @@
   .priority-critical {
     @apply bg-danger-100 text-danger-800;
   }
+
+  .sidebar-scrollable {
+    @apply overflow-y-auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    max-height: calc(100vh - 4rem); /* Account for header height */
+  }
+
+  .sidebar-scrollable::-webkit-scrollbar {
+    display: none; /* WebKit */
+  }
+
+  .sidebar-container {
+    @apply flex flex-col h-full;
+  }
+
+  .sidebar-nav {
+    @apply flex-1 overflow-hidden;
+  }
 }

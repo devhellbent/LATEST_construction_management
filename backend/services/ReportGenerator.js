@@ -2,7 +2,7 @@ const PDFDocument = require('pdfkit');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const fs = require('fs');
 const path = require('path');
-const { Project, Task, Issue, Material, Labour, PettyCashExpense, MaterialAllocation, LabourAttendance, Payroll } = require('../models');
+const { Project, Task, Issue, Material, Labour, PettyCashExpense, MaterialAllocation, LabourAttendance, Payroll, InventoryHistory } = require('../models');
 const { Op } = require('sequelize');
 
 class ReportGenerator {
@@ -276,6 +276,129 @@ class ReportGenerator {
       return await this.saveReport(reportData, `issue_report_${projectId}`, format);
     } catch (error) {
       throw new Error(`Failed to generate issue report: ${error.message}`);
+    }
+  }
+
+  // Generate Restock Report
+  async generateRestockReport(projectId, format = 'json', dateRange = {}) {
+    try {
+      const project = await Project.findByPk(projectId);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      const whereClause = {
+        transaction_type: 'RESTOCK'
+      };
+      
+      if (dateRange.date_from || dateRange.date_to) {
+        whereClause.transaction_date = {};
+        if (dateRange.date_from) whereClause.transaction_date[Op.gte] = dateRange.date_from;
+        if (dateRange.date_to) whereClause.transaction_date[Op.lte] = dateRange.date_to;
+      }
+
+      const restockHistory = await InventoryHistory.findAll({
+        where: whereClause,
+        include: [
+          { 
+            model: Material, 
+            as: 'material', 
+            attributes: ['material_id', 'name', 'type', 'unit', 'cost_per_unit'],
+            where: { project_id: projectId }
+          },
+          { model: User, as: 'performedBy', foreignKey: 'performed_by_user_id', attributes: ['user_id', 'name'] }
+        ],
+        order: [['transaction_date', 'DESC']]
+      });
+
+      // Calculate summary statistics
+      const totalRestocked = restockHistory.reduce((sum, record) => sum + record.quantity_change, 0);
+      const totalValue = restockHistory.reduce((sum, record) => {
+        return sum + (record.quantity_change * (record.material.cost_per_unit || 0));
+      }, 0);
+
+      // Group by material
+      const materialSummary = {};
+      restockHistory.forEach(record => {
+        const materialName = record.material.name;
+        if (!materialSummary[materialName]) {
+          materialSummary[materialName] = {
+            name: materialName,
+            type: record.material.type,
+            unit: record.material.unit,
+            totalRestocked: 0,
+            totalValue: 0,
+            restockCount: 0,
+            restocks: []
+          };
+        }
+        materialSummary[materialName].totalRestocked += record.quantity_change;
+        materialSummary[materialName].totalValue += record.quantity_change * (record.material.cost_per_unit || 0);
+        materialSummary[materialName].restockCount += 1;
+        materialSummary[materialName].restocks.push({
+          date: record.transaction_date,
+          quantity: record.quantity_change,
+          reference: record.reference_number,
+          performedBy: record.performedBy.name,
+          description: record.description
+        });
+      });
+
+      // Group by month for trend analysis
+      const monthlyTrend = {};
+      restockHistory.forEach(record => {
+        const month = new Date(record.transaction_date).toISOString().substring(0, 7); // YYYY-MM
+        if (!monthlyTrend[month]) {
+          monthlyTrend[month] = {
+            month,
+            totalRestocked: 0,
+            totalValue: 0,
+            restockCount: 0
+          };
+        }
+        monthlyTrend[month].totalRestocked += record.quantity_change;
+        monthlyTrend[month].totalValue += record.quantity_change * (record.material.cost_per_unit || 0);
+        monthlyTrend[month].restockCount += 1;
+      });
+
+      const reportData = {
+        project: {
+          id: project.project_id,
+          name: project.name,
+          description: project.description
+        },
+        summary: {
+          totalRestocked,
+          totalValue,
+          restockCount: restockHistory.length,
+          materialCount: Object.keys(materialSummary).length,
+          dateRange: {
+            from: dateRange.date_from || 'All time',
+            to: dateRange.date_to || 'All time'
+          }
+        },
+        materialSummary: Object.values(materialSummary).sort((a, b) => b.totalRestocked - a.totalRestocked),
+        monthlyTrend: Object.values(monthlyTrend).sort((a, b) => a.month.localeCompare(b.month)),
+        details: restockHistory.map(record => ({
+          id: record.history_id,
+          material: record.material.name,
+          quantity: record.quantity_change,
+          unit: record.material.unit,
+          costPerUnit: record.material.cost_per_unit,
+          totalCost: record.quantity_change * (record.material.cost_per_unit || 0),
+          reference: record.reference_number,
+          description: record.description,
+          performedBy: record.performedBy.name,
+          date: record.transaction_date,
+          stockBefore: record.quantity_before,
+          stockAfter: record.quantity_after
+        })),
+        generatedAt: new Date().toISOString()
+      };
+
+      return await this.saveReport(reportData, `restock_report_${projectId}`, format);
+    } catch (error) {
+      throw new Error(`Failed to generate restock report: ${error.message}`);
     }
   }
 

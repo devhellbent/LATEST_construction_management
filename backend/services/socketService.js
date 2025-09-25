@@ -1,7 +1,36 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
 
-const setupSocketHandlers = (io) => {
+let io = null;
+
+// Helper function to emit notifications
+const emitNotification = (userId, message, type = 'info') => {
+  if (io) {
+    io.to(`user_${userId}`).emit('notification', {
+      message,
+      type,
+      timestamp: new Date()
+    });
+  }
+};
+
+// Helper function to emit project updates
+const emitProjectUpdate = (projectId, event, data) => {
+  if (io) {
+    io.to(`project_${projectId}`).emit(event, {
+      ...data,
+      timestamp: new Date()
+    });
+  }
+};
+
+// Helper function to emit to project (alias for emitProjectUpdate)
+const emitToProject = (projectId, event, data) => {
+  emitProjectUpdate(projectId, event, data);
+};
+
+const setupSocketHandlers = (socketIO) => {
+  io = socketIO;
   // Authentication middleware for socket connections
   io.use(async (socket, next) => {
     try {
@@ -183,25 +212,6 @@ const setupSocketHandlers = (io) => {
       console.log(`User ${socket.user.name} (${socket.userId}) disconnected`);
     });
   });
-
-  // Helper function to emit notifications
-  const emitNotification = (userId, message, type = 'info') => {
-    io.to(`user_${userId}`).emit('notification', {
-      message,
-      type,
-      timestamp: new Date()
-    });
-  };
-
-  // Helper function to emit project updates
-  const emitProjectUpdate = (projectId, event, data) => {
-    io.to(`project_${projectId}`).emit(event, {
-      ...data,
-      timestamp: new Date()
-    });
-  };
-
-  return { emitNotification, emitProjectUpdate };
 };
 
-module.exports = { setupSocketHandlers };
+module.exports = { setupSocketHandlers, emitToProject, emitProjectUpdate, emitNotification };

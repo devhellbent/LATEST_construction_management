@@ -250,6 +250,19 @@ export const reportsAPI = {
     api.delete(`/reports/${id}`),
   getReportsByProject: (projectId: number) =>
     api.get(`/reports/project/${projectId}`),
+  
+  // Restock Reports
+  generateRestockReport: (projectId: number, format?: string, dateRange?: { date_from?: string, date_to?: string }) =>
+    api.post(`/reports/restock/${projectId}`, {}, { 
+      params: { 
+        format: format || 'json',
+        ...dateRange 
+      } 
+    }),
+  getRestockSummary: (projectId: number, dateRange?: { date_from?: string, date_to?: string }) =>
+    api.get(`/reports/restock/summary/${projectId}`, { 
+      params: dateRange 
+    }),
 };
 
 // Documents API
@@ -328,6 +341,204 @@ export const paymentsAPI = {
     api.get('/payments/categories/all'),
 };
 
+// Suppliers API
+export const suppliersAPI = {
+  getSuppliers: (params?: any) =>
+    api.get('/suppliers', { params }),
+  getSupplier: (id: number) =>
+    api.get(`/suppliers/${id}`),
+  createSupplier: (supplierData: any) =>
+    api.post('/suppliers', supplierData),
+  updateSupplier: (id: number, supplierData: any) =>
+    api.put(`/suppliers/${id}`, supplierData),
+  deleteSupplier: (id: number) =>
+    api.delete(`/suppliers/${id}`),
+  getSupplierItems: (id: number) =>
+    api.get(`/suppliers/${id}/items`),
+  addSupplierItem: (id: number, itemData: any) =>
+    api.post(`/suppliers/${id}/items`, itemData),
+  updateSupplierItem: (id: number, itemId: number, itemData: any) =>
+    api.put(`/suppliers/${id}/items/${itemId}`, itemData),
+  deleteSupplierItem: (id: number, itemId: number) =>
+    api.delete(`/suppliers/${id}/items/${itemId}`),
+};
+
+// Material Management API
+export const materialManagementAPI = {
+  // Inventory Management
+  getInventory: (params?: any) =>
+    api.get('/material-management/inventory', { params }),
+  getMaterial: (id: number) =>
+    api.get(`/material-management/inventory/${id}`),
+  createMaterial: (materialData: any) =>
+    api.post('/material-management/inventory', materialData),
+  updateMaterial: (id: number, materialData: any) =>
+    api.put(`/material-management/inventory/${id}`, materialData),
+  deleteMaterial: (id: number) =>
+    api.delete(`/material-management/inventory/${id}`),
+
+  // Material Issues
+  getMaterialIssues: (params?: any) =>
+    api.get('/material-management/issues', { params }),
+  createMaterialIssue: (issueData: any) =>
+    api.post('/material-management/issues', issueData),
+  updateMaterialIssue: (id: number, issueData: any) =>
+    api.put(`/material-management/issues/${id}`, issueData),
+  deleteMaterialIssue: (id: number) =>
+    api.delete(`/material-management/issues/${id}`),
+
+  // Material Returns
+  getMaterialReturns: (params?: any) =>
+    api.get('/material-management/returns', { params }),
+  createMaterialReturn: (returnData: any) =>
+    api.post('/material-management/returns', returnData),
+  updateMaterialReturn: (id: number, returnData: any) =>
+    api.put(`/material-management/returns/${id}`, returnData),
+  deleteMaterialReturn: (id: number) =>
+    api.delete(`/material-management/returns/${id}`),
+
+  // Material Consumptions
+  getMaterialConsumptions: (params?: any) =>
+    api.get('/material-management/consumptions', { params }),
+  createMaterialConsumption: (consumptionData: any) =>
+    api.post('/material-management/consumptions', consumptionData),
+  updateMaterialConsumption: (id: number, consumptionData: any) =>
+    api.put(`/material-management/consumptions/${id}`, consumptionData),
+  deleteMaterialConsumption: (id: number) =>
+    api.delete(`/material-management/consumptions/${id}`),
+
+  // Inventory History
+  getInventoryHistory: (params?: any) =>
+    api.get('/material-management/inventory-history', { params }),
+
+  // Master Data
+  getMasterData: () =>
+    api.get('/material-management/master-data'),
+
+      // Dashboard Stats
+      getDashboardStats: (projectId: number) =>
+        api.get(`/material-management/dashboard-stats/${projectId}`),
+
+  // Warehouse Management
+  getWarehouses: () =>
+    api.get('/material-management/warehouses'),
+  createWarehouse: (warehouseData: any) =>
+    api.post('/material-management/warehouses', warehouseData),
+
+  // Inventory Restocking
+  getLowStockMaterials: (projectId?: number) =>
+    api.get('/material-management/restock/low-stock', { 
+      params: projectId ? { project_id: projectId } : {} 
+    }),
+  restockSingle: (restockData: any) =>
+    api.post('/material-management/restock/single', restockData),
+  restockBulk: (restockData: any) =>
+    api.post('/material-management/restock/bulk', restockData),
+  getRestockHistory: (projectId?: number, params?: any) =>
+    api.get('/material-management/restock/history', { 
+      params: { 
+        ...(projectId ? { project_id: projectId } : {}),
+        ...params 
+      } 
+    }),
+};
+
+// MRR API
+export const mrrAPI = {
+  getMrrs: (params?: any) =>
+    api.get('/mrr', { params }),
+  getMrr: (id: number) =>
+    api.get(`/mrr/${id}`),
+  createMrr: (mrrData: any) =>
+    api.post('/mrr', mrrData),
+  updateMrr: (id: number, mrrData: any) =>
+    api.put(`/mrr/${id}`, mrrData),
+  deleteMrr: (id: number) =>
+    api.delete(`/mrr/${id}`),
+  submitMrr: (id: number) =>
+    api.patch(`/mrr/${id}/submit`),
+  approveMrr: (id: number, action: 'approve' | 'reject', rejectionReason?: string) =>
+    api.patch(`/mrr/${id}/approve`, { action, rejection_reason: rejectionReason }),
+  addMrrItem: (id: number, itemData: any) =>
+    api.post(`/mrr/${id}/items`, itemData),
+  updateMrrItem: (id: number, itemId: number, itemData: any) =>
+    api.put(`/mrr/${id}/items/${itemId}`, itemData),
+  deleteMrrItem: (id: number, itemId: number) =>
+    api.delete(`/mrr/${id}/items/${itemId}`),
+  checkMrrInventory: (mrrId: number, autoCreateMaterials: boolean = false) =>
+    api.post(`/mrr/${mrrId}/check-inventory`, { auto_create_materials: autoCreateMaterials }),
+  updateMrrStatus: (mrrId: number, status: string, notes?: string) =>
+    api.patch(`/mrr/${mrrId}/status`, { status, notes }),
+};
+
+// Purchase Orders API
+export const purchaseOrdersAPI = {
+  getPurchaseOrders: (params?: any) =>
+    api.get('/purchase-orders', { params }),
+  getPurchaseOrder: (id: number) =>
+    api.get(`/purchase-orders/${id}`),
+  createPurchaseOrder: (poData: any) =>
+    api.post('/purchase-orders', poData),
+  createPurchaseOrderFromMrr: (mrrId: number, poData: any) =>
+    api.post(`/purchase-orders/from-mrr/${mrrId}`, poData),
+  updatePurchaseOrder: (id: number, poData: any) =>
+    api.put(`/purchase-orders/${id}`, poData),
+  deletePurchaseOrder: (id: number) =>
+    api.delete(`/purchase-orders/${id}`),
+  approvePurchaseOrder: (id: number) =>
+    api.patch(`/purchase-orders/${id}/approve`),
+  placeOrder: (id: number) =>
+    api.patch(`/purchase-orders/${id}/place-order`),
+  cancelPurchaseOrder: (id: number) =>
+    api.patch(`/purchase-orders/${id}/cancel`),
+  addPurchaseOrderItem: (id: number, itemData: any) =>
+    api.post(`/purchase-orders/${id}/items`, itemData),
+  updatePurchaseOrderItem: (id: number, itemId: number, itemData: any) =>
+    api.put(`/purchase-orders/${id}/items/${itemId}`, itemData),
+  deletePurchaseOrderItem: (id: number, itemId: number) =>
+    api.delete(`/purchase-orders/${id}/items/${itemId}`),
+};
+
+// Supplier Ledger API
+export const supplierLedgerAPI = {
+  getLedgerEntries: (params?: any) =>
+    api.get('/supplier-ledger', { params }),
+  getLedgerSummary: (params?: any) =>
+    api.get('/supplier-ledger/summary', { params }),
+  getSupplierLedger: (supplierId: number, params?: any) =>
+    api.get(`/supplier-ledger/supplier/${supplierId}`, { params }),
+  recordPayment: (paymentData: any) =>
+    api.post('/supplier-ledger/payment', paymentData),
+  recordAdjustment: (adjustmentData: any) =>
+    api.post('/supplier-ledger/adjustment', adjustmentData),
+  getOverduePayments: () =>
+    api.get('/supplier-ledger/overdue'),
+  getPaymentReports: (params?: any) =>
+    api.get('/supplier-ledger/reports/payments', { params }),
+};
+
+// Material Receipts API
+export const materialReceiptsAPI = {
+  getReceipts: (params?: any) =>
+    api.get('/material-receipts', { params }),
+  getReceipt: (id: number) =>
+    api.get(`/material-receipts/${id}`),
+  createReceipt: (receiptData: any) =>
+    api.post('/material-receipts', receiptData),
+  updateReceipt: (id: number, receiptData: any) =>
+    api.put(`/material-receipts/${id}`, receiptData),
+  deleteReceipt: (id: number) =>
+    api.delete(`/material-receipts/${id}`),
+  addReceiptItem: (id: number, itemData: any) =>
+    api.post(`/material-receipts/${id}/items`, itemData),
+  updateReceiptItem: (id: number, itemId: number, itemData: any) =>
+    api.put(`/material-receipts/${id}/items/${itemId}`, itemData),
+  deleteReceiptItem: (id: number, itemId: number) =>
+    api.delete(`/material-receipts/${id}/items/${itemId}`),
+  getAvailablePoItems: (poId: number) =>
+    api.get(`/material-receipts/po/${poId}/available-items`),
+};
+
 // Commercial API
 export const commercialAPI = {
   // Inventory
@@ -365,6 +576,10 @@ export const commercialAPI = {
     api.get('/commercial/material-return', { params }),
   createMaterialReturn: (returnData: any) =>
     api.post('/commercial/material-return', returnData),
+  updateMaterialReturn: (id: number, returnData: any) =>
+    api.put(`/commercial/material-return/${id}`, returnData),
+  deleteMaterialReturn: (id: number) =>
+    api.delete(`/commercial/material-return/${id}`),
   
   // Petty Cash
   getPettyCash: (params?: any) =>
@@ -373,6 +588,14 @@ export const commercialAPI = {
   // Consumptions
   getConsumptions: (params?: any) =>
     api.get('/commercial/consumptions', { params }),
+  createMaterialConsumption: (consumptionData: any) =>
+    api.post('/commercial/consumptions', consumptionData),
+  updateMaterialConsumption: (id: number, consumptionData: any) =>
+    api.put(`/commercial/consumptions/${id}`, consumptionData),
+  deleteMaterialConsumption: (id: number) =>
+    api.delete(`/commercial/consumptions/${id}`),
+  calculateConsumptions: (params?: any) =>
+    api.get('/commercial/consumptions/calculate', { params }),
   
   // Dashboard Stats
   getDashboardStats: (projectId: number) =>
@@ -387,4 +610,8 @@ export const commercialAPI = {
     api.get('/commercial/stock-levels', { params }),
   getLowStockAlerts: (params?: any) =>
     api.get('/commercial/low-stock-alerts', { params }),
+  
+  // Recent Activity
+  getRecentActivity: (params?: any) =>
+    api.get('/commercial/recent-activity', { params }),
 };

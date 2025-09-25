@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Trash2, X, Eye, AlertTriangle, CheckCircle, Clock, Ban, History } from 'lucide-react';
-import { commercialAPI } from '../services/api';
+import { Edit, Trash2, X, Eye, AlertTriangle, CheckCircle, Clock, Ban, History, FileText } from 'lucide-react';
+import { materialManagementAPI, mrrAPI } from '../services/api';
 import MaterialIssueForm from './MaterialIssueForm';
 import InventoryHistory from './InventoryHistory';
 
@@ -8,6 +8,9 @@ interface MaterialIssue {
   issue_id: number;
   project_id: number;
   material_id: number;
+  mrr_id?: number;
+  po_id?: number;
+  receipt_id?: number;
   quantity_issued: number;
   issue_date: string;
   issue_purpose: string;
@@ -28,6 +31,18 @@ interface MaterialIssue {
   project?: {
     project_id: number;
     name: string;
+  };
+  mrr?: {
+    mrr_id: number;
+    mrr_reference_id: string;
+  };
+  purchase_order?: {
+    po_id: number;
+    po_reference_id: string;
+  };
+  receipt?: {
+    receipt_id: number;
+    receipt_reference_id: string;
   };
   issued_by?: {
     user_id: number;
@@ -84,7 +99,8 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
         limit: pagination.itemsPerPage
       };
 
-      const response = await commercialAPI.getMaterialIssues(params);
+      const response = await materialManagementAPI.getMaterialIssues(params);
+      console.log('Material Issues API Response:', response.data);
       setIssues(response.data.issues || []);
       setPagination(prev => ({
         ...prev,
@@ -92,6 +108,7 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
       }));
     } catch (error: any) {
       console.error('Error fetching material issues:', error);
+      console.error('Error response:', error.response?.data);
       setError(error.response?.data?.message || 'Failed to fetch material issues');
     } finally {
       setLoading(false);
@@ -125,7 +142,7 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
     }
 
     try {
-      await commercialAPI.deleteMaterialIssue(issue.issue_id);
+      await materialManagementAPI.deleteMaterialIssue(issue.issue_id);
       await fetchIssues();
     } catch (error: any) {
       console.error('Error deleting material issue:', error);
@@ -139,7 +156,7 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
     }
 
     try {
-      await commercialAPI.cancelMaterialIssue(issue.issue_id);
+      await materialManagementAPI.updateMaterialIssue(issue.issue_id, { status: 'CANCELLED' });
       await fetchIssues();
     } catch (error: any) {
       console.error('Error cancelling material issue:', error);
@@ -239,6 +256,9 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                   Issue ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  MRR Reference
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Project
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -269,6 +289,16 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                 <tr key={issue.issue_id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     #{issue.issue_id}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {issue.mrr?.mrr_reference_id ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <FileText className="h-3 w-3 mr-1" />
+                        {issue.mrr.mrr_reference_id}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Direct Issue</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {issue.project?.name || 'N/A'}
@@ -343,6 +373,23 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
               ))}
             </tbody>
           </table>
+          
+          {/* No Data Message */}
+          {!loading && issues.length === 0 && (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No material issues</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by creating a new material issue.</p>
+              <div className="mt-6">
+                <button
+                  onClick={handleCreateIssue}
+                  className="btn btn-primary"
+                >
+                  + New Material Issue
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pagination */}
@@ -436,6 +483,19 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                 <div>
                   <label className="text-sm font-medium text-gray-500">Issue ID</label>
                   <p className="text-sm text-gray-900">#{selectedIssue.issue_id}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">MRR Reference</label>
+                  <p className="text-sm text-gray-900">
+                    {selectedIssue.mrr?.mrr_reference_id ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <FileText className="h-3 w-3 mr-1" />
+                        {selectedIssue.mrr.mrr_reference_id}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">Direct Issue</span>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>

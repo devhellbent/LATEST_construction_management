@@ -23,12 +23,25 @@ import Expenses from './pages/Expenses';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
 import Commercial from './pages/Commercial';
-import CommercialInventory from './pages/CommercialInventory';
 import CommercialSiteTransfers from './pages/CommercialSiteTransfers';
-import CommercialMaterialIssue from './pages/CommercialMaterialIssue';
-import CommercialMaterialReturn from './pages/CommercialMaterialReturn';
 import CommercialPettyCash from './pages/CommercialPettyCash';
-import CommercialConsumptions from './pages/CommercialConsumptions';
+// New Material Management Pages
+import MaterialManagementDashboard from './pages/MaterialManagementDashboard';
+import MrrFlowComponent from './components/MrrFlowComponent';
+import UnifiedMaterialIssue from './pages/UnifiedMaterialIssue';
+import MaterialReturn from './pages/MaterialReturn';
+import MaterialConsumption from './pages/MaterialConsumption';
+import InventoryManagement from './pages/InventoryManagement';
+import PurchaseOrderManagement from './pages/PurchaseOrderManagement';
+import MaterialReceiptManagement from './pages/MaterialReceiptManagement';
+import SupplierLedgerManagement from './pages/SupplierLedgerManagement';
+import WorkflowStatusTracking from './pages/WorkflowStatusTracking';
+// Purchase Order Pages
+import PurchaseOrders from './pages/PurchaseOrders';
+import CreatePurchaseOrder from './pages/CreatePurchaseOrder';
+import EditPurchaseOrder from './pages/EditPurchaseOrder';
+import PurchaseOrderDetails from './pages/PurchaseOrderDetails';
+import PurchaseOrderReceipts from './pages/PurchaseOrderReceipts';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,12 +94,26 @@ function App() {
                             <Route path="/profile" element={<Profile />} />
                             {/* Commercial Routes */}
                             <Route path="/commercial" element={<Commercial />} />
-                            <Route path="/commercial/inventory" element={<CommercialInventory />} />
                             <Route path="/commercial/site-transfers" element={<CommercialSiteTransfers />} />
-                            <Route path="/commercial/material-issue" element={<CommercialMaterialIssue />} />
-                            <Route path="/commercial/material-return" element={<CommercialMaterialReturn />} />
                             <Route path="/commercial/petty-cash" element={<CommercialPettyCash />} />
-                            <Route path="/commercial/consumptions" element={<CommercialConsumptions />} />
+                            {/* New Material Management Routes */}
+                            <Route path="/material-management" element={<MaterialManagementDashboard />} />
+                            <Route path="/material-management/mrr" element={<MrrFlowComponent />} />
+                            <Route path="/material-management/issue" element={<UnifiedMaterialIssue />} />
+                            <Route path="/material-management/return" element={<MaterialReturn />} />
+                            <Route path="/material-management/consumption" element={<MaterialConsumption />} />
+                            <Route path="/material-management/inventory" element={<InventoryManagement />} />
+                            <Route path="/material-management/purchase-orders" element={<PurchaseOrderManagement />} />
+                            <Route path="/material-management/receipts" element={<MaterialReceiptManagement />} />
+                            <Route path="/material-management/supplier-ledger" element={<SupplierLedgerManagement />} />
+                            <Route path="/material-management/workflow" element={<WorkflowStatusTracking />} />
+                            {/* Purchase Order Routes */}
+                            <Route path="/purchase-orders" element={<PurchaseOrders />} />
+                            <Route path="/purchase-orders/create" element={<CreatePurchaseOrder />} />
+                            <Route path="/create-purchase-order" element={<CreatePurchaseOrder />} />
+                            <Route path="/purchase-orders/:id" element={<PurchaseOrderDetails />} />
+                            <Route path="/purchase-orders/:id/edit" element={<EditPurchaseOrder />} />
+                            <Route path="/purchase-orders/:id/receipts" element={<PurchaseOrderReceipts />} />
                           </Routes>
                         </Layout>
                       </ProtectedRoute>

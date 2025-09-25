@@ -106,6 +106,14 @@ const Material = sequelize.define('Material', {
       model: 'projects',
       key: 'project_id'
     }
+  },
+  warehouse_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'warehouses',
+      key: 'warehouse_id'
+    }
   }
 }, {
   tableName: 'materials'

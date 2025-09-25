@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const { Material, MaterialAllocation, Project, PettyCashExpense, User, SiteTransfer, MaterialReturn, MaterialConsumption, MaterialIssue } = require('../../models');
 const { authenticateToken, authorizeRoles } = require('../../middleware/auth');
 const InventoryService = require('../../services/inventoryService');
+const socketService = require('../../services/socketService');
 
 const router = express.Router();
 
@@ -174,15 +175,51 @@ router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Proje
       return res.status(404).json({ message: 'One or both projects not found' });
     }
 
-    // Verify material exists and check stock
+    // Verify material exists and check available quantity from issued materials
     const material = await Material.findByPk(material_id);
     if (!material) {
       return res.status(404).json({ message: 'Material not found' });
     }
 
-    if (material.stock_qty < quantity) {
+    // Get total issued quantity for this material in the from project
+    const issuedIssues = await MaterialIssue.findAll({
+      where: {
+        project_id: from_project_id,
+        material_id: material_id,
+        status: { [Op.notIn]: ['CANCELLED'] }
+      }
+    });
+
+    const totalIssued = issuedIssues.reduce((sum, issue) => sum + issue.quantity_issued, 0);
+
+    // Get total returned quantity for this material in the from project
+    const returnedIssues = await MaterialReturn.findAll({
+      where: {
+        project_id: from_project_id,
+        material_id: material_id,
+        status: { [Op.notIn]: ['REJECTED'] }
+      }
+    });
+
+    const totalReturned = returnedIssues.reduce((sum, returnItem) => sum + returnItem.quantity, 0);
+
+    // Get total transferred out quantity for this material from the from project
+    const transferredOut = await SiteTransfer.findAll({
+      where: {
+        from_project_id: from_project_id,
+        material_id: material_id,
+        status: { [Op.notIn]: ['CANCELLED'] }
+      }
+    });
+
+    const totalTransferredOut = transferredOut.reduce((sum, transfer) => sum + transfer.quantity, 0);
+
+    // Calculate available quantity: issued - returned - transferred out
+    const availableQuantity = totalIssued - totalReturned - totalTransferredOut;
+
+    if (availableQuantity < quantity) {
       return res.status(400).json({ 
-        message: `Insufficient stock for ${material.name}. Available: ${material.stock_qty}, Requested: ${quantity}` 
+        message: `Insufficient available quantity for ${material.name}. Available: ${availableQuantity}, Requested: ${quantity}` 
       });
     }
 
@@ -198,10 +235,17 @@ router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Proje
       requested_by_user_id: req.user.user_id
     });
 
-    // Update material stock (reduce from source project)
-    await Material.decrement('stock_qty', {
-      by: quantity,
-      where: { material_id }
+    // Record inventory transaction for the transfer
+    await InventoryService.recordTransaction({
+      material_id,
+      project_id: from_project_id,
+      transaction_type: 'TRANSFER',
+      transaction_id: siteTransfer.transfer_id,
+      quantity_change: -quantity, // Negative for transfer out
+      reference_number: `TRANSFER-${siteTransfer.transfer_id}`,
+      description: `Material transferred to project ${toProject.name}: ${transfer_reason || 'No description'}`,
+      location: 'Site Transfer',
+      performed_by_user_id: req.user.user_id
     });
 
     // Get the created transfer with associations
@@ -213,6 +257,25 @@ router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Proje
         { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] },
         { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
       ]
+    });
+
+    // Emit socket events for real-time updates to both projects
+    socketService.emitToProject(from_project_id, 'siteTransfer', {
+      transferId: siteTransfer.transfer_id,
+      materialId,
+      quantity,
+      fromProjectId: from_project_id,
+      toProjectId: to_project_id,
+      type: 'OUTGOING'
+    });
+
+    socketService.emitToProject(to_project_id, 'siteTransfer', {
+      transferId: siteTransfer.transfer_id,
+      materialId,
+      quantity,
+      fromProjectId: from_project_id,
+      toProjectId: to_project_id,
+      type: 'INCOMING'
     });
 
     res.status(201).json({
@@ -251,11 +314,18 @@ router.patch('/site-transfers/:id/status', authenticateToken, authorizeRoles('Ad
 
     await transfer.update(updateData);
 
-    // If status is CANCELLED, restore stock to source project
+    // If status is CANCELLED, record inventory transaction to reverse the transfer
     if (status === 'CANCELLED' && transfer.status !== 'CANCELLED') {
-      await Material.increment('stock_qty', {
-        by: transfer.quantity,
-        where: { material_id: transfer.material_id }
+      await InventoryService.recordTransaction({
+        material_id: transfer.material_id,
+        project_id: transfer.from_project_id,
+        transaction_type: 'TRANSFER',
+        transaction_id: transfer.transfer_id,
+        quantity_change: transfer.quantity, // Positive to reverse the transfer
+        reference_number: `TRANSFER-CANCEL-${transfer.transfer_id}`,
+        description: `Site transfer cancelled - material restored`,
+        location: 'Site Transfer',
+        performed_by_user_id: req.user.user_id
       });
     }
 
@@ -290,11 +360,18 @@ router.delete('/site-transfers/:id', authenticateToken, authorizeRoles('Admin', 
       return res.status(404).json({ message: 'Site transfer not found' });
     }
 
-    // If transfer is not already cancelled, restore stock
+    // If transfer is not already cancelled, record inventory transaction to reverse the transfer
     if (transfer.status !== 'CANCELLED') {
-      await Material.increment('stock_qty', {
-        by: transfer.quantity,
-        where: { material_id: transfer.material_id }
+      await InventoryService.recordTransaction({
+        material_id: transfer.material_id,
+        project_id: transfer.from_project_id,
+        transaction_type: 'TRANSFER',
+        transaction_id: transfer.transfer_id,
+        quantity_change: transfer.quantity, // Positive to reverse the transfer
+        reference_number: `TRANSFER-DELETE-${transfer.transfer_id}`,
+        description: `Site transfer deleted - material restored`,
+        location: 'Site Transfer',
+        performed_by_user_id: req.user.user_id
       });
     }
 
@@ -410,6 +487,14 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
       description: `Material issued: ${issue_purpose || 'No description'}`,
       location,
       performed_by_user_id: req.user.user_id
+    });
+
+    // Emit socket event for real-time updates
+    socketService.emitToProject(project_id, 'materialIssue', {
+      issueId: materialIssue.issue_id,
+      materialId,
+      quantity: quantity_issued,
+      projectId: project_id
     });
 
     res.status(201).json({
@@ -727,6 +812,14 @@ router.post('/material-return', authenticateToken, authorizeRoles('Admin', 'Proj
       });
     }
 
+    // Emit socket event for real-time updates
+    socketService.emitToProject(project_id, 'materialReturn', {
+      returnId: materialReturn.return_id,
+      materialId: materials[0].material_id,
+      quantity: materials.reduce((sum, m) => sum + m.quantity, 0),
+      projectId: project_id
+    });
+
     res.status(201).json({
       message: 'Material return created successfully',
       materialReturn
@@ -954,6 +1047,222 @@ router.get('/dashboard-stats/:projectId', authenticateToken, async (req, res) =>
   } catch (error) {
     console.error('Get commercial dashboard stats error:', error);
     res.status(500).json({ message: 'Failed to fetch commercial dashboard stats' });
+  }
+});
+
+// Get recent activity (material issues and transfers)
+router.get('/recent-activity', authenticateToken, async (req, res) => {
+  try {
+    const { project_id, limit = 20 } = req.query;
+    
+    const whereClause = {};
+    if (project_id) {
+      whereClause[Op.or] = [
+        { project_id: project_id },
+        { from_project_id: project_id },
+        { to_project_id: project_id }
+      ];
+    }
+
+    // Get recent material issues
+    const recentIssues = await MaterialIssue.findAll({
+      where: project_id ? { project_id } : {},
+      include: [
+        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
+        { model: Project, as: 'project', attributes: ['project_id', 'name'] },
+        { model: User, as: 'issued_by', foreignKey: 'issued_by_user_id', attributes: ['user_id', 'name'] }
+      ],
+      limit: Math.floor(limit / 3),
+      order: [['issue_date', 'DESC']]
+    });
+
+    // Get recent site transfers
+    const recentTransfers = await SiteTransfer.findAll({
+      where: whereClause,
+      include: [
+        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
+        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
+        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
+        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] }
+      ],
+      limit: Math.floor(limit / 3),
+      order: [['transfer_date', 'DESC']]
+    });
+
+    // Get recent material returns
+    const recentReturns = await MaterialReturn.findAll({
+      where: project_id ? { project_id } : {},
+      include: [
+        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
+        { model: Project, as: 'project', attributes: ['project_id', 'name'] },
+        { model: User, as: 'returned_by', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] }
+      ],
+      limit: Math.floor(limit / 3),
+      order: [['return_date', 'DESC']]
+    });
+
+    // Combine and sort by date
+    const activities = [
+      ...recentIssues.map(issue => ({
+        type: 'ISSUE',
+        id: issue.issue_id,
+        date: issue.issue_date,
+        material: issue.material,
+        project: issue.project,
+        quantity: issue.quantity_issued,
+        user: issue.issued_by,
+        status: issue.status,
+        description: issue.issue_purpose
+      })),
+      ...recentTransfers.map(transfer => ({
+        type: 'TRANSFER',
+        id: transfer.transfer_id,
+        date: transfer.transfer_date,
+        material: transfer.material,
+        from_project: transfer.from_project,
+        to_project: transfer.to_project,
+        quantity: transfer.quantity,
+        user: transfer.requested_by,
+        status: transfer.status,
+        description: transfer.transfer_reason
+      })),
+      ...recentReturns.map(returnItem => ({
+        type: 'RETURN',
+        id: returnItem.return_id,
+        date: returnItem.return_date,
+        material: returnItem.material,
+        project: returnItem.project,
+        quantity: returnItem.quantity,
+        user: returnItem.returned_by,
+        status: returnItem.status,
+        description: returnItem.return_reason
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, limit);
+
+    res.json({ activities });
+  } catch (error) {
+    console.error('Get recent activity error:', error);
+    res.status(500).json({ message: 'Failed to fetch recent activity' });
+  }
+});
+
+// Calculate automated consumptions
+router.get('/consumptions/calculate', authenticateToken, async (req, res) => {
+  try {
+    const { project_id } = req.query;
+    
+    const whereClause = {};
+    if (project_id) whereClause.project_id = project_id;
+
+    // Get all materials that have been issued
+    const issuedMaterials = await MaterialIssue.findAll({
+      where: {
+        ...whereClause,
+        status: { [Op.notIn]: ['CANCELLED'] }
+      },
+      include: [
+        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit', 'cost_per_unit'] },
+        { model: Project, as: 'project', attributes: ['project_id', 'name'] }
+      ]
+    });
+
+    // Calculate consumptions for each material
+    const consumptions = [];
+    
+    for (const issue of issuedMaterials) {
+      const materialId = issue.material_id;
+      const projectId = issue.project_id;
+      
+      // Get total issued quantity
+      const totalIssued = await MaterialIssue.sum('quantity_issued', {
+        where: {
+          project_id: projectId,
+          material_id: materialId,
+          status: { [Op.notIn]: ['CANCELLED'] }
+        }
+      });
+
+      // Get total returned quantity
+      const totalReturned = await MaterialReturn.sum('quantity', {
+        where: {
+          project_id: projectId,
+          material_id: materialId,
+          status: { [Op.notIn]: ['REJECTED'] }
+        }
+      });
+
+      // Get total transferred out quantity
+      const totalTransferredOut = await SiteTransfer.sum('quantity', {
+        where: {
+          from_project_id: projectId,
+          material_id: materialId,
+          status: { [Op.notIn]: ['CANCELLED'] }
+        }
+      });
+
+      // Calculate consumed quantity: issued - returned - transferred out
+      const consumedQuantity = totalIssued - (totalReturned || 0) - (totalTransferredOut || 0);
+
+      if (consumedQuantity > 0) {
+        // Check if consumption record already exists
+        const existingConsumption = await MaterialConsumption.findOne({
+          where: {
+            project_id: projectId,
+            material_id: materialId
+          }
+        });
+
+        if (existingConsumption) {
+          // Update existing consumption
+          await existingConsumption.update({
+            quantity_consumed: consumedQuantity,
+            consumption_date: new Date(),
+            consumption_purpose: 'Automated calculation - issued materials not returned or transferred',
+            location: 'Project Site',
+            recorded_by_user_id: req.user.user_id
+          });
+        } else {
+          // Create new consumption record
+          await MaterialConsumption.create({
+            project_id: projectId,
+            material_id: materialId,
+            quantity_consumed: consumedQuantity,
+            consumption_date: new Date(),
+            consumption_purpose: 'Automated calculation - issued materials not returned or transferred',
+            location: 'Project Site',
+            recorded_by_user_id: req.user.user_id
+          });
+        }
+
+        consumptions.push({
+          material_id: materialId,
+          material_name: issue.material.name,
+          material_type: issue.material.type,
+          material_unit: issue.material.unit,
+          project_id: projectId,
+          project_name: issue.project.name,
+          total_issued: totalIssued,
+          total_returned: totalReturned || 0,
+          total_transferred_out: totalTransferredOut || 0,
+          consumed_quantity: consumedQuantity,
+          cost_per_unit: issue.material.cost_per_unit,
+          total_cost: consumedQuantity * (issue.material.cost_per_unit || 0)
+        });
+      }
+    }
+
+    res.json({
+      message: 'Consumptions calculated successfully',
+      consumptions,
+      summary: {
+        total_materials: consumptions.length,
+        total_consumed_quantity: consumptions.reduce((sum, c) => sum + c.consumed_quantity, 0),
+        total_cost: consumptions.reduce((sum, c) => sum + c.total_cost, 0)
+      }
+    });
+  } catch (error) {
+    console.error('Calculate consumptions error:', error);
+    res.status(500).json({ message: 'Failed to calculate consumptions' });
   }
 });
 

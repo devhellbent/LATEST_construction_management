@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRightLeft, Plus, Download, MoreHorizontal, Settings, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowRightLeft, Plus, Download, MoreHorizontal, Settings, Edit, Trash2, CheckCircle, XCircle, ShoppingCart } from 'lucide-react';
 import { commercialAPI, projectsAPI, materialsAPI } from '../services/api';
 import SiteTransferForm from '../components/SiteTransferForm';
 
@@ -43,10 +43,12 @@ const CommercialSiteTransfers: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [materials, setMaterials] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
   useEffect(() => {
     fetchTransfers();
     fetchFilterData();
+    fetchRecentActivity();
   }, []);
 
   useEffect(() => {
@@ -89,6 +91,15 @@ const CommercialSiteTransfers: React.FC = () => {
       setMaterials(materialsRes.data.materials || []);
     } catch (error) {
       console.error('Error fetching filter data:', error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await commercialAPI.getRecentActivity({ limit: 10 });
+      setRecentActivity(response.data.activities || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
     }
   };
 
@@ -397,6 +408,72 @@ const CommercialSiteTransfers: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Recent Activity Section */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+          <p className="text-sm text-gray-500">Latest material issues and transfers</p>
+        </div>
+        <div className="p-6">
+          {recentActivity.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No recent activity
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentActivity.map((activity) => (
+                <div key={`${activity.type}-${activity.id}`} className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    activity.type === 'ISSUE' ? 'bg-blue-100 text-blue-600' : 'bg-green-100 text-green-600'
+                  }`}>
+                    {activity.type === 'ISSUE' ? (
+                      <ShoppingCart className="h-4 w-4" />
+                    ) : (
+                      <ArrowRightLeft className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.type === 'ISSUE' ? 'Material Issued' : 'Site Transfer'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(activity.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {activity.material?.name} - {activity.quantity} {activity.material?.unit}
+                    </p>
+                    {activity.type === 'ISSUE' ? (
+                      <p className="text-xs text-gray-500">
+                        Project: {activity.project?.name} • By: {activity.user?.name}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-500">
+                        From: {activity.from_project?.name} → To: {activity.to_project?.name} • By: {activity.user?.name}
+                      </p>
+                    )}
+                    {activity.description && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        {activity.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    activity.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                    activity.status === 'APPROVED' || activity.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
+                    activity.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {activity.status}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

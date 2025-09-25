@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Download, MoreHorizontal, Settings } from 'lucide-react';
+import { RefreshCw, Download, MoreHorizontal, Settings, Calculator } from 'lucide-react';
 import { commercialAPI } from '../services/api';
 
 interface MaterialConsumption {
@@ -19,7 +19,10 @@ interface MaterialConsumption {
 
 const CommercialConsumptions: React.FC = () => {
   const [consumptions, setConsumptions] = useState<MaterialConsumption[]>([]);
+  const [calculatedConsumptions, setCalculatedConsumptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [showCalculated, setShowCalculated] = useState(false);
 
   useEffect(() => {
     fetchConsumptions();
@@ -34,6 +37,21 @@ const CommercialConsumptions: React.FC = () => {
       console.error('Error fetching consumptions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const calculateConsumptions = async () => {
+    try {
+      setCalculating(true);
+      const response = await commercialAPI.calculateConsumptions();
+      setCalculatedConsumptions(response.data.consumptions || []);
+      setShowCalculated(true);
+      // Refresh the regular consumptions to show updated data
+      fetchConsumptions();
+    } catch (error) {
+      console.error('Error calculating consumptions:', error);
+    } finally {
+      setCalculating(false);
     }
   };
 
@@ -99,6 +117,14 @@ const CommercialConsumptions: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={calculateConsumptions}
+            disabled={calculating}
+            className="btn btn-primary flex items-center"
+          >
+            <Calculator className="h-4 w-4 mr-2" />
+            {calculating ? 'Calculating...' : 'Calculate Consumptions'}
+          </button>
           <button className="btn btn-secondary flex items-center">
             <Download className="h-4 w-4 mr-2" />
             Export Excel
@@ -208,6 +234,77 @@ const CommercialConsumptions: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Calculated Consumptions Section */}
+      {showCalculated && calculatedConsumptions.length > 0 && (
+        <div className="bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Automated Consumption Calculation</h3>
+            <p className="text-sm text-gray-500">Materials consumed = Issued - Returned - Transferred Out</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Issued</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Returned</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Transferred</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Consumed</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cost/Unit</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Cost</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {calculatedConsumptions.map((consumption) => (
+                  <tr key={`${consumption.project_id}-${consumption.material_id}`} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {consumption.project_name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {consumption.material_name} ({consumption.material_type})
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {consumption.total_issued} {consumption.material_unit}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {consumption.total_returned} {consumption.material_unit}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {consumption.total_transferred_out} {consumption.material_unit}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                      {consumption.consumed_quantity} {consumption.material_unit}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ₹{consumption.cost_per_unit || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      ₹{consumption.total_cost || 0}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-600">
+                Total Materials: {calculatedConsumptions.length} | 
+                Total Consumed: {calculatedConsumptions.reduce((sum, c) => sum + c.consumed_quantity, 0)} | 
+                Total Cost: ₹{calculatedConsumptions.reduce((sum, c) => sum + c.total_cost, 0)}
+              </div>
+              <button 
+                onClick={() => setShowCalculated(false)}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Hide Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -21,6 +21,12 @@ const payrollRoutes = require('./modules/payroll/routes');
 const expenseRoutes = require('./modules/expenses/routes');
 const paymentRoutes = require('./modules/payments/routes');
 const commercialRoutes = require('./modules/commercial/routes');
+const mrrRoutes = require('./modules/mrr/routes');
+const purchaseOrderRoutes = require('./modules/purchase-orders/routes');
+const supplierLedgerRoutes = require('./modules/supplier-ledger/routes');
+const supplierRoutes = require('./modules/suppliers/routes');
+const materialReceiptRoutes = require('./modules/material-receipts/routes');
+const materialManagementRoutes = require('./modules/material-management/routes');
 
 const { authenticateToken } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -83,6 +89,12 @@ app.use('/api/payroll', authenticateToken, payrollRoutes);
 app.use('/api/expenses', authenticateToken, expenseRoutes);
 app.use('/api/payments', authenticateToken, paymentRoutes);
 app.use('/api/commercial', authenticateToken, commercialRoutes);
+app.use('/api/mrr', authenticateToken, mrrRoutes);
+app.use('/api/purchase-orders', authenticateToken, purchaseOrderRoutes);
+app.use('/api/supplier-ledger', authenticateToken, supplierLedgerRoutes);
+app.use('/api/suppliers', authenticateToken, supplierRoutes);
+app.use('/api/material-receipts', authenticateToken, materialReceiptRoutes);
+app.use('/api/material-management', authenticateToken, materialManagementRoutes);
 
 // Socket.io setup
 setupSocketHandlers(io);
