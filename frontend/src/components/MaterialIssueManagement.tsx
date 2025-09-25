@@ -34,7 +34,7 @@ interface MaterialIssue {
   };
   mrr?: {
     mrr_id: number;
-    mrr_reference_id: string;
+    mrr_number: string;
   };
   purchase_order?: {
     po_id: number;
@@ -291,10 +291,10 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                     #{issue.issue_id}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {issue.mrr?.mrr_reference_id ? (
+                    {issue.mrr?.mrr_number ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         <FileText className="h-3 w-3 mr-1" />
-                        {issue.mrr.mrr_reference_id}
+                        {issue.mrr.mrr_number}
                       </span>
                     ) : (
                       <span className="text-gray-400">Direct Issue</span>
@@ -487,10 +487,10 @@ const MaterialIssueManagement: React.FC<MaterialIssueManagementProps> = ({ proje
                 <div>
                   <label className="text-sm font-medium text-gray-500">MRR Reference</label>
                   <p className="text-sm text-gray-900">
-                    {selectedIssue.mrr?.mrr_reference_id ? (
+                    {selectedIssue.mrr?.mrr_number ? (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         <FileText className="h-3 w-3 mr-1" />
-                        {selectedIssue.mrr.mrr_reference_id}
+                        {selectedIssue.mrr.mrr_number}
                       </span>
                     ) : (
                       <span className="text-gray-400">Direct Issue</span>

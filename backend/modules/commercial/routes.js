@@ -262,7 +262,7 @@ router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Proje
     // Emit socket events for real-time updates to both projects
     socketService.emitToProject(from_project_id, 'siteTransfer', {
       transferId: siteTransfer.transfer_id,
-      materialId,
+      materialId: material_id,
       quantity,
       fromProjectId: from_project_id,
       toProjectId: to_project_id,
@@ -271,7 +271,7 @@ router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Proje
 
     socketService.emitToProject(to_project_id, 'siteTransfer', {
       transferId: siteTransfer.transfer_id,
-      materialId,
+      materialId: material_id,
       quantity,
       fromProjectId: from_project_id,
       toProjectId: to_project_id,
@@ -492,7 +492,7 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
     // Emit socket event for real-time updates
     socketService.emitToProject(project_id, 'materialIssue', {
       issueId: materialIssue.issue_id,
-      materialId,
+      materialId: material_id,
       quantity: quantity_issued,
       projectId: project_id
     });

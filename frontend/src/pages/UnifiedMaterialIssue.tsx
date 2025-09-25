@@ -7,7 +7,7 @@ import {
 
 interface MrrOption {
   mrr_id: number;
-  mrr_reference_id: string;
+  mrr_number: string;
   project_id: number;
   project: {
     name: string;
@@ -45,7 +45,7 @@ interface IssueFormData {
   notes: string;
   is_mrr_based: boolean;
   mrr_id?: number;
-  mrr_reference_id?: string;
+  mrr_number?: string;
   items: Array<{
     material_id: number;
     quantity_issued: number;
@@ -124,7 +124,7 @@ const UnifiedMaterialIssue: React.FC = () => {
       ...prev,
       is_mrr_based: isMrrBased,
       mrr_id: isMrrBased ? prev.mrr_id : undefined,
-      mrr_reference_id: isMrrBased ? prev.mrr_reference_id : undefined,
+      mrr_number: isMrrBased ? prev.mrr_number : undefined,
       items: []
     }));
   };
@@ -135,7 +135,7 @@ const UnifiedMaterialIssue: React.FC = () => {
       setFormData(prev => ({
         ...prev,
         mrr_id: mrrId,
-        mrr_reference_id: selectedMrr.mrr_reference_id,
+        mrr_number: selectedMrr.mrr_number,
         project_id: selectedMrr.project_id,
         items: selectedMrr.items.map(item => ({
           material_id: item.item_id,
@@ -323,13 +323,13 @@ const UnifiedMaterialIssue: React.FC = () => {
                 <option value={0} className="text-gray-900">Select MRR</option>
                 {mrrs.map((mrr) => (
                   <option key={mrr.mrr_id} value={mrr.mrr_id} className="text-gray-900">
-                    {mrr.mrr_reference_id} - {mrr.project?.name || 'Unknown Project'}
+                    {mrr.mrr_number} - {mrr.project?.name || 'Unknown Project'}
                   </option>
                 ))}
               </select>
-              {formData.mrr_reference_id && (
+              {formData.mrr_number && (
                 <p className="text-sm text-green-600 mt-1">
-                  Selected MRR: {formData.mrr_reference_id}
+                  Selected MRR: {formData.mrr_number}
                 </p>
               )}
             </div>

@@ -12,13 +12,18 @@ interface MaterialIssue {
   project_id: number;
   project_name: string;
   material_id: number;
-  material_name: string;
+  material: {
+    material_id: number;
+    name: string;
+    type: string;
+    unit: string;
+  };
   quantity_issued: number;
   unit_name: string;
   issue_date: string;
   issued_to: string;
   mrr_id?: number;
-  mrr_reference_id?: string;
+  mrr_number?: string;
 }
 
 interface ReturnFormData {
@@ -180,8 +185,8 @@ const MaterialReturn: React.FC = () => {
               <option value={0}>Select Material Issue</option>
               {materialIssues.map((issue) => (
                 <option key={issue.issue_id} value={issue.issue_id}>
-                  #{issue.issue_id} - {issue.material_name} ({issue.quantity_issued} {issue.unit_name}) - {issue.project_name}
-                  {issue.mrr_reference_id && ` - MRR: ${issue.mrr_reference_id}`}
+                  Issue #{issue.issue_id} - {issue.material.name} ({issue.quantity_issued} {issue.unit_name}) - {issue.project_name}
+                  {issue.mrr_number && ` - MRR: ${issue.mrr_number}`}
                 </option>
               ))}
             </select>
@@ -228,7 +233,7 @@ const MaterialReturn: React.FC = () => {
                     <div key={index} className="border border-gray-200 rounded-lg p-4">
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                         <div>
-                          <h4 className="font-medium text-gray-900">{issue?.material_name}</h4>
+                          <h4 className="font-medium text-gray-900">{issue?.material.name}</h4>
                           <p className="text-sm text-gray-600">
                             Issued: {issue?.quantity_issued} {issue?.unit_name}
                           </p>

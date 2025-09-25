@@ -88,7 +88,7 @@ const WorkflowStatusTracking: React.FC = () => {
       const mrrs: WorkflowItem[] = (mrrsRes.data.mrrs || []).map((mrr: any) => ({
         id: mrr.mrr_id,
         type: 'MRR',
-        reference_id: mrr.mrr_reference_id,
+        reference_id: mrr.mrr_number,
         project_name: mrr.project?.project_name || 'Unknown',
         status: mrr.status,
         created_date: mrr.created_at,

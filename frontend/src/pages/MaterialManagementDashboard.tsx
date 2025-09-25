@@ -85,7 +85,7 @@ const MaterialManagementDashboard: React.FC = () => {
         activities.push({
           id: mrr.mrr_id,
           type: 'MRR',
-          description: `MRR ${mrr.mrr_reference_id} created for ${mrr.project?.name}`,
+          description: `MRR ${mrr.mrr_number} created for ${mrr.project?.name}`,
           status: mrr.status,
           created_at: mrr.created_at,
           project_name: mrr.project?.name || 'Unknown'

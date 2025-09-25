@@ -8,7 +8,7 @@ import {
 
 interface MrrForIssue {
   mrr_id: number;
-  mrr_reference_id: string;
+  mrr_number: string;
   project_id: number;
   project_name: string;
   status: string;
@@ -185,7 +185,7 @@ const MaterialIssueManagement: React.FC = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-4 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {mrr.mrr_reference_id}
+                            {mrr.mrr_number}
                           </h3>
                           <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                             APPROVED
@@ -231,7 +231,7 @@ const MaterialIssueManagement: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              Issue Material - {selectedMrr?.mrr_reference_id}
+              Issue Material - {selectedMrr?.mrr_number}
             </h2>
             <button
               onClick={() => setShowIssueForm(false)}
