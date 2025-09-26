@@ -5,7 +5,9 @@ const {
   PurchaseOrder, 
   PurchaseOrderItem, 
   Project, 
+  ProjectMember,
   User, 
+  Role,
   Supplier,
   ItemMaster, 
   Unit,
@@ -201,11 +203,40 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id, {
       include: [
-        { model: Project, as: 'project', attributes: ['name', 'description'], required: false },
+        { 
+          model: Project, 
+          as: 'project', 
+          attributes: ['name', 'description', 'owner_user_id'], 
+          required: false,
+          include: [
+            { model: User, as: 'owner', attributes: ['name', 'email'] },
+            { 
+              model: ProjectMember, 
+              as: 'members', 
+              attributes: ['user_id', 'role_id', 'invitation_status', 'is_active'],
+              where: { is_active: true },
+              required: false,
+              include: [
+                { model: User, as: 'user', attributes: ['name', 'email'] },
+                { model: Role, as: 'role', attributes: ['name'] }
+              ]
+            }
+          ]
+        },
         { model: Supplier, as: 'supplier', attributes: ['supplier_name', 'contact_person', 'phone', 'email', 'address'] },
         { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
-        { model: MaterialRequirementRequest, as: 'mrr', attributes: ['mrr_number', 'request_date'], required: false },
+        { 
+          model: MaterialRequirementRequest, 
+          as: 'mrr', 
+          attributes: ['mrr_number', 'request_date', 'project_id', 'requested_by_user_id', 'approved_by_user_id', 'approved_at'], 
+          required: false,
+          include: [
+            { model: Project, as: 'project', attributes: ['name'], required: false },
+            { model: User, as: 'requestedBy', attributes: ['name', 'email'], required: false },
+            { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false }
+          ]
+        },
         { model: PurchaseOrderItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code', 'description', 'specifications'] },
           { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }

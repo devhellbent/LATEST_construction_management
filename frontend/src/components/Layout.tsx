@@ -153,10 +153,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex h-20 items-center justify-between px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
-                <span className="text-white font-bold text-lg">CE</span>
+                <span className="text-white font-bold text-lg">LM</span>
               </div>
               <div className="ml-3">
-                <span className="text-xl font-bold text-slate-900">ConstructEase</span>
+                <span className="text-xl font-bold text-slate-900">LMInfra</span>
                 <p className="text-xs text-slate-500">Construction Management</p>
               </div>
             </div>
@@ -237,10 +237,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex h-20 items-center px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
-                <span className="text-white font-bold text-lg">CE</span>
+                <span className="text-white font-bold text-lg">LM</span>
               </div>
               <div className="ml-3">
-                <span className="text-xl font-bold text-slate-900">ConstructEase</span>
+                <span className="text-xl font-bold text-slate-900">LMInfra</span>
                 <p className="text-xs text-slate-500">Construction Management</p>
               </div>
             </div>

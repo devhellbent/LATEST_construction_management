@@ -44,7 +44,7 @@ const Login: React.FC = () => {
             <div className="mx-auto h-14 w-14 flex items-center justify-center rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
               <Building2 className="h-7 w-7 text-white" />
             </div>
-            <h2 className="mt-4 text-2xl font-bold text-slate-900">Sign in to ConstructEase</h2>
+            <h2 className="mt-4 text-2xl font-bold text-slate-900">Sign in to LMInfra</h2>
             <p className="text-slate-600 text-sm mt-1">Construction Management System</p>
           </div>
 

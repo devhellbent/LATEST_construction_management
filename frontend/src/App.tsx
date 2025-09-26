@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import NewProject from './pages/NewProject';
@@ -69,6 +70,7 @@ function App() {
               <div className="App">
                 <Toaster position="top-right" />
                 <Routes>
+                  <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<Login />} />
                   <Route
                     path="/*"
@@ -76,7 +78,6 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Routes>
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/projects" element={<Projects />} />
                             <Route path="/projects/new" element={<NewProject />} />

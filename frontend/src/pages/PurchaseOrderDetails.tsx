@@ -13,9 +13,28 @@ import { purchaseOrdersAPI } from '../services/api';
 interface PurchaseOrder {
   po_id: number;
   po_number: string;
-  project: {
+  project?: {
     project_id: number;
     name: string;
+    description?: string;
+    owner_user_id: number;
+    owner?: {
+      name: string;
+      email: string;
+    };
+    members?: Array<{
+      user_id: number;
+      role_id: number;
+      invitation_status: string;
+      is_active: boolean;
+      user: {
+        name: string;
+        email: string;
+      };
+      role: {
+        name: string;
+      };
+    }>;
   };
   supplier: {
     supplier_id: number;
@@ -36,6 +55,22 @@ interface PurchaseOrder {
   mrr?: {
     mrr_id: number;
     mrr_number: string;
+    request_date: string;
+    project_id: number;
+    requested_by_user_id: number;
+    approved_by_user_id?: number;
+    approved_at?: string;
+    project?: {
+      name: string;
+    };
+    requestedBy?: {
+      name: string;
+      email: string;
+    };
+    approvedBy?: {
+      name: string;
+      email: string;
+    };
   };
   po_date: string;
   expected_delivery_date?: string;
@@ -95,8 +130,6 @@ const PurchaseOrderDetails: React.FC = () => {
       setLoading(true);
       setError(null);
       const response = await purchaseOrdersAPI.getPurchaseOrder(parseInt(id!));
-      console.log('API Response:', response.data);
-      console.log('Purchase Order Data:', response.data.purchaseOrder);
       setPurchaseOrder(response.data.purchaseOrder);
     } catch (error) {
       console.error('Error fetching purchase order:', error);
@@ -342,6 +375,108 @@ const PurchaseOrderDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Project Information */}
+      {purchaseOrder.project && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Project Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Project Name</h3>
+              <p className="text-sm text-gray-900">{purchaseOrder.project.name}</p>
+            </div>
+            
+            {purchaseOrder.project.owner && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Project Owner</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.project.owner.name}</p>
+                <p className="text-xs text-gray-500">{purchaseOrder.project.owner.email}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Project Members */}
+          {purchaseOrder.project.members && purchaseOrder.project.members.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">Project Members</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {purchaseOrder.project.members.map((member) => (
+                  <div key={member.user_id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{member.user.name}</p>
+                        <p className="text-xs text-gray-500">{member.user.email}</p>
+                        <p className="text-xs text-blue-600 font-medium">{member.role.name}</p>
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        member.invitation_status === 'ACCEPTED' 
+                          ? 'bg-green-100 text-green-800' 
+                          : member.invitation_status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {member.invitation_status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MRR Information */}
+      {purchaseOrder.mrr && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Material Requirement Request (MRR) Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">MRR Number</h3>
+              <p className="text-sm text-gray-900">{purchaseOrder.mrr.mrr_number}</p>
+            </div>
+            
+            {purchaseOrder.mrr.project && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">MRR Project</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.mrr.project.name}</p>
+              </div>
+            )}
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Request Date</h3>
+              <p className="text-sm text-gray-900">
+                {purchaseOrder.mrr.request_date ? new Date(purchaseOrder.mrr.request_date).toLocaleDateString() : 'N/A'}
+              </p>
+            </div>
+            
+            {purchaseOrder.mrr.requestedBy && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Requested By</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.mrr.requestedBy.name}</p>
+                <p className="text-xs text-gray-500">{purchaseOrder.mrr.requestedBy.email}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.mrr.approvedBy && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Approved By</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.mrr.approvedBy.name}</p>
+                <p className="text-xs text-gray-500">{purchaseOrder.mrr.approvedBy.email}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.mrr.approved_at && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Approved At</h3>
+                <p className="text-sm text-gray-900">
+                  {new Date(purchaseOrder.mrr.approved_at).toLocaleDateString()} at {new Date(purchaseOrder.mrr.approved_at).toLocaleTimeString()}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Terms and Conditions */}
       {(purchaseOrder.payment_terms || purchaseOrder.delivery_terms || purchaseOrder.notes) && (

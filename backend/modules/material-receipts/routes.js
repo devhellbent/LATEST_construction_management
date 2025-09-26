@@ -136,7 +136,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
   body('po_id').isInt().withMessage('PO ID must be an integer'),
   body('received_date').isISO8601().withMessage('Received date must be a valid date'),
-  body('delivery_date').optional().isISO8601().withMessage('Delivery date must be a valid date'),
+  body('delivery_date').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(Date.parse(value));
+  }),
   body('supplier_delivery_note').optional().trim(),
   body('vehicle_number').optional().trim(),
   body('driver_name').optional().trim(),
@@ -156,7 +159,10 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('items.*.unit_price').isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('items.*.condition_status').optional().isIn(['GOOD', 'DAMAGED', 'REJECTED']),
   body('items.*.batch_number').optional().trim(),
-  body('items.*.expiry_date').optional().isISO8601().withMessage('Expiry date must be a valid date'),
+  body('items.*.expiry_date').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(Date.parse(value));
+  }),
   body('items.*.notes').optional().trim()
 ], async (req, res) => {
   try {

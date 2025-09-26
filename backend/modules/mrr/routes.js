@@ -241,8 +241,8 @@ router.get('/', authenticateToken, [
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
         { model: MrrItem, as: 'items', include: [
-          { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code'] },
-          { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }
+          { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code'] },
+          { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
         ]}
       ],
       limit,
@@ -274,8 +274,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
         { model: MrrItem, as: 'items', include: [
-          { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code', 'description', 'specifications'] },
-          { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }
+          { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code', 'description', 'specifications'] },
+          { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
         ]}
       ]
     });
@@ -387,8 +387,8 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
         { model: Project, as: 'project', attributes: ['name'] },
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
         { model: MrrItem, as: 'items', include: [
-          { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code'] },
-          { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }
+          { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code'] },
+          { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
         ]}
       ]
     });

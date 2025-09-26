@@ -322,4 +322,100 @@
   .shadow-glow-danger {
     box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
   }
+
+  /* Construction Site Animations */
+  .animate-bounce-slow {
+    animation: bounceSlow 3s ease-in-out infinite;
+  }
+
+  .animate-truck-move {
+    animation: truckMove 4s ease-in-out infinite;
+  }
+
+  .animate-worker-move {
+    animation: workerMove 2s ease-in-out infinite;
+  }
+
+  .animate-supervisor-move {
+    animation: supervisorMove 3s ease-in-out infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spinSlow 2s linear infinite;
+  }
+
+  .animate-wave {
+    animation: wave 1s ease-in-out infinite;
+  }
+
+  .animate-clipboard {
+    animation: clipboard 2s ease-in-out infinite;
+  }
+
+  .animate-material-glow {
+    animation: materialGlow 2s ease-in-out infinite;
+  }
+
+  .animate-dust-cloud {
+    animation: dustCloud 3s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes bounceSlow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes truckMove {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(20px); }
+  }
+
+  @keyframes workerMove {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    25% { transform: translateX(5px) translateY(-2px); }
+    50% { transform: translateX(10px) translateY(0); }
+    75% { transform: translateX(5px) translateY(2px); }
+  }
+
+  @keyframes supervisorMove {
+    0%, 100% { transform: translateX(0) rotate(0deg); }
+    25% { transform: translateX(-5px) rotate(-5deg); }
+    50% { transform: translateX(-10px) rotate(0deg); }
+    75% { transform: translateX(-5px) rotate(5deg); }
+  }
+
+  @keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(15deg); }
+  }
+
+  @keyframes clipboard {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(5deg) scale(1.1); }
+  }
+
+  @keyframes materialGlow {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  @keyframes dustCloud {
+    0%, 100% { opacity: 0.3; transform: scale(1) translateX(0); }
+    50% { opacity: 0.6; transform: scale(1.2) translateX(10px); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    33% { transform: translateY(-10px) rotate(5deg); }
+    66% { transform: translateY(-5px) rotate(-5deg); }
+  }
 }
