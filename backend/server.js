@@ -36,7 +36,14 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.SOCKET_CORS_ORIGIN || "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:4042", 
+      "https://www.constructease.hellbent.in",
+      "http://www.constructease.hellbent.in",
+      "http://89.116.34.49:4042",
+      "https://89.116.34.49:4042"
+    ],
     methods: ["GET", "POST"]
   }
 });
@@ -44,7 +51,14 @@ const io = new Server(server, {
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.SOCKET_CORS_ORIGIN || "http://localhost:3000",
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:4042", 
+    "https://www.constructease.hellbent.in",
+    "http://www.constructease.hellbent.in",
+    "http://89.116.34.49:4042",
+    "https://89.116.34.49:4042"
+  ],
   credentials: true
 }));
 
@@ -108,7 +122,7 @@ app.use('*', (req, res) => {
 });
 
 // Database connection and server start
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 4041;
 
 const startServer = async () => {
   try {

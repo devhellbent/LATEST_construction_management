@@ -29,12 +29,12 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=4042 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "react-scripts start",
-    "dev:fast": "cross-env FAST_REFRESH=true GENERATE_SOURCEMAP=false react-scripts start"
+    "dev": "PORT=4042 react-scripts start",
+    "dev:fast": "cross-env PORT=4042 FAST_REFRESH=true GENERATE_SOURCEMAP=false react-scripts start"
   },
   "eslintConfig": {
     "extends": [
