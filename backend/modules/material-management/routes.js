@@ -137,8 +137,10 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('item_id').optional().isInt(),
   body('item_code').optional().trim(),
+  body('additional_specification').optional().trim(),
   body('category').optional().trim(),
   body('brand').optional().trim(),
+  body('color').optional().trim(),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }),
@@ -149,12 +151,20 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
   body('reorder_point').optional().isInt({ min: 0 }),
   body('location').optional().trim(),
   body('status').optional().isIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED']),
-  body('project_id').optional().isInt(),
-  body('warehouse_id').optional().isInt()
+  body('project_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  }),
+  body('warehouse_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('Validation errors:', errors.array());
+      console.error('Request body:', req.body);
       return res.status(400).json({ errors: errors.array() });
     }
 
@@ -193,8 +203,10 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
 // Update material
 router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
   body('name').optional().trim().isLength({ min: 2 }),
+  body('additional_specification').optional().trim(),
   body('category').optional().trim(),
   body('brand').optional().trim(),
+  body('color').optional().trim(),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }),
@@ -204,7 +216,15 @@ router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project
   body('maximum_stock_level').optional().isInt({ min: 0 }),
   body('reorder_point').optional().isInt({ min: 0 }),
   body('location').optional().trim(),
-  body('status').optional().isIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED'])
+  body('status').optional().isIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED']),
+  body('project_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  }),
+  body('warehouse_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -546,8 +566,8 @@ router.get('/returns', authenticateToken, async (req, res) => {
       include: [
         { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
-        { model: User, as: 'returned_by_user', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] },
+        { model: User, as: 'returned_by_user', attributes: ['user_id', 'name'] },
+        { model: User, as: 'approved_by', attributes: ['user_id', 'name'] },
         { model: MaterialIssue, as: 'material_issue', attributes: ['issue_id', 'issue_date', 'quantity_issued', 'issued_to', 'issue_purpose', 'location'] },
         { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name', 'address'] }
       ],

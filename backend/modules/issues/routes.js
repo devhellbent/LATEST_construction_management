@@ -38,7 +38,7 @@ router.get('/', authenticateToken, [
     }
 
     // Role-based filtering
-    if (req.user.role.name === 'Collaborator Organisation' || req.user.role.name === 'Project On-site Team') {
+    if (req.user.role && (req.user.role.name === 'Collaborator Organisation' || req.user.role.name === 'Project On-site Team')) {
       whereClause[Op.or] = [
         { raised_by_user_id: req.user.user_id },
         { assigned_to_user_id: req.user.user_id }
@@ -90,7 +90,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
 
     // Check permissions
-    if (req.user.role === 'Collaborator Organisation' || req.user.role === 'Project On-site Team') {
+    if (req.user.role && (req.user.role.name === 'Collaborator Organisation' || req.user.role.name === 'Project On-site Team')) {
       if (issue.raised_by_user_id !== req.user.user_id && issue.assigned_to_user_id !== req.user.user_id) {
         return res.status(403).json({ message: 'Access denied to this issue' });
       }
@@ -171,8 +171,8 @@ router.put('/:id', authenticateToken, [
     }
 
     // Check permissions
-    const canUpdate = req.user.role.name === 'Admin' || 
-                     req.user.role.name === 'Project Manager' || 
+    const canUpdate = (req.user.role && req.user.role.name === 'Admin') || 
+                     (req.user.role && req.user.role.name === 'Project Manager') || 
                      issue.raised_by_user_id === req.user.user_id ||
                      issue.assigned_to_user_id === req.user.user_id;
 
@@ -242,8 +242,8 @@ router.patch('/:id/assign', authenticateToken, [
     }
 
     // Check permissions
-    const canAssign = req.user.role === 'Admin' || 
-                     req.user.role === 'Project Manager' || 
+    const canAssign = (req.user.role && req.user.role.name === 'Admin') || 
+                     (req.user.role && req.user.role.name === 'Project Manager') || 
                      issue.raised_by_user_id === req.user.user_id;
 
     if (!canAssign) {
@@ -281,8 +281,8 @@ router.patch('/:id/resolve', authenticateToken, [
     }
 
     // Check permissions
-    const canResolve = req.user.role === 'Admin' || 
-                      req.user.role === 'Project Manager' || 
+    const canResolve = (req.user.role && req.user.role.name === 'Admin') || 
+                      (req.user.role && req.user.role.name === 'Project Manager') || 
                       issue.assigned_to_user_id === req.user.user_id;
 
     if (!canResolve) {

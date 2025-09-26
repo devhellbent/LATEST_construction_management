@@ -34,6 +34,9 @@ const { setupSocketHandlers } = require('./services/socketService');
 
 const app = express();
 const server = createServer(app);
+
+// Trust proxy for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
 const io = new Server(server, {
   cors: {
     origin: [
@@ -42,9 +45,11 @@ const io = new Server(server, {
       "https://www.constructease.hellbent.in",
       "http://www.constructease.hellbent.in",
       "http://89.116.34.49:4042",
-      "https://89.116.34.49:4042"
+      "https://89.116.34.49:4042",
+      "https://api.cms.hellbent.in"
     ],
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -57,7 +62,8 @@ app.use(cors({
     "https://www.constructease.hellbent.in",
     "http://www.constructease.hellbent.in",
     "http://89.116.34.49:4042",
-    "https://89.116.34.49:4042"
+    "https://89.116.34.49:4042",
+    "https://api.cms.hellbent.in"
   ],
   credentials: true
 }));

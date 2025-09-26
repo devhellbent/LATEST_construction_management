@@ -849,8 +849,8 @@ router.get('/material-return', authenticateToken, async (req, res) => {
       include: [
         { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
-        { model: User, as: 'returned_by', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
+        { model: User, as: 'returned_by_user', attributes: ['user_id', 'name'] },
+        { model: User, as: 'approved_by', attributes: ['user_id', 'name'] }
       ],
       limit,
       offset,
@@ -1098,7 +1098,7 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
       include: [
         { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
-        { model: User, as: 'returned_by', foreignKey: 'returned_by_user_id', attributes: ['user_id', 'name'] }
+        { model: User, as: 'returned_by_user', attributes: ['user_id', 'name'] }
       ],
       limit: Math.floor(limit / 3),
       order: [['return_date', 'DESC']]

@@ -30,7 +30,8 @@
   },
   "scripts": {
     "start": "PORT=4042 react-scripts start",
-    "build": "react-scripts build",
+    "build": "cross-env GENERATE_SOURCEMAP=false CI=false react-scripts build",
+    "build:fast": "cross-env GENERATE_SOURCEMAP=false CI=false DISABLE_ESLINT_PLUGIN=true react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "PORT=4042 react-scripts start",

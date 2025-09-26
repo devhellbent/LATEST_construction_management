@@ -144,6 +144,10 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('notes').optional().trim(),
   body('delivery_notes').optional().trim(),
   body('warehouse_id').isInt().withMessage('Warehouse ID must be an integer'),
+  body('project_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  }),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.po_item_id').isInt().withMessage('PO Item ID must be an integer'),
   body('items.*.item_id').isInt().withMessage('Item ID must be an integer'),
@@ -158,6 +162,8 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('Material receipt validation errors:', errors.array());
+      console.error('Request body:', req.body);
       return res.status(400).json({ errors: errors.array() });
     }
 

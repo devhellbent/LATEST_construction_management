@@ -38,7 +38,30 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
   useEffect(() => {
     if (isAuthenticated && token) {
-      const newSocket = io(process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000', {
+      // Get socket URL based on environment
+      const getSocketUrl = () => {
+        const hostname = window.location.hostname;
+        
+        // Production HTTPS URLs
+        if (hostname === 'www.constructease.hellbent.in') {
+          return 'https://api.cms.hellbent.in';
+        }
+        
+        // Production HTTP URLs (IP-based)
+        if (hostname === '89.116.34.49') {
+          return 'http://89.116.34.49:4041';
+        }
+        
+        // Development URLs
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          return process.env.REACT_APP_SOCKET_URL || 'http://localhost:4041';
+        }
+        
+        // Default fallback
+        return process.env.REACT_APP_SOCKET_URL || 'http://localhost:4041';
+      };
+
+      const newSocket = io(getSocketUrl(), {
         auth: {
           token: token
         }

@@ -63,7 +63,10 @@ const Issue = sequelize.define('Issue', {
     allowNull: true
   }
 }, {
-  tableName: 'issues'
+  tableName: 'issues',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = Issue;
