@@ -294,83 +294,101 @@ const UnifiedMaterialIssue: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Material Issue Management</h1>
-        <p className="text-gray-600 mt-2">Issue materials based on MRR or direct project requirements</p>
+    <div className="space-y-8">
+      <div className="text-center lg:text-left">
+        <h1 className="text-4xl font-bold text-slate-900">Material Issue Management</h1>
+        <p className="text-lg text-slate-600 mt-2">Issue materials based on MRR or direct project requirements</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="card p-8">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           {/* Issue Type Selection */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Issue Type</h3>
-            <div className="flex items-center space-x-6">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="issue_type"
-                  checked={formData.is_mrr_based}
-                  onChange={() => handleMrrBasedToggle(true)}
-                  className="mr-2"
-                />
-                <span className="text-gray-700">Based on MRR (Material Requirement Request)</span>
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-slate-900 mb-6">Issue Type</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <label className="card-interactive p-6 cursor-pointer group">
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="radio"
+                    name="issue_type"
+                    checked={formData.is_mrr_based}
+                    onChange={() => handleMrrBasedToggle(true)}
+                    className="h-5 w-5 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white text-lg">📋</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 group-hover:text-primary-600 transition-colors">MRR Based Issue</h4>
+                    <p className="text-sm text-slate-600">Issue materials based on approved Material Requirement Request</p>
+                  </div>
+                </div>
               </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="issue_type"
-                  checked={!formData.is_mrr_based}
-                  onChange={() => handleMrrBasedToggle(false)}
-                  className="mr-2"
-                />
-                <span className="text-gray-700">Direct Issue (Project Manager)</span>
+              <label className="card-interactive p-6 cursor-pointer group">
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="radio"
+                    name="issue_type"
+                    checked={!formData.is_mrr_based}
+                    onChange={() => handleMrrBasedToggle(false)}
+                    className="h-5 w-5 text-primary-600 focus:ring-primary-500"
+                  />
+                  <div className="h-12 w-12 bg-gradient-to-br from-accent-500 to-accent-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <span className="text-white text-lg">⚡</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 group-hover:text-primary-600 transition-colors">Direct Issue</h4>
+                    <p className="text-sm text-slate-600">Issue materials directly without MRR approval</p>
+                  </div>
+                </div>
               </label>
             </div>
           </div>
 
           {/* MRR Selection (if MRR based) */}
           {formData.is_mrr_based && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select MRR *
+            <div className="mb-8">
+              <label className="label label-required">
+                Select MRR
               </label>
               <select
                 value={formData.mrr_id || 0}
                 onChange={(e) => handleMrrSelection(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                className="input"
                 required={formData.is_mrr_based}
               >
-                <option value={0} className="text-gray-900">Select MRR</option>
+                <option value={0}>Select MRR</option>
                 {mrrs.map((mrr) => (
-                  <option key={mrr.mrr_id} value={mrr.mrr_id} className="text-gray-900">
+                  <option key={mrr.mrr_id} value={mrr.mrr_id}>
                     {mrr.mrr_number} - {mrr.project?.name || 'Unknown Project'}
                   </option>
                 ))}
               </select>
               {formData.mrr_number && (
-                <p className="text-sm text-green-600 mt-1">
-                  Selected MRR: {formData.mrr_number}
-                </p>
+                <div className="mt-3 p-3 bg-success-50 border border-success-200 rounded-xl">
+                  <p className="text-sm text-success-700 font-medium">
+                    ✓ Selected MRR: {formData.mrr_number}
+                  </p>
+                </div>
               )}
             </div>
           )}
 
           {/* Project Selection (if direct issue) */}
           {!formData.is_mrr_based && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Project *
+            <div className="mb-8">
+              <label className="label label-required">
+                Project
               </label>
               <select
                 value={formData.project_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, project_id: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                className="input"
                 required={!formData.is_mrr_based}
               >
-                <option value={0} className="text-gray-900">Select Project</option>
+                <option value={0}>Select Project</option>
                 {projects.map((project) => (
-                  <option key={project.project_id} value={project.project_id} className="text-gray-900">
+                  <option key={project.project_id} value={project.project_id}>
                     {project.name}
                   </option>
                 ))}
@@ -379,65 +397,66 @@ const UnifiedMaterialIssue: React.FC = () => {
           )}
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Issued To *
+              <label className="label label-required">
+                Issued To
               </label>
               <input
                 type="text"
                 value={formData.issued_to}
                 onChange={(e) => setFormData(prev => ({ ...prev, issued_to: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="Contractor/Site name"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="label">
                 Issue Date
               </label>
               <input
                 type="date"
                 value={formData.issue_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, issue_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 required
               />
             </div>
           </div>
 
           {/* Material Items */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Materials to Issue</h3>
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-900">Materials to Issue</h3>
               <button
                 type="button"
                 onClick={addMaterialItem}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="btn btn-primary flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
               >
-                + Add Material
+                <span className="text-lg mr-2">+</span>
+                Add Material
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {formData.items.map((item, index) => (
-                <div key={index} className="border border-gray-200 rounded-lg p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div key={index} className="card p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="label label-required">
                         Material
                       </label>
                       <select
                         value={item.material_id}
                         onChange={(e) => updateMaterialItem(index, 'material_id', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                        className="input"
                         required
                       >
-                        <option value={0} className="text-gray-900">Select Material</option>
+                        <option value={0}>Select Material</option>
                         {materials.map((material) => (
-                          <option key={material.material_id} value={material.material_id} className="text-gray-900">
+                          <option key={material.material_id} value={material.material_id}>
                             {material.name}
                           </option>
                         ))}
@@ -445,7 +464,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="label label-required">
                         Quantity
                       </label>
                       <input
@@ -453,16 +472,16 @@ const UnifiedMaterialIssue: React.FC = () => {
                         min="0"
                         value={item.quantity_issued}
                         onChange={(e) => updateMaterialItem(index, 'quantity_issued', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="input"
                         required
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="label">
                         Unit
                       </label>
-                      <div className="px-3 py-2 bg-gray-100 rounded-lg text-gray-900">
+                      <div className="px-4 py-3 bg-slate-100 rounded-xl text-slate-900 font-medium">
                         {item.unit_name || 'Select material first'}
                       </div>
                     </div>
@@ -471,7 +490,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeMaterialItem(index)}
-                        className="w-full px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="btn btn-danger w-full"
                       >
                         Remove
                       </button>
@@ -479,8 +498,10 @@ const UnifiedMaterialIssue: React.FC = () => {
                   </div>
                   
                   {item.material_id > 0 && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      Available Stock: {materials.find(m => m.material_id === item.material_id)?.stock_qty || 0} {item.unit_name}
+                    <div className="mt-4 p-3 bg-slate-50 rounded-xl">
+                      <p className="text-sm text-slate-600">
+                        <span className="font-semibold">Available Stock:</span> {materials.find(m => m.material_id === item.material_id)?.stock_qty || 0} {item.unit_name}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -489,15 +510,15 @@ const UnifiedMaterialIssue: React.FC = () => {
           </div>
 
           {/* Notes */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-8">
+            <label className="label">
               Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
+              className="input"
+              rows={4}
               placeholder="Additional notes for this material issue..."
             />
           </div>
@@ -507,98 +528,112 @@ const UnifiedMaterialIssue: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              {loading ? 'Issuing...' : 'Issue Material'}
+              {loading ? (
+                <>
+                  <div className="loading-spinner h-4 w-4 mr-2"></div>
+                  Issuing...
+                </>
+              ) : (
+                'Issue Material'
+              )}
             </button>
           </div>
         </form>
       </div>
 
       {/* Material Issues Records Section */}
-      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
+      <div className="card p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Material Issue Records</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Material Issue Records</h2>
           <button
             onClick={loadMaterialIssues}
             disabled={recordsLoading}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="btn btn-secondary flex items-center"
           >
-            {recordsLoading ? 'Refreshing...' : 'Refresh'}
+            {recordsLoading ? (
+              <>
+                <div className="loading-spinner h-4 w-4 mr-2"></div>
+                Refreshing...
+              </>
+            ) : (
+              'Refresh'
+            )}
           </button>
         </div>
 
         {recordsLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="loading-spinner h-12 w-12"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="table">
+              <thead>
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Issue ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Material
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Project
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Quantity
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Issue Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Issued To
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     MRR Reference
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody>
                 {materialIssues.map((issue) => (
-                  <tr key={issue.issue_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={issue.issue_id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">
                       #{issue.issue_id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {issue.material?.name || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {issue.project?.name || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {issue.quantity_issued} {issue.material?.unit || ''}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {new Date(issue.issue_date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {issue.issued_to || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                       {issue.mrr?.mrr_number ? (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="status-badge status-active">
                           {issue.mrr.mrr_number}
                         </span>
                       ) : (
-                        <span className="text-gray-400">Direct Issue</span>
+                        <span className="text-slate-400">Direct Issue</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        issue.status === 'ISSUED' ? 'bg-green-100 text-green-800' :
-                        issue.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                        issue.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
+                      <span className={`status-badge ${
+                        issue.status === 'ISSUED' ? 'status-success' :
+                        issue.status === 'PENDING' ? 'status-pending' :
+                        issue.status === 'CANCELLED' ? 'status-danger' :
+                        'status-secondary'
                       }`}>
                         {issue.status}
                       </span>
@@ -609,8 +644,12 @@ const UnifiedMaterialIssue: React.FC = () => {
             </table>
             
             {materialIssues.length === 0 && (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No material issues found.</p>
+              <div className="text-center py-12">
+                <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl text-slate-400">📦</span>
+                </div>
+                <p className="text-slate-500 font-medium">No material issues found</p>
+                <p className="text-sm text-slate-400 mt-1">Material issues will appear here once created</p>
               </div>
             )}
           </div>

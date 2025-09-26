@@ -6,6 +6,7 @@ import {
   materialManagementAPI
 } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { RefreshCw, PackageX } from 'lucide-react';
 
 interface MaterialIssue {
   issue_id: number;
@@ -185,23 +186,23 @@ const MaterialReturn: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Material Return Management</h1>
-        <p className="text-gray-600 mt-2">Record material returns from sites and contractors</p>
+    <div className="space-y-8">
+      <div className="text-center lg:text-left">
+        <h1 className="text-4xl font-bold text-slate-900">Material Return Management</h1>
+        <p className="text-lg text-slate-600 mt-2">Record material returns from sites and contractors</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="card p-8">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           {/* Issue Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Material Issue *
+          <div className="mb-8">
+            <label className="label label-required">
+              Select Material Issue
             </label>
             <select
               value={formData.issue_id}
               onChange={(e) => handleIssueSelection(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
               required
             >
               <option value={0}>Select Material Issue</option>
@@ -215,29 +216,29 @@ const MaterialReturn: React.FC = () => {
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Returned By *
+              <label className="label label-required">
+                Returned By
               </label>
               <input
                 type="text"
                 value={formData.returned_by}
                 onChange={(e) => setFormData(prev => ({ ...prev, returned_by: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="Contractor/Site name"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Warehouse Location *
+              <label className="label label-required">
+                Warehouse Location
               </label>
               <select
                 value={formData.warehouse_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, warehouse_id: parseInt(e.target.value) }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 required
               >
                 <option value={0}>Select Warehouse</option>
@@ -250,14 +251,14 @@ const MaterialReturn: React.FC = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="label">
                 Return Date
               </label>
               <input
                 type="date"
                 value={formData.return_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, return_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 required
               />
             </div>
@@ -265,23 +266,23 @@ const MaterialReturn: React.FC = () => {
 
           {/* Return Items */}
           {formData.items.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Return Details</h3>
-              <div className="space-y-4">
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-slate-900 mb-6">Return Details</h3>
+              <div className="space-y-6">
                 {formData.items.map((item, index) => {
                   const issue = materialIssues.find(i => i.issue_id === item.issue_id);
                   return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <div key={index} className="card p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
                         <div>
-                          <h4 className="font-medium text-gray-900">{issue?.material.name}</h4>
-                          <p className="text-sm text-gray-600">
+                          <h4 className="font-bold text-slate-900">{issue?.material.name}</h4>
+                          <p className="text-sm text-slate-600">
                             Issued: {issue?.quantity_issued} {issue?.unit_name}
                           </p>
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label">
                             Quantity Returned
                           </label>
                           <input
@@ -290,19 +291,19 @@ const MaterialReturn: React.FC = () => {
                             max={issue?.quantity_issued || 0}
                             value={item.quantity_returned}
                             onChange={(e) => updateReturnItem('quantity_returned', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                             required
                           />
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label">
                             Quality Status
                           </label>
                           <select
                             value={item.quality_status}
                             onChange={(e) => updateReturnItem('quality_status', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                           >
                             <option value="GOOD">Good</option>
                             <option value="DAMAGED">Damaged</option>
@@ -311,14 +312,14 @@ const MaterialReturn: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label">
                             Remarks
                           </label>
                           <input
                             type="text"
                             value={item.remarks}
                             onChange={(e) => updateReturnItem('remarks', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                             placeholder="Quality notes"
                           />
                         </div>
@@ -331,15 +332,15 @@ const MaterialReturn: React.FC = () => {
           )}
 
           {/* Notes */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-8">
+            <label className="label">
               General Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
+              className="input"
+              rows={4}
               placeholder="Additional notes about the return..."
             />
           </div>
@@ -349,30 +350,56 @@ const MaterialReturn: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+              className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              {loading ? 'Recording...' : 'Record Return'}
+              {loading ? (
+                <>
+                  <div className="loading-spinner h-4 w-4 mr-2"></div>
+                  Recording...
+                </>
+              ) : (
+                'Record Return'
+              )}
             </button>
           </div>
         </form>
       </div>
 
       {/* Material Returns Records Section */}
-      <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Material Return Records</h2>
+      <div className="mt-8 card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Material Return Records</h2>
+            <p className="text-slate-600 mt-1">View and manage all material return records</p>
+          </div>
           <button
             onClick={loadMaterialReturns}
             disabled={recordsLoading}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+            className="btn btn-secondary flex items-center"
           >
-            {recordsLoading ? 'Refreshing...' : 'Refresh'}
+            {recordsLoading ? (
+              <div className="loading-spinner h-4 w-4 mr-2"></div>
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Refresh
           </button>
         </div>
 
         {recordsLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+            <div className="loading-spinner h-12 w-12"></div>
+            <p className="text-slate-600 font-medium ml-4">Loading records...</p>
+          </div>
+        ) : materialReturns.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <PackageX className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">No Material Returns Found</h3>
+            <p className="text-slate-600 max-w-md mx-auto">
+              No material return records have been created yet. Create your first return above.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">

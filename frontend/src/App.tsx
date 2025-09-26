@@ -32,7 +32,6 @@ import UnifiedMaterialIssue from './pages/UnifiedMaterialIssue';
 import MaterialReturn from './pages/MaterialReturn';
 import MaterialConsumption from './pages/MaterialConsumption';
 import InventoryManagement from './pages/InventoryManagement';
-import PurchaseOrderManagement from './pages/PurchaseOrderManagement';
 import MaterialReceiptManagement from './pages/MaterialReceiptManagement';
 import SupplierLedgerManagement from './pages/SupplierLedgerManagement';
 import WorkflowStatusTracking from './pages/WorkflowStatusTracking';
@@ -103,7 +102,6 @@ function App() {
                             <Route path="/material-management/return" element={<MaterialReturn />} />
                             <Route path="/material-management/consumption" element={<MaterialConsumption />} />
                             <Route path="/material-management/inventory" element={<InventoryManagement />} />
-                            <Route path="/material-management/purchase-orders" element={<PurchaseOrderManagement />} />
                             <Route path="/material-management/receipts" element={<MaterialReceiptManagement />} />
                             <Route path="/material-management/supplier-ledger" element={<SupplierLedgerManagement />} />
                             <Route path="/material-management/workflow" element={<WorkflowStatusTracking />} />

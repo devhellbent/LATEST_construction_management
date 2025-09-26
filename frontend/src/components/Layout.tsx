@@ -61,7 +61,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Material Return', href: '/material-management/return', icon: RotateCcw },
     { name: 'Material Consumption', href: '/material-management/consumption', icon: RefreshCw },
     { name: 'Inventory Management', href: '/material-management/inventory', icon: Package },
-    { name: 'Purchase Orders', href: '/material-management/purchase-orders', icon: FileTextIcon },
     { name: 'Material Receipts', href: '/material-management/receipts', icon: Truck },
     { name: 'Supplier Ledger', href: '/material-management/supplier-ledger', icon: CreditCard },
     { name: 'Workflow Tracking', href: '/material-management/workflow', icon: Workflow },
@@ -146,23 +145,26 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="relative sidebar-container w-64 bg-white h-full">
-          <div className="flex h-16 items-center justify-between px-4 flex-shrink-0">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+        <div className="relative sidebar-container w-72 bg-white/95 backdrop-blur-md h-full shadow-2xl">
+          <div className="flex h-20 items-center justify-between px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-                <span className="text-white font-bold text-sm">CE</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
+                <span className="text-white font-bold text-lg">CE</span>
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">ConstructEase</span>
+              <div className="ml-3">
+                <span className="text-xl font-bold text-slate-900">ConstructEase</span>
+                <p className="text-xs text-slate-500">Construction Management</p>
+              </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5" />
             </button>
           </div>
           <div className="sidebar-nav">
@@ -230,14 +232,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="sidebar-container bg-white border-r border-gray-200">
-          <div className="flex h-16 items-center px-4 flex-shrink-0">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
+        <div className="sidebar-container bg-white/95 backdrop-blur-md border-r border-slate-200/50 shadow-lg">
+          <div className="flex h-20 items-center px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600">
-                <span className="text-white font-bold text-sm">CE</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
+                <span className="text-white font-bold text-lg">CE</span>
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">ConstructEase</span>
+              <div className="ml-3">
+                <span className="text-xl font-bold text-slate-900">ConstructEase</span>
+                <p className="text-xs text-slate-500">Construction Management</p>
+              </div>
             </div>
           </div>
           <div className="sidebar-nav">
@@ -303,12 +308,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-72">
         {/* Top header */}
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-x-4 border-b border-slate-200/50 bg-white/80 backdrop-blur-md px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
+            className="-m-2.5 p-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-6 w-6" />
@@ -316,12 +321,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
           {/* Search */}
           <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-            <div className="relative flex flex-1 items-center">
-              <Search className="absolute left-3 h-5 w-5 text-gray-400" />
+            <div className="relative flex flex-1 items-center max-w-md">
+              <Search className="absolute left-4 h-5 w-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                placeholder="Search projects, materials, tasks..."
+                className="search-input pl-12 pr-4"
               />
             </div>
           </div>
@@ -329,36 +334,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {/* Right side */}
           <div className="flex items-center gap-x-4 lg:gap-x-6">
             {/* Connection status */}
-            <div className="flex items-center">
-              <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
-              <span className="ml-2 text-sm text-gray-500">
+            <div className="flex items-center px-3 py-2 bg-slate-50 rounded-lg">
+              <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-success-500' : 'bg-danger-500'} animate-pulse`} />
+              <span className="ml-2 text-sm text-slate-600 font-medium">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2 text-gray-400 hover:text-gray-500">
-              <Bell className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+            <button className="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-danger-500 text-xs text-white flex items-center justify-center font-semibold shadow-lg">
                 3
               </span>
             </button>
 
             {/* Profile dropdown */}
-            <div className="flex items-center gap-x-3">
-              <div className="flex items-center gap-x-2">
-                <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
-                  <User className="h-5 w-5 text-primary-600" />
+            <div className="flex items-center gap-x-3 pl-3 border-l border-slate-200">
+              <div className="flex items-center gap-x-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
+                  <User className="h-5 w-5 text-white" />
                 </div>
                 <div className="hidden lg:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{getRoleName()}</p>
+                  <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
+                  <p className="text-xs text-slate-500">{getRoleName()}</p>
                 </div>
               </div>
               <div className="relative">
                 <button
                   onClick={logout}
-                  className="text-sm text-gray-500 hover:text-gray-700"
+                  className="text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors font-medium"
                 >
                   Logout
                 </button>
@@ -368,9 +373,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="py-6">
+        <main className="py-8">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {children}
+            <div className="animate-fade-in">
+              {children}
+            </div>
           </div>
         </main>
       </div>

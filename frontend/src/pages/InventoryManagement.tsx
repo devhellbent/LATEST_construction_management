@@ -3,7 +3,26 @@ import {
   materialManagementAPI, 
   projectsAPI 
 } from '../services/api';
-import { AlertTriangle, Package, History } from 'lucide-react';
+import { 
+  AlertTriangle, 
+  Package, 
+  History, 
+  Plus, 
+  Search, 
+  Filter, 
+  X,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  MapPin,
+  Calendar,
+  User,
+  RefreshCw,
+  ShoppingCart,
+  ArrowUpDown,
+  CheckCircle,
+  Clock
+} from 'lucide-react';
 
 interface InventoryItem {
   material_id: number;
@@ -204,12 +223,23 @@ const InventoryManagement: React.FC = () => {
 
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
-      case 'PURCHASE': return 'text-green-600';
-      case 'ISSUE': return 'text-red-600';
-      case 'RETURN': return 'text-blue-600';
-      case 'TRANSFER': return 'text-purple-600';
-      case 'ADJUSTMENT': return 'text-orange-600';
-      default: return 'text-gray-600';
+      case 'PURCHASE': return 'text-success-600';
+      case 'ISSUE': return 'text-danger-600';
+      case 'RETURN': return 'text-primary-600';
+      case 'TRANSFER': return 'text-secondary-600';
+      case 'ADJUSTMENT': return 'text-warning-600';
+      default: return 'text-slate-600';
+    }
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'PURCHASE': return <TrendingUp className="h-4 w-4" />;
+      case 'ISSUE': return <TrendingDown className="h-4 w-4" />;
+      case 'RETURN': return <ArrowUpDown className="h-4 w-4" />;
+      case 'TRANSFER': return <ArrowUpDown className="h-4 w-4" />;
+      case 'ADJUSTMENT': return <Minus className="h-4 w-4" />;
+      default: return <Package className="h-4 w-4" />;
     }
   };
 
@@ -295,90 +325,106 @@ const InventoryManagement: React.FC = () => {
   if (loading && inventoryItems.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="loading-spinner h-12 w-12"></div>
+        <p className="text-slate-600 font-medium ml-4">Loading inventory data...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-            <p className="text-gray-600 mt-2">Monitor stock levels, track movements, and manage inventory</p>
-          </div>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Material
-          </button>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900">Inventory Management</h1>
+          <p className="text-lg text-slate-600 mt-2">Monitor stock levels, track movements, and manage inventory</p>
         </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Add Material
+        </button>
       </div>
 
       {/* Tab Navigation */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
+      <div className="card p-6">
+        <div className="border-b border-slate-200">
           <nav className="-mb-px flex space-x-8">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
                 activeTab === 'overview'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              Inventory Overview
+              <div className="flex items-center space-x-2">
+                <Package className="h-4 w-4" />
+                <span>Inventory Overview</span>
+              </div>
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
                 activeTab === 'history'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              <History className="h-4 w-4 mr-1" />
-              History
+              <div className="flex items-center space-x-2">
+                <History className="h-4 w-4" />
+                <span>History</span>
+              </div>
             </button>
             <button
               onClick={() => setActiveTab('low-stock')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
                 activeTab === 'low-stock'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
-              <AlertTriangle className="h-4 w-4 mr-1" />
-              Low Stock
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-4 w-4" />
+                <span>Low Stock</span>
+              </div>
             </button>
           </nav>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search Material</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by material name..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <h3 className="text-lg font-bold text-slate-900">Filters</h3>
+            <p className="text-slate-600 text-sm">Filter inventory items by various criteria</p>
+          </div>
+          <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Filter className="h-5 w-5 text-primary-600" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div>
+            <label className="label">Search Material</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by material name..."
+                className="input pl-10"
+              />
+            </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Project</label>
+            <label className="label">Filter by Project</label>
             <select
               value={filterProject}
               onChange={(e) => setFilterProject(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
             >
               <option value={0}>All Projects</option>
               {projects.map((project) => (
@@ -389,11 +435,11 @@ const InventoryManagement: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Warehouse</label>
+            <label className="label">Filter by Warehouse</label>
             <select
               value={filterWarehouse}
               onChange={(e) => setFilterWarehouse(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
             >
               <option value={0}>All Warehouses</option>
               {masterData?.warehouses?.map((warehouse) => (
@@ -404,11 +450,11 @@ const InventoryManagement: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Category</label>
+            <label className="label">Filter by Category</label>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
             >
               <option value="">All Categories</option>
               {masterData?.categories?.map((category) => (
@@ -424,50 +470,66 @@ const InventoryManagement: React.FC = () => {
       {/* Inventory Overview Tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Inventory Items</h2>
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Inventory Items</h2>
+                <p className="text-slate-600 mt-1">Current stock levels and material information</p>
+              </div>
+              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <Package className="h-6 w-6 text-primary-600" />
+              </div>
+            </div>
             {inventoryItems.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No inventory items found</p>
-                <p className="text-sm text-gray-400 mt-2">Add materials to start tracking inventory</p>
+              <div className="text-center py-12">
+                <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Package className="h-10 w-10 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No Inventory Items Found</h3>
+                <p className="text-slate-600 max-w-md mx-auto">
+                  No inventory items match your current filters. Try adjusting your search criteria or add new materials.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="table">
+                  <thead>
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Level</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Material</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Current Stock</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Min Level</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Project</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Warehouse</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Last Updated</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody>
                     {inventoryItems.map((item) => {
                       const stockStatus = getStockStatus(item.stock_qty, item.minimum_stock_level, item.maximum_stock_level);
                       return (
-                        <tr key={item.material_id} className="hover:bg-gray-50">
+                        <tr key={item.material_id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
-                              <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                              <div className="text-sm text-gray-500">{item.item?.item_code || 'N/A'}</div>
+                              <div className="text-sm font-semibold text-slate-900">{item.name}</div>
+                              <div className="text-sm text-slate-500">{item.item?.item_code || 'N/A'}</div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.category}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.stock_qty} {item.unit}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.minimum_stock_level} {item.unit}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.stock_qty} {item.unit}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.minimum_stock_level} {item.unit}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${stockStatus.color}`}>
+                            <span className={`status-badge ${
+                              stockStatus.status === 'LOW' ? 'status-danger' : 
+                              stockStatus.status === 'HIGH' ? 'status-warning' : 'status-success'
+                            }`}>
                               {stockStatus.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.project?.name || 'General'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.warehouse?.warehouse_name || 'N/A'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.project?.name || 'General'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.warehouse?.warehouse_name || 'N/A'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                             {new Date(item.updated_at).toLocaleDateString()}
                           </td>
                         </tr>
@@ -484,40 +546,61 @@ const InventoryManagement: React.FC = () => {
       {/* History Tab */}
       {activeTab === 'history' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Inventory History</h2>
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Inventory History</h2>
+                <p className="text-slate-600 mt-1">Track all inventory movements and transactions</p>
+              </div>
+              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <History className="h-6 w-6 text-primary-600" />
+              </div>
+            </div>
             {inventoryHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No inventory history found</p>
-                <p className="text-sm text-gray-400 mt-2">Inventory movements will appear here</p>
+              <div className="text-center py-12">
+                <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <History className="h-10 w-10 text-slate-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">No Inventory History</h3>
+                <p className="text-slate-600 max-w-md mx-auto">
+                  No inventory movements have been recorded yet. History will appear here once transactions are made.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {inventoryHistory.map((history) => (
-                  <div key={history.history_id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={history.history_id} className="card p-6">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{history.material?.name || 'Unknown Material'}</h4>
-                        <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                          <span className={`font-medium ${getTransactionTypeColor(history.transaction_type)}`}>
-                            {history.transaction_type}
-                          </span>
-                          <span>Quantity: {history.quantity_change > 0 ? '+' : ''}{history.quantity_change}</span>
-                          <span>Before: {history.quantity_before}</span>
-                          <span>After: {history.quantity_after}</span>
-                          <span>Date: {new Date(history.transaction_date).toLocaleDateString()}</span>
+                      <div className="flex items-center space-x-4">
+                        <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                          {getTransactionIcon(history.transaction_type)}
                         </div>
-                        <div className="mt-2 text-sm text-gray-500">
-                          <span>Reference: {history.reference_number}</span>
-                          {history.description && (
-                            <span className="ml-4">Description: {history.description}</span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-sm text-gray-500">
-                          <span>By: {history.performedBy?.name || 'System'}</span>
-                          {history.location && (
-                            <span className="ml-4">📍 Location: {history.location}</span>
-                          )}
+                        <div className="flex-1">
+                          <h4 className="font-bold text-slate-900">{history.material?.name || 'Unknown Material'}</h4>
+                          <div className="flex items-center space-x-4 mt-2 text-sm text-slate-600">
+                            <span className={`font-semibold ${getTransactionTypeColor(history.transaction_type)}`}>
+                              {history.transaction_type}
+                            </span>
+                            <span>Quantity: {history.quantity_change > 0 ? '+' : ''}{history.quantity_change}</span>
+                            <span>Before: {history.quantity_before}</span>
+                            <span>After: {history.quantity_after}</span>
+                            <span>Date: {new Date(history.transaction_date).toLocaleDateString()}</span>
+                          </div>
+                          <div className="mt-2 text-sm text-slate-500">
+                            <span>Reference: {history.reference_number}</span>
+                            {history.description && (
+                              <span className="ml-4">Description: {history.description}</span>
+                            )}
+                          </div>
+                          <div className="mt-1 text-sm text-slate-500">
+                            <span>By: {history.performedBy?.name || 'System'}</span>
+                            {history.location && (
+                              <span className="ml-4 flex items-center">
+                                <MapPin className="h-3 w-3 mr-1" />
+                                Location: {history.location}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -532,45 +615,66 @@ const InventoryManagement: React.FC = () => {
       {/* Low Stock Tab */}
       {activeTab === 'low-stock' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Low Stock Materials</h2>
-            <p className="text-sm text-gray-600 mb-4">Materials that need restocking based on minimum stock levels</p>
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Low Stock Materials</h2>
+                <p className="text-slate-600 mt-1">Materials that need restocking based on minimum stock levels</p>
+              </div>
+              <div className="h-12 w-12 bg-warning-100 rounded-xl flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-warning-600" />
+              </div>
+            </div>
             
             {lowStockMaterials.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No low stock materials found</p>
-                <p className="text-sm text-gray-400 mt-2">All materials are adequately stocked</p>
+              <div className="text-center py-12">
+                <div className="h-20 w-20 bg-success-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle className="h-10 w-10 text-success-500" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">All Materials Adequately Stocked</h3>
+                <p className="text-slate-600 max-w-md mx-auto">
+                  Great news! All materials are currently above their minimum stock levels. No restocking is needed at this time.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {lowStockMaterials.map((material) => {
                   const stockStatus = getStockStatusForRestock(material);
                   return (
-                    <div key={material.material_id} className={`border rounded-lg p-4 ${stockStatus.bgColor}`}>
+                    <div key={material.material_id} className={`card p-6 ${stockStatus.bgColor} border-2`}>
                       <div className="flex justify-between items-center">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{material.name}</h4>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                            <span>Current: {material.stock_qty} {material.unit || material.item?.unit?.unit_symbol}</span>
-                            <span>Minimum: {material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
-                            <span>Reorder Point: {material.reorder_point || material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
+                        <div className="flex items-center space-x-4">
+                          <div className="h-12 w-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <AlertTriangle className="h-6 w-6 text-white" />
                           </div>
-                          <div className="mt-2 flex items-center space-x-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${stockStatus.color} bg-white`}>
-                              {stockStatus.status.toUpperCase()}
-                            </span>
-                            {material.warehouse && (
-                              <span className="text-xs text-gray-500">
-                                📍 {material.warehouse.warehouse_name}
+                          <div className="flex-1">
+                            <h4 className="font-bold text-slate-900">{material.name}</h4>
+                            <div className="flex items-center space-x-4 mt-2 text-sm text-slate-600">
+                              <span>Current: {material.stock_qty} {material.unit || material.item?.unit?.unit_symbol}</span>
+                              <span>Minimum: {material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
+                              <span>Reorder Point: {material.reorder_point || material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
+                            </div>
+                            <div className="mt-2 flex items-center space-x-4">
+                              <span className={`status-badge ${
+                                stockStatus.status === 'critical' ? 'status-danger' : 'status-warning'
+                              }`}>
+                                {stockStatus.status.toUpperCase()}
                               </span>
-                            )}
+                              {material.warehouse && (
+                                <span className="text-xs text-slate-500 flex items-center">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {material.warehouse.warehouse_name}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => createPOForRestock(material)}
-                            className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                            className="btn btn-success flex items-center"
                           >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
                             PO for Restock
                           </button>
                         </div>
@@ -586,233 +690,246 @@ const InventoryManagement: React.FC = () => {
 
       {/* Add Material Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="modal-overlay">
           {!masterData ? (
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-gray-600">Loading form data...</span>
+            <div className="modal-content animate-scale-in w-full max-w-md">
+              <div className="flex items-center justify-center p-8">
+                <div className="loading-spinner h-8 w-8"></div>
+                <span className="ml-3 text-slate-600 font-medium">Loading form data...</span>
               </div>
             </div>
           ) : (
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Material</h2>
+          <div className="modal-content animate-scale-in w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Add New Material</h2>
+                <p className="text-sm text-slate-600 mt-1">Add a new material to your inventory</p>
+              </div>
               <button
                 onClick={() => {
                   setShowAddForm(false);
                   resetForm();
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="h-6 w-6" />
               </button>
             </div>
 
             <form onSubmit={handleAddMaterial}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Basic Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Basic Information</h3>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Basic Information */}
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-bold text-slate-900">Basic Information</h3>
+                    
+                    <div>
+                      <label className="label label-required">Select Material from Master Data</label>
+                      <select
+                        value={addFormData.item_id}
+                        onChange={(e) => {
+                          const selectedItem = masterData?.itemMaster?.find(item => item.item_id === parseInt(e.target.value));
+                          setAddFormData({
+                            ...addFormData, 
+                            item_id: e.target.value,
+                            name: selectedItem?.item_name || '',
+                            item_code: selectedItem?.item_code || '',
+                            category: selectedItem?.category_id ? masterData?.categories?.find(cat => cat.category_id === selectedItem.category_id)?.category_name || '' : '',
+                            brand: selectedItem?.brand_id ? masterData?.brands?.find(brand => brand.brand_id === selectedItem.brand_id)?.brand_name || '' : '',
+                            unit: selectedItem?.unit_id ? masterData?.units?.find(unit => unit.unit_id === selectedItem.unit_id)?.unit_name || '' : ''
+                          });
+                        }}
+                        className="input"
+                        required
+                      >
+                        <option value="">Select Material from Master Data</option>
+                        {masterData?.itemMaster?.map((item) => (
+                          <option key={item.item_id} value={item.item_id}>
+                            {item.item_name} ({item.item_code})
+                          </option>
+                        )) || []}
+                      </select>
+                    </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Material from Master Data *</label>
-                    <select
-                      value={addFormData.item_id}
-                      onChange={(e) => {
-                        const selectedItem = masterData?.itemMaster?.find(item => item.item_id === parseInt(e.target.value));
-                        setAddFormData({
-                          ...addFormData, 
-                          item_id: e.target.value,
-                          name: selectedItem?.item_name || '',
-                          item_code: selectedItem?.item_code || '',
-                          category: selectedItem?.category_id ? masterData?.categories?.find(cat => cat.category_id === selectedItem.category_id)?.category_name || '' : '',
-                          brand: selectedItem?.brand_id ? masterData?.brands?.find(brand => brand.brand_id === selectedItem.brand_id)?.brand_name || '' : '',
-                          unit: selectedItem?.unit_id ? masterData?.units?.find(unit => unit.unit_id === selectedItem.unit_id)?.unit_name || '' : ''
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="">Select Material from Master Data</option>
-                      {masterData?.itemMaster?.map((item) => (
-                        <option key={item.item_id} value={item.item_id}>
-                          {item.item_name} ({item.item_code})
-                        </option>
-                      )) || []}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Material Name *</label>
-                    <input
-                      type="text"
-                      value={addFormData.name}
-                      onChange={(e) => setAddFormData({...addFormData, name: e.target.value})}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addFormData.item_id ? 'bg-gray-100' : ''}`}
-                      placeholder="Enter material name"
-                      required
-                      readOnly={addFormData.item_id ? true : false}
-                    />
+                    <div>
+                      <label className="label label-required">Material Name</label>
+                      <input
+                        type="text"
+                        value={addFormData.name}
+                        onChange={(e) => setAddFormData({...addFormData, name: e.target.value})}
+                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
+                        placeholder="Enter material name"
+                        required
+                        readOnly={addFormData.item_id ? true : false}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Item Code</label>
+                      <input
+                        type="text"
+                        value={addFormData.item_code}
+                        onChange={(e) => setAddFormData({...addFormData, item_code: e.target.value})}
+                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
+                        placeholder="Enter item code"
+                        readOnly={addFormData.item_id ? true : false}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Category</label>
+                      <input
+                        type="text"
+                        value={addFormData.category}
+                        onChange={(e) => setAddFormData({...addFormData, category: e.target.value})}
+                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
+                        placeholder="Enter category"
+                        readOnly={addFormData.item_id ? true : false}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label">Brand</label>
+                      <input
+                        type="text"
+                        value={addFormData.brand}
+                        onChange={(e) => setAddFormData({...addFormData, brand: e.target.value})}
+                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
+                        placeholder="Enter brand"
+                        readOnly={addFormData.item_id ? true : false}
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Item Code</label>
-                    <input
-                      type="text"
-                      value={addFormData.item_code}
-                      onChange={(e) => setAddFormData({...addFormData, item_code: e.target.value})}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addFormData.item_id ? 'bg-gray-100' : ''}`}
-                      placeholder="Enter item code"
-                      readOnly={addFormData.item_id ? true : false}
-                    />
-                  </div>
+                  {/* Stock Information */}
+                  <div className="space-y-6">
+                    <h3 className="text-xl font-bold text-slate-900">Stock Information</h3>
+                    
+                    <div>
+                      <label className="label">Unit</label>
+                      <input
+                        type="text"
+                        value={addFormData.unit}
+                        onChange={(e) => setAddFormData({...addFormData, unit: e.target.value})}
+                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
+                        placeholder="Enter unit"
+                        readOnly={addFormData.item_id ? true : false}
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <input
-                      type="text"
-                      value={addFormData.category}
-                      onChange={(e) => setAddFormData({...addFormData, category: e.target.value})}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addFormData.item_id ? 'bg-gray-100' : ''}`}
-                      placeholder="Enter category"
-                      readOnly={addFormData.item_id ? true : false}
-                    />
-                  </div>
+                    <div>
+                      <label className="label">Cost per Unit</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={addFormData.cost_per_unit}
+                        onChange={(e) => setAddFormData({...addFormData, cost_per_unit: e.target.value})}
+                        className="input"
+                        placeholder="Enter cost per unit"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                    <input
-                      type="text"
-                      value={addFormData.brand}
-                      onChange={(e) => setAddFormData({...addFormData, brand: e.target.value})}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addFormData.item_id ? 'bg-gray-100' : ''}`}
-                      placeholder="Enter brand"
-                      readOnly={addFormData.item_id ? true : false}
-                    />
-                  </div>
-                </div>
+                    <div>
+                      <label className="label">Initial Stock Quantity</label>
+                      <input
+                        type="number"
+                        value={addFormData.stock_qty}
+                        onChange={(e) => setAddFormData({...addFormData, stock_qty: e.target.value})}
+                        className="input"
+                        placeholder="Enter initial stock quantity"
+                      />
+                    </div>
 
-                {/* Stock Information */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Stock Information</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                    <input
-                      type="text"
-                      value={addFormData.unit}
-                      onChange={(e) => setAddFormData({...addFormData, unit: e.target.value})}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${addFormData.item_id ? 'bg-gray-100' : ''}`}
-                      placeholder="Enter unit"
-                      readOnly={addFormData.item_id ? true : false}
-                    />
-                  </div>
+                    <div>
+                      <label className="label">Minimum Stock Level</label>
+                      <input
+                        type="number"
+                        value={addFormData.minimum_stock_level}
+                        onChange={(e) => setAddFormData({...addFormData, minimum_stock_level: e.target.value})}
+                        className="input"
+                        placeholder="Enter minimum stock level"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Unit</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={addFormData.cost_per_unit}
-                      onChange={(e) => setAddFormData({...addFormData, cost_per_unit: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter cost per unit"
-                    />
-                  </div>
+                    <div>
+                      <label className="label">Maximum Stock Level</label>
+                      <input
+                        type="number"
+                        value={addFormData.maximum_stock_level}
+                        onChange={(e) => setAddFormData({...addFormData, maximum_stock_level: e.target.value})}
+                        className="input"
+                        placeholder="Enter maximum stock level"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Initial Stock Quantity</label>
-                    <input
-                      type="number"
-                      value={addFormData.stock_qty}
-                      onChange={(e) => setAddFormData({...addFormData, stock_qty: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter initial stock quantity"
-                    />
-                  </div>
+                    <div>
+                      <label className="label">Reorder Point</label>
+                      <input
+                        type="number"
+                        value={addFormData.reorder_point}
+                        onChange={(e) => setAddFormData({...addFormData, reorder_point: e.target.value})}
+                        className="input"
+                        placeholder="Enter reorder point"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Stock Level</label>
-                    <input
-                      type="number"
-                      value={addFormData.minimum_stock_level}
-                      onChange={(e) => setAddFormData({...addFormData, minimum_stock_level: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter minimum stock level"
-                    />
-                  </div>
+                    <div>
+                      <label className="label">Warehouse</label>
+                      <select
+                        value={addFormData.warehouse_id}
+                        onChange={(e) => setAddFormData({...addFormData, warehouse_id: e.target.value})}
+                        className="input"
+                      >
+                        <option value="">Select Warehouse</option>
+                        {masterData?.warehouses?.map((warehouse) => (
+                          <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
+                            {warehouse.warehouse_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Stock Level</label>
-                    <input
-                      type="number"
-                      value={addFormData.maximum_stock_level}
-                      onChange={(e) => setAddFormData({...addFormData, maximum_stock_level: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter maximum stock level"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Reorder Point</label>
-                    <input
-                      type="number"
-                      value={addFormData.reorder_point}
-                      onChange={(e) => setAddFormData({...addFormData, reorder_point: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter reorder point"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse</label>
-                    <select
-                      value={addFormData.warehouse_id}
-                      onChange={(e) => setAddFormData({...addFormData, warehouse_id: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select Warehouse</option>
-                      {masterData?.warehouses?.map((warehouse) => (
-                        <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
-                          {warehouse.warehouse_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input
-                      type="text"
-                      value={addFormData.location}
-                      onChange={(e) => setAddFormData({...addFormData, location: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter location"
-                    />
+                    <div>
+                      <label className="label">Location</label>
+                      <input
+                        type="text"
+                        value={addFormData.location}
+                        onChange={(e) => setAddFormData({...addFormData, location: e.target.value})}
+                        className="input"
+                        placeholder="Enter location"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 mt-8">
+              <div className="flex justify-end gap-4 p-6 pt-0 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddForm(false);
                     resetForm();
                   }}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  className="btn btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
                 >
-                  {loading ? 'Adding...' : 'Add Material'}
+                  {loading ? (
+                    <>
+                      <div className="loading-spinner h-4 w-4 mr-2"></div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Material
+                    </>
+                  )}
                 </button>
               </div>
             </form>

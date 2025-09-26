@@ -200,73 +200,73 @@ const WorkflowStatusTracking: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Workflow Status Tracking</h1>
-        <p className="text-gray-600 mt-2">Track the complete material management workflow from MRR to issue</p>
+    <div className="space-y-8">
+      <div className="text-center lg:text-left">
+        <h1 className="text-4xl font-bold text-slate-900">Workflow Status Tracking</h1>
+        <p className="text-lg text-slate-600 mt-2">Track the complete material management workflow from MRR to issue</p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Total MRRs</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalMrrs}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total MRRs</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalMrrs}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-yellow-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Pending MRRs</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.pendingMrrs}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Pending MRRs</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.pendingMrrs}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-green-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Approved MRRs</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.approvedMrrs}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Approved MRRs</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.approvedMrrs}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Total POs</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalPos}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total POs</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalPos}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-orange-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Pending POs</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.pendingPos}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Pending POs</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.pendingPos}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-indigo-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Total Receipts</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalReceipts}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total Receipts</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalReceipts}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-pink-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Pending Receipts</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.pendingReceipts}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Pending Receipts</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.pendingReceipts}</p>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-teal-500">
+        <div className="card-elevated p-4 group hover:shadow-glow transition-all duration-300">
           <div className="text-center">
-            <p className="text-sm font-medium text-gray-600">Total Issues</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalIssues}</p>
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total Issues</p>
+            <p className="text-2xl font-bold text-slate-900 mt-1">{stats.totalIssues}</p>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex flex-wrap gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Type</label>
+      <div className="card p-6">
+        <div className="flex flex-wrap gap-6">
+          <div className="flex-1 min-w-48">
+            <label className="label">Filter by Type</label>
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
             >
               <option value="all">All Types</option>
               <option value="MRR">Material Requirement Requests</option>
@@ -276,12 +276,12 @@ const WorkflowStatusTracking: React.FC = () => {
             </select>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+          <div className="flex-1 min-w-48">
+            <label className="label">Filter by Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
             >
               <option value="all">All Statuses</option>
               <option value="PENDING">Pending</option>
@@ -294,50 +294,82 @@ const WorkflowStatusTracking: React.FC = () => {
       </div>
 
       {/* Workflow Items */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Workflow Items</h2>
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-slate-900">Workflow Items</h2>
+          <div className="h-8 w-8 bg-primary-100 rounded-lg flex items-center justify-center">
+            <span className="text-primary-600 text-sm">🔄</span>
+          </div>
+        </div>
         
         {workflowItems.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No workflow items found</p>
+          <div className="text-center py-12">
+            <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl text-slate-400">📋</span>
+            </div>
+            <p className="text-slate-500 font-medium">No workflow items found</p>
+            <p className="text-sm text-slate-400 mt-1">Workflow items will appear here as you create them</p>
           </div>
         ) : (
           <div className="space-y-4">
             {workflowItems.map((item) => (
-              <div key={`${item.type}-${item.id}`} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+              <div key={`${item.type}-${item.id}`} className="card-interactive p-6 group hover:shadow-glow transition-all duration-300">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-4">
-                    <span className="text-2xl">{getTypeIcon(item.type)}</span>
-                    <div>
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                    <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-xl">{getTypeIcon(item.type)}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <h3 className="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
                           {item.reference_id}
                         </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                        <span className={`status-badge ${getStatusColor(item.status)}`}>
                           {item.status}
                         </span>
                         {item.priority && (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}`}>
+                          <span className={`status-badge ${getPriorityColor(item.priority)}`}>
                             {item.priority}
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-600 mb-1">Project: {item.project_name}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Items: {item.items_count}</span>
-                        {item.total_amount && <span>Amount: ₹{item.total_amount.toFixed(2)}</span>}
-                        {item.supplier_name && <span>Supplier: {item.supplier_name}</span>}
-                        {item.issued_to && <span>Issued To: {item.issued_to}</span>}
-                        <span>Created: {new Date(item.created_date).toLocaleDateString()}</span>
+                      <p className="text-slate-600 mb-2 font-medium">Project: {item.project_name}</p>
+                      <div className="flex items-center space-x-6 text-sm text-slate-500">
+                        <span className="flex items-center">
+                          <span className="h-4 w-4 bg-slate-200 rounded mr-2"></span>
+                          Items: {item.items_count}
+                        </span>
+                        {item.total_amount && (
+                          <span className="flex items-center">
+                            <span className="h-4 w-4 bg-slate-200 rounded mr-2"></span>
+                            Amount: ₹{item.total_amount.toFixed(2)}
+                          </span>
+                        )}
+                        {item.supplier_name && (
+                          <span className="flex items-center">
+                            <span className="h-4 w-4 bg-slate-200 rounded mr-2"></span>
+                            Supplier: {item.supplier_name}
+                          </span>
+                        )}
+                        {item.issued_to && (
+                          <span className="flex items-center">
+                            <span className="h-4 w-4 bg-slate-200 rounded mr-2"></span>
+                            Issued To: {item.issued_to}
+                          </span>
+                        )}
+                        <span className="flex items-center">
+                          <span className="h-4 w-4 bg-slate-200 rounded mr-2"></span>
+                          Created: {new Date(item.created_date).toLocaleDateString()}
+                        </span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm font-semibold text-slate-600">
                       {item.type}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-slate-400">
                       ID: {item.id}
                     </div>
                   </div>

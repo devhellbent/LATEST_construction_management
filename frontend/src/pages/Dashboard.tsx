@@ -86,105 +86,109 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-gray-600">
-          {getGreeting()}, {user?.name}. Please find your project overview below.
+      <div className="text-center lg:text-left">
+        <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
+        <p className="text-lg text-slate-600">
+          {getGreeting()}, <span className="font-semibold text-primary-600">{user?.name}</span>. Here's your project overview.
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card p-6">
+        <div className="card-elevated p-6 group hover:shadow-glow transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ongoing Projects</p>
-              <p className="text-3xl font-bold text-gray-900">{ongoingProjects}</p>
-              <div className="mt-2">
-                <div className="flex items-center">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Ongoing Projects</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{ongoingProjects}</p>
+              <div className="mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="progress-bar flex-1">
                     <div 
-                      className="bg-primary-600 h-2 rounded-full" 
+                      className="progress-fill" 
                       style={{ width: '60%' }}
                     ></div>
                   </div>
-                  <span className="ml-2 text-sm text-gray-600">60% in progress</span>
+                  <span className="text-sm font-medium text-slate-600">60%</span>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">in progress</p>
               </div>
             </div>
-            <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Users className="h-6 w-6 text-primary-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <Users className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card-elevated p-6 group hover:shadow-glow-success transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed Projects</p>
-              <p className="text-3xl font-bold text-gray-900">{completedProjects}</p>
-              <div className="mt-2">
-                <div className="flex items-center">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Completed Projects</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{completedProjects}</p>
+              <div className="mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="progress-bar flex-1">
                     <div 
-                      className="bg-secondary-600 h-2 rounded-full" 
+                      className="h-full bg-gradient-to-r from-success-500 to-success-600 rounded-full transition-all duration-500 ease-out" 
                       style={{ width: '100%' }}
                     ></div>
                   </div>
-                  <span className="ml-2 text-sm text-gray-600">100% completed</span>
+                  <span className="text-sm font-medium text-slate-600">100%</span>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">completed</p>
               </div>
             </div>
-            <div className="h-12 w-12 bg-secondary-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-secondary-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <CheckCircle className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card-elevated p-6 group hover:shadow-glow-warning transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Delayed Projects</p>
-              <p className="text-3xl font-bold text-gray-900">{delayedProjects}</p>
-              <div className="mt-2">
-                <div className="flex items-center">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Delayed Projects</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{delayedProjects}</p>
+              <div className="mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="progress-bar flex-1">
                     <div 
-                      className="bg-warning-600 h-2 rounded-full" 
+                      className="h-full bg-gradient-to-r from-warning-500 to-warning-600 rounded-full transition-all duration-500 ease-out" 
                       style={{ width: '40%' }}
                     ></div>
                   </div>
-                  <span className="ml-2 text-sm text-gray-600">40% completed, delayed</span>
+                  <span className="text-sm font-medium text-slate-600">40%</span>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">delayed</p>
               </div>
             </div>
-            <div className="h-12 w-12 bg-warning-100 rounded-lg flex items-center justify-center">
-              <Clock className="h-6 w-6 text-warning-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <Clock className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card p-6">
+        <div className="card-elevated p-6 group hover:shadow-glow transition-all duration-300">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Open Tasks</p>
-              <p className="text-3xl font-bold text-gray-900">{openTasks}</p>
-              <div className="mt-2">
-                <div className="flex items-center">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Open Tasks</p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">{openTasks}</p>
+              <div className="mt-3">
+                <div className="flex items-center space-x-2">
+                  <div className="progress-bar flex-1">
                     <div 
-                      className="bg-primary-600 h-2 rounded-full" 
+                      className="progress-fill" 
                       style={{ width: '70%' }}
                     ></div>
                   </div>
-                  <span className="ml-2 text-sm text-gray-600">70% assigned</span>
+                  <span className="text-sm font-medium text-slate-600">70%</span>
                 </div>
+                <p className="text-xs text-slate-500 mt-1">assigned</p>
               </div>
             </div>
-            <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <FileText className="h-6 w-6 text-primary-600" />
+            <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <FileText className="h-7 w-7 text-white" />
             </div>
           </div>
         </div>
@@ -193,8 +197,13 @@ const Dashboard: React.FC = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Material Utilization */}
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Material Utilization</h3>
+        <div className="card-elevated p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-900">Material Utilization</h3>
+            <div className="h-8 w-8 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Package className="h-4 w-4 text-primary-600" />
+            </div>
+          </div>
           <div className="flex items-center justify-center">
             <div className="relative">
               <ResponsiveContainer width={200} height={200}>
@@ -238,8 +247,13 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Task Completion Status */}
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Completion Status</h3>
+        <div className="card-elevated p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-900">Task Completion Status</h3>
+            <div className="h-8 w-8 bg-success-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="h-4 w-4 text-success-600" />
+            </div>
+          </div>
           <div className="space-y-4">
             {taskCompletionData.map((project, index) => (
               <div key={index} className="space-y-2">
@@ -262,19 +276,24 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Notifications */}
-        <div className="card p-6 border-2 border-dashed border-danger-300">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Notifications</h3>
+        <div className="card-elevated p-6 border-2 border-dashed border-warning-300 bg-warning-50/30">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-bold text-slate-900">Recent Notifications</h3>
+            <div className="h-8 w-8 bg-warning-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4 text-warning-600" />
+            </div>
+          </div>
           <div className="space-y-4">
             {notifications.map((notification, index) => {
               const Icon = notification.icon;
               return (
-                <div key={index} className="flex items-start space-x-3">
-                  <div className={`h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center`}>
-                    <Icon className={`h-4 w-4 ${notification.color}`} />
+                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-white/50 transition-colors">
+                  <div className={`h-10 w-10 rounded-full bg-white shadow-sm flex items-center justify-center border-2 border-slate-200`}>
+                    <Icon className={`h-5 w-5 ${notification.color}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{notification.title}</p>
-                    <p className="text-xs text-gray-500">{notification.time}</p>
+                    <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                    <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
                   </div>
                 </div>
               );

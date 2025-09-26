@@ -4,6 +4,19 @@ import {
   materialsAPI, 
   projectsAPI 
 } from '../services/api';
+import { 
+  Package, 
+  Calendar, 
+  User, 
+  FileText, 
+  CheckCircle, 
+  AlertTriangle, 
+  TrendingDown, 
+  Trash2, 
+  Plus,
+  RefreshCw,
+  Activity
+} from 'lucide-react';
 
 interface MaterialIssue {
   issue_id: number;
@@ -143,29 +156,32 @@ const MaterialConsumption: React.FC = () => {
   if (loading && materialIssues.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="loading-spinner h-12 w-12"></div>
+        <span className="text-slate-600 font-medium ml-4">Loading material issues...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Material Consumption Management</h1>
-        <p className="text-gray-600 mt-2">Record material consumption and track usage patterns</p>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900">Material Consumption Management</h1>
+          <p className="text-lg text-slate-600 mt-2">Record material consumption and track usage patterns</p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="card p-8">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           {/* Issue Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Material Issue *
+          <div className="mb-8">
+            <label className="label label-required">
+              Select Material Issue
             </label>
             <select
               value={formData.issue_id}
               onChange={(e) => handleIssueSelection(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input"
               required
             >
               <option value={0}>Select Material Issue</option>
@@ -179,30 +195,30 @@ const MaterialConsumption: React.FC = () => {
           </div>
 
           {/* Basic Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Consumed By *
+              <label className="label label-required">
+                Consumed By
               </label>
               <input
                 type="text"
                 value={formData.consumed_by}
                 onChange={(e) => setFormData(prev => ({ ...prev, consumed_by: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 placeholder="Contractor/Site name"
                 required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="label">
                 Consumption Date
               </label>
               <input
                 type="date"
                 value={formData.consumption_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, consumption_date: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
                 required
               />
             </div>
@@ -210,23 +226,23 @@ const MaterialConsumption: React.FC = () => {
 
           {/* Consumption Items */}
           {formData.items.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Consumption Details</h3>
-              <div className="space-y-4">
+            <div className="mb-8">
+              <h3 className="text-xl font-bold text-slate-900 mb-6">Consumption Details</h3>
+              <div className="space-y-6">
                 {formData.items.map((item, index) => {
                   const issue = materialIssues.find(i => i.issue_id === item.issue_id);
                   return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                    <div key={index} className="card p-6">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
                         <div>
-                          <h4 className="font-medium text-gray-900">{issue?.material.name}</h4>
-                          <p className="text-sm text-gray-600">
+                          <h4 className="font-bold text-slate-900">{issue?.material.name}</h4>
+                          <p className="text-sm text-slate-600">
                             Issued: {issue?.quantity_issued} {issue?.unit_name}
                           </p>
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label label-required">
                             Quantity Consumed
                           </label>
                           <input
@@ -235,19 +251,19 @@ const MaterialConsumption: React.FC = () => {
                             max={issue?.quantity_issued || 0}
                             value={item.quantity_consumed}
                             onChange={(e) => updateConsumptionItem('quantity_consumed', parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                             required
                           />
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label">
                             Consumption Type
                           </label>
                           <select
                             value={item.consumption_type}
                             onChange={(e) => updateConsumptionItem('consumption_type', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                           >
                             <option value="ACTUAL">Actual Usage</option>
                             <option value="WASTAGE">Wastage</option>
@@ -257,14 +273,14 @@ const MaterialConsumption: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="label">
                             Remarks
                           </label>
                           <input
                             type="text"
                             value={item.remarks}
                             onChange={(e) => updateConsumptionItem('remarks', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="input"
                             placeholder="Usage details"
                           />
                         </div>
@@ -277,15 +293,15 @@ const MaterialConsumption: React.FC = () => {
           )}
 
           {/* Notes */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-8">
+            <label className="label">
               General Notes
             </label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
+              className="input"
+              rows={4}
               placeholder="Additional notes about the consumption..."
             />
           </div>
@@ -295,9 +311,19 @@ const MaterialConsumption: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              className="btn btn-success btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
-              {loading ? 'Recording...' : 'Record Consumption'}
+              {loading ? (
+                <>
+                  <div className="loading-spinner h-4 w-4 mr-2"></div>
+                  Recording...
+                </>
+              ) : (
+                <>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Record Consumption
+                </>
+              )}
             </button>
           </div>
         </form>

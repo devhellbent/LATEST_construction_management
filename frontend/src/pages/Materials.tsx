@@ -53,10 +53,13 @@ const Materials: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Materials</h1>
-        <button className="btn btn-primary flex items-center">
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-4xl font-bold text-slate-900">Materials</h1>
+          <p className="text-lg text-slate-600 mt-2">Manage construction materials and inventory</p>
+        </div>
+        <button className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200">
           <Plus className="h-5 w-5 mr-2" />
           Add Material
         </button>
@@ -65,9 +68,11 @@ const Materials: React.FC = () => {
       {/* Project Filter */}
       <div className="card p-6">
         <div className="flex items-center space-x-4">
-          <Filter className="h-5 w-5 text-gray-500" />
+          <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Filter className="h-5 w-5 text-primary-600" />
+          </div>
           <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="label">
               Filter by Project
             </label>
             <ProjectSelector
@@ -84,14 +89,16 @@ const Materials: React.FC = () => {
       <div className="card p-6">
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading materials...</p>
+            <div className="loading-spinner h-12 w-12 mx-auto mb-4"></div>
+            <p className="text-slate-600 font-medium">Loading materials...</p>
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <Package className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Materials</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
+            <div className="h-20 w-20 bg-danger-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Package className="h-10 w-10 text-danger-500" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Error Loading Materials</h3>
+            <p className="text-slate-600 mb-6 max-w-md mx-auto">{error}</p>
             <button 
               onClick={fetchMaterials}
               className="btn btn-secondary"
@@ -101,40 +108,70 @@ const Materials: React.FC = () => {
           </div>
         ) : materials.length === 0 ? (
           <div className="text-center py-12">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <Package className="h-10 w-10 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
               {selectedProjectId ? 'No Materials Found' : 'No Materials Available'}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-slate-600 max-w-md mx-auto">
               {selectedProjectId 
-                ? 'This project doesn\'t have any materials yet.' 
-                : 'No materials have been added yet.'
+                ? 'This project doesn\'t have any materials yet. Add materials to start tracking inventory.' 
+                : 'No materials have been added yet. Start by adding your first material to the system.'
               }
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
-                {selectedProjectId ? `Materials for Selected Project` : 'All Materials'} ({materials.length})
+              <h3 className="text-xl font-bold text-slate-900">
+                {selectedProjectId ? `Materials for Selected Project` : 'All Materials'} 
+                <span className="text-slate-500 font-normal">({materials.length})</span>
               </h3>
             </div>
             
             <div className="grid gap-4">
               {materials.map((material) => (
-                <div key={material.material_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={material.material_id} className="card-interactive p-6 group">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{material.name}</h4>
-                      <p className="text-sm text-gray-600 mt-1">Type: {material.type}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                        <span>Unit: {material.unit}</span>
-                        <span>Cost: ${material.cost_per_unit}</span>
-                        <span>Stock: {material.stock_qty}</span>
-                        {material.supplier && <span>Supplier: {material.supplier}</span>}
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-lg font-bold text-slate-900 group-hover:text-primary-600 transition-colors">{material.name}</h4>
+                        <div className="flex items-center space-x-2">
+                          <span className="status-badge status-active">Active</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-4">Type: {material.type}</p>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 bg-slate-100 rounded flex items-center justify-center">
+                            <span className="text-xs font-semibold text-slate-600">U</span>
+                          </div>
+                          <span className="text-slate-600">{material.unit}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 bg-slate-100 rounded flex items-center justify-center">
+                            <span className="text-xs font-semibold text-slate-600">$</span>
+                          </div>
+                          <span className="text-slate-600">${material.cost_per_unit}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="h-6 w-6 bg-slate-100 rounded flex items-center justify-center">
+                            <span className="text-xs font-semibold text-slate-600">#</span>
+                          </div>
+                          <span className="text-slate-600">{material.stock_qty}</span>
+                        </div>
+                        {material.supplier && (
+                          <div className="flex items-center space-x-2">
+                            <div className="h-6 w-6 bg-slate-100 rounded flex items-center justify-center">
+                              <span className="text-xs font-semibold text-slate-600">S</span>
+                            </div>
+                            <span className="text-slate-600 truncate">{material.supplier}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 ml-4">
                       <button className="btn btn-sm btn-secondary">Edit</button>
                       <button className="btn btn-sm btn-danger">Delete</button>
                     </div>

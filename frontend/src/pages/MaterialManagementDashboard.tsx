@@ -126,17 +126,14 @@ const MaterialManagementDashboard: React.FC = () => {
     }
   };
 
-  const StatCard: React.FC<{ title: string; value: number; color: string; icon: string }> = ({ 
-    title, value, color, icon 
+  const StatCard: React.FC<{ title: string; value: number; color: string }> = ({ 
+    title, value, color 
   }) => (
-    <div className={`bg-white rounded-lg shadow-md p-6 border-l-4 ${color}`}>
+    <div className="card-elevated p-6 group hover:shadow-glow transition-all duration-300">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-        </div>
-        <div className={`p-3 rounded-full ${color.replace('border-l-4', 'bg')}`}>
-          <span className="text-2xl">{icon}</span>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">{title}</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1">{value}</p>
         </div>
       </div>
     </div>
@@ -147,17 +144,15 @@ const MaterialManagementDashboard: React.FC = () => {
     description: string; 
     onClick: () => void; 
     color: string;
-    icon: string;
-  }> = ({ title, description, onClick, color, icon }) => (
+  }> = ({ title, description, onClick, color }) => (
     <button
       onClick={onClick}
-      className={`p-4 rounded-lg border-2 border-dashed ${color} hover:border-solid hover:bg-gray-50 transition-all duration-200 text-left w-full`}
+      className="card-interactive p-6 group hover:shadow-glow transition-all duration-300 text-left w-full"
     >
-      <div className="flex items-center space-x-3">
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-600">{description}</p>
+      <div className="flex items-center space-x-4">
+        <div className="flex-1">
+          <h3 className="font-bold text-slate-900 group-hover:text-primary-600 transition-colors">{title}</h3>
+          <p className="text-sm text-slate-600 mt-1">{description}</p>
         </div>
       </div>
     </button>
@@ -166,137 +161,138 @@ const MaterialManagementDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="loading-spinner h-12 w-12"></div>
+        <span className="text-slate-600 font-medium ml-4">Loading dashboard...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Material Management Dashboard</h1>
-        <p className="text-gray-600 mt-2">Complete overview of your material requirement and procurement workflow</p>
+    <div className="space-y-8">
+      <div className="text-center lg:text-left">
+        <h1 className="text-4xl font-bold text-slate-900">Material Management Dashboard</h1>
+        <p className="text-lg text-slate-600 mt-2">Complete overview of your material requirement and procurement workflow</p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-6">
         <StatCard
           title="Pending MRRs"
           value={stats.pendingMrrs}
           color="border-l-blue-500"
-          icon="📋"
         />
         <StatCard
           title="Approved MRRs"
           value={stats.approvedMrrs}
           color="border-l-green-500"
-          icon="✅"
         />
         <StatCard
           title="Pending POs"
           value={stats.pendingPos}
           color="border-l-yellow-500"
-          icon="📄"
         />
         <StatCard
           title="Pending Receipts"
           value={stats.pendingReceipts}
           color="border-l-purple-500"
-          icon="📦"
         />
         <StatCard
           title="Overdue Payments"
           value={stats.overduePayments}
           color="border-l-red-500"
-          icon="⚠️"
         />
         <StatCard
           title="Low Stock Items"
           value={stats.lowStockItems}
           color="border-l-orange-500"
-          icon="📉"
         />
         <StatCard
           title="Pending Returns"
           value={stats.pendingReturns}
           color="border-l-indigo-500"
-          icon="↩️"
         />
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-slate-900">Quick Actions</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <QuickActionButton
             title="Create MRR"
             description="Raise new material requirement request"
             onClick={() => window.location.href = '/material-management/mrr'}
             color="border-blue-300"
-            icon="📝"
           />
           <QuickActionButton
             title="Issue Material"
             description="Issue material to site/contractor"
             onClick={() => window.location.href = '/material-management/issue'}
             color="border-orange-300"
-            icon="📤"
           />
           <QuickActionButton
             title="View Inventory"
             description="Monitor stock levels and movements"
             onClick={() => window.location.href = '/material-management/inventory'}
             color="border-purple-300"
-            icon="📦"
           />
           <QuickActionButton
             title="Track Workflow"
             description="Monitor complete material workflow"
             onClick={() => window.location.href = '/material-management/workflow'}
             color="border-green-300"
-            icon="🔄"
           />
           <QuickActionButton
             title="Material Returns"
             description="Record material returns to inventory"
             onClick={() => window.location.href = '/material-management/returns'}
             color="border-indigo-300"
-            icon="↩️"
           />
         </div>
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
+      <div className="card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-slate-900">Recent Activity</h2>
+        </div>
+        <div className="space-y-4">
           {recentActivity.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No recent activity</p>
+            <div className="text-center py-12">
+              <div className="h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl text-slate-400">•</span>
+              </div>
+              <p className="text-slate-500 font-medium">No recent activity</p>
+              <p className="text-sm text-slate-400 mt-1">Activity will appear here as you use the system</p>
+            </div>
           ) : (
             recentActivity.map((activity) => (
-              <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg">
-                    {activity.type === 'MRR' ? '📋' : 
-                     activity.type === 'PO' ? '📄' : 
-                     activity.type === 'RECEIPT' ? '📦' : 
-                     activity.type === 'ISSUE' ? '📤' : '↩️'}
-                  </span>
+              <div key={activity.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-xl hover:bg-slate-100/50 transition-colors">
+                <div className="flex items-center space-x-4">
+                  <div className="h-10 w-10 bg-white shadow-sm flex items-center justify-center border-2 border-slate-200 rounded-lg">
+                    <span className="text-sm font-semibold text-slate-600">
+                      {activity.type === 'MRR' ? 'MRR' : 
+                       activity.type === 'PO' ? 'PO' : 
+                       activity.type === 'RECEIPT' ? 'REC' : 
+                       activity.type === 'ISSUE' ? 'ISS' : 'RET'}
+                    </span>
+                  </div>
                   <div>
-                    <p className="font-medium text-gray-900">{activity.description}</p>
-                    <p className="text-sm text-gray-600">{activity.project_name}</p>
+                    <p className="font-semibold text-slate-900">{activity.description}</p>
+                    <p className="text-sm text-slate-500">{activity.project_name}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    activity.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                    activity.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                    activity.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
+                  <span className={`status-badge ${
+                    activity.status === 'PENDING' ? 'status-pending' :
+                    activity.status === 'APPROVED' ? 'status-success' :
+                    activity.status === 'REJECTED' ? 'status-danger' :
+                    'status-secondary'
                   }`}>
                     {activity.status}
                   </span>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-2">
                     {new Date(activity.created_at).toLocaleDateString()}
                   </p>
                 </div>
