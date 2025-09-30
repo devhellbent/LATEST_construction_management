@@ -10,6 +10,11 @@ const getApiBaseUrl = () => {
     return 'https://api.cms.hellbent.in';
   }
   
+  // New production domain
+  if (hostname === 'www.lminfra.hellbent.in') {
+    return 'https://api.cms.hellbent.in';
+  }
+  
   // Production HTTP URLs (IP-based)
   if (hostname === '89.116.34.49') {
     return 'http://89.116.34.49:4041';

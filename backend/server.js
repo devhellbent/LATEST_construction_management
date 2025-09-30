@@ -45,6 +45,8 @@ const io = new Server(server, {
       "http://localhost:4042", 
       "https://www.constructease.hellbent.in",
       "http://www.constructease.hellbent.in",
+      "https://www.lminfra.hellbent.in",
+      "http://www.lminfra.hellbent.in",
       "http://89.116.34.49:4042",
       "https://89.116.34.49:4042",
       "https://api.cms.hellbent.in"
@@ -62,6 +64,8 @@ app.use(cors({
     "http://localhost:4042", 
     "https://www.constructease.hellbent.in",
     "http://www.constructease.hellbent.in",
+    "https://www.lminfra.hellbent.in",
+    "http://www.lminfra.hellbent.in",
     "http://89.116.34.49:4042",
     "https://89.116.34.49:4042",
     "https://api.cms.hellbent.in"
