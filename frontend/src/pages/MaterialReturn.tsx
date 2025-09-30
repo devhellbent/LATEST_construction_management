@@ -23,16 +23,28 @@ interface MaterialIssue {
   quantity_issued: number;
   unit_name: string;
   issue_date: string;
-  issued_to: string;
   mrr_id?: number;
   mrr_number?: string;
+  component_id?: number;
+  subcontractor_id?: number;
+  component?: {
+    component_id: number;
+    component_name: string;
+    component_type: string;
+  };
+  subcontractor?: {
+    subcontractor_id: number;
+    company_name: string;
+    work_type: string;
+  };
 }
 
 interface ReturnFormData {
   issue_id: number;
   project_id: number;
+  component_id: number;
+  subcontractor_id: number;
   return_date: string;
-  returned_by: string;
   warehouse_id: number;
   notes: string;
   items: Array<{
@@ -50,14 +62,17 @@ const MaterialReturn: React.FC = () => {
   const [materialIssues, setMaterialIssues] = useState<MaterialIssue[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [components, setComponents] = useState<any[]>([]);
+  const [subcontractors, setSubcontractors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [materialReturns, setMaterialReturns] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [formData, setFormData] = useState<ReturnFormData>({
     issue_id: 0,
     project_id: 0,
+    component_id: 0,
+    subcontractor_id: 0,
     return_date: new Date().toISOString().split('T')[0],
-    returned_by: '',
     warehouse_id: 0,
     notes: '',
     items: []
@@ -71,19 +86,21 @@ const MaterialReturn: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [issuesRes, projectsRes, warehousesRes] = await Promise.all([
+      const [issuesRes, projectsRes, warehousesRes, subcontractorsRes] = await Promise.all([
         commercialAPI.getMaterialIssues({ 
           status: 'ISSUED',
           include_project: true,
           include_mrr: true
         }),
         projectsAPI.getProjects(),
-        materialManagementAPI.getWarehouses()
+        materialManagementAPI.getWarehouses(),
+        import('../services/api').then(api => api.subcontractorsAPI.getSubcontractors())
       ]);
 
       setMaterialIssues(issuesRes.data.issues || []);
       setProjects(projectsRes.data.projects || []);
       setWarehouses(warehousesRes.data.warehouses || []);
+      setSubcontractors(subcontractorsRes.data.subcontractors || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -106,13 +123,30 @@ const MaterialReturn: React.FC = () => {
     }
   };
 
-  const handleIssueSelection = (issueId: number) => {
+  const loadComponents = async (projectId: number) => {
+    try {
+      const response = await projectsAPI.getProjectComponents(projectId);
+      setComponents(response.data.data?.components || []);
+    } catch (error) {
+      console.error('Error loading components:', error);
+      setComponents([]);
+    }
+  };
+
+  const handleIssueSelection = async (issueId: number) => {
     const selectedIssue = materialIssues.find(issue => issue.issue_id === issueId);
     if (selectedIssue) {
+      // Load components for the project
+      if (selectedIssue.project_id) {
+        await loadComponents(selectedIssue.project_id);
+      }
+      
       setFormData(prev => ({
         ...prev,
         issue_id: issueId,
         project_id: selectedIssue.project_id,
+        component_id: selectedIssue.component_id || 0,
+        subcontractor_id: selectedIssue.subcontractor_id || 0,
         items: [{
           issue_id: issueId,
           item_id: selectedIssue.material_id,
@@ -133,7 +167,7 @@ const MaterialReturn: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.issue_id || !formData.returned_by || !formData.warehouse_id || formData.items.length === 0) {
+    if (!formData.issue_id || !formData.warehouse_id || formData.items.length === 0) {
       alert('Please fill in all required fields including warehouse selection');
       return;
     }
@@ -147,10 +181,11 @@ const MaterialReturn: React.FC = () => {
         quantity: formData.items[0].quantity_returned,
         return_date: formData.return_date,
         return_reason: formData.notes,
-        returned_by: formData.returned_by,
         condition_status: formData.items[0].quality_status,
         returned_by_user_id: user?.user_id || 1,
         issue_id: formData.issue_id,
+        component_id: formData.component_id,
+        subcontractor_id: formData.subcontractor_id,
         warehouse_id: formData.warehouse_id
       };
 
@@ -161,8 +196,9 @@ const MaterialReturn: React.FC = () => {
       setFormData({
         issue_id: 0,
         project_id: 0,
+        component_id: 0,
+        subcontractor_id: 0,
         return_date: new Date().toISOString().split('T')[0],
-        returned_by: '',
         warehouse_id: 0,
         notes: '',
         items: []
@@ -217,19 +253,53 @@ const MaterialReturn: React.FC = () => {
 
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-              <label className="label label-required">
-                Returned By
-              </label>
-              <input
-                type="text"
-                value={formData.returned_by}
-                onChange={(e) => setFormData(prev => ({ ...prev, returned_by: e.target.value }))}
-                className="input"
-                placeholder="Contractor/Site name"
-                required
-              />
-            </div>
+            {/* Project (prefilled from issue) */}
+            {formData.issue_id > 0 && (
+              <div>
+                <label className="label">
+                  Project
+                </label>
+                <input
+                  type="text"
+                  value={projects.find(p => p.project_id === formData.project_id)?.name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from Issue</p>
+              </div>
+            )}
+
+            {/* Subcontractor (prefilled from issue) */}
+            {formData.issue_id > 0 && (
+              <div>
+                <label className="label">
+                  Subcontractor
+                </label>
+                <input
+                  type="text"
+                  value={materialIssues.find(i => i.issue_id === formData.issue_id)?.subcontractor?.company_name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from Issue</p>
+              </div>
+            )}
+
+            {/* Project Component (prefilled from issue) */}
+            {formData.issue_id > 0 && (
+              <div>
+                <label className="label">
+                  Project Component
+                </label>
+                <input
+                  type="text"
+                  value={materialIssues.find(i => i.issue_id === formData.issue_id)?.component?.component_name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from Issue</p>
+              </div>
+            )}
             
             <div>
               <label className="label label-required">
@@ -487,7 +557,7 @@ const MaterialReturn: React.FC = () => {
                             Qty: {returnItem.material_issue.quantity_issued}
                           </div>
                           <div className="text-xs text-gray-500">
-                            Issued to: {returnItem.material_issue.issued_to || 'N/A'}
+                            Issued to: {returnItem.material_issue.subcontractor?.company_name || 'N/A'}
                           </div>
                           {returnItem.material_issue.issue_purpose && (
                             <div className="text-xs text-gray-500">

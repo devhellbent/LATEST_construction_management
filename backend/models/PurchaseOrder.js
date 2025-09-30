@@ -95,6 +95,22 @@ const PurchaseOrder = sequelize.define('PurchaseOrder', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  component_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'project_components',
+      key: 'component_id'
+    }
+  },
+  subcontractor_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'subcontractors',
+      key: 'subcontractor_id'
+    }
   }
 }, {
   tableName: 'purchase_orders',

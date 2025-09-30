@@ -17,7 +17,9 @@ import {
   RefreshCw,
   ShoppingCart,
   Wallet,
-  Scale
+  Scale,
+  Search,
+  ChevronDown
 } from 'lucide-react';
 
 interface SupplierLedgerEntry {
@@ -64,15 +66,39 @@ const SupplierLedgerManagement: React.FC = () => {
   const [formData, setFormData] = useState<PaymentFormData>({
     supplier_id: 0,
     payment_amount: 0,
-    payment_date: new Date().toISOString().split('T')[0],
+    payment_date: new Date().toISOString(),
     payment_method: 'BANK_TRANSFER',
     reference_number: '',
     notes: ''
   });
 
+  // New state for supplier-specific ledger
+  const [selectedSupplierForLedger, setSelectedSupplierForLedger] = useState<any>(null);
+  const [supplierLedgerEntries, setSupplierLedgerEntries] = useState<any[]>([]);
+  const [supplierDropdownOpen, setSupplierDropdownOpen] = useState(false);
+  const [supplierSearchTerm, setSupplierSearchTerm] = useState('');
+  const [supplierLedgerLoading, setSupplierLedgerLoading] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (supplierDropdownOpen) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.supplier-dropdown-container')) {
+          setSupplierDropdownOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [supplierDropdownOpen]);
 
   const loadData = async () => {
     setLoading(true);
@@ -117,12 +143,10 @@ const SupplierLedgerManagement: React.FC = () => {
     try {
       await supplierLedgerAPI.recordPayment({
         supplier_id: formData.supplier_id,
-        amount: formData.payment_amount,
-        transaction_date: formData.payment_date,
+        payment_amount: formData.payment_amount,
+        payment_date: formData.payment_date,
         description: `Payment - ${formData.payment_method} - Ref: ${formData.reference_number}`,
-        payment_method: formData.payment_method,
-        reference_number: formData.reference_number,
-        notes: formData.notes
+        reference_number: formData.reference_number
       });
 
       alert('Payment recorded successfully!');
@@ -136,6 +160,33 @@ const SupplierLedgerManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  // Load supplier-specific ledger
+  const loadSupplierLedger = async (supplierId: number) => {
+    setSupplierLedgerLoading(true);
+    try {
+      const response = await supplierLedgerAPI.getSupplierLedger(supplierId);
+      setSupplierLedgerEntries(response.data.ledgerEntries || []);
+    } catch (error) {
+      console.error('Error loading supplier ledger:', error);
+      setSupplierLedgerEntries([]);
+    } finally {
+      setSupplierLedgerLoading(false);
+    }
+  };
+
+  // Handle supplier selection for ledger view
+  const handleSupplierSelection = (supplier: any) => {
+    setSelectedSupplierForLedger(supplier);
+    setSupplierDropdownOpen(false);
+    setSupplierSearchTerm('');
+    loadSupplierLedger(supplier.supplier_id);
+  };
+
+  // Filter suppliers based on search term
+  const filteredSuppliers = suppliers.filter(supplier =>
+    supplier.supplier_name.toLowerCase().includes(supplierSearchTerm.toLowerCase())
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -212,6 +263,19 @@ const SupplierLedgerManagement: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-4 w-4" />
                 <span>Overdue Payments</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('supplier-ledger')}
+              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
+                activeTab === 'supplier-ledger'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Scale className="h-4 w-4" />
+                <span>Supplier Ledger</span>
               </div>
             </button>
           </nav>
@@ -411,6 +475,230 @@ const SupplierLedgerManagement: React.FC = () => {
         </div>
       )}
 
+      {activeTab === 'supplier-ledger' && (
+        <div className="space-y-6">
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Supplier Ledger</h2>
+                <p className="text-slate-600 mt-1">View detailed transaction ledger for specific suppliers</p>
+              </div>
+              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <Scale className="h-6 w-6 text-primary-600" />
+              </div>
+            </div>
+
+            {/* Supplier Selection Dropdown */}
+            <div className="mb-6">
+              <label className="label label-required mb-3">Select Supplier</label>
+              <div className="relative supplier-dropdown-container">
+                <div
+                  className="input cursor-pointer flex items-center justify-between"
+                  onClick={() => setSupplierDropdownOpen(!supplierDropdownOpen)}
+                >
+                  <span className={selectedSupplierForLedger ? 'text-slate-900' : 'text-slate-500'}>
+                    {selectedSupplierForLedger ? selectedSupplierForLedger.supplier_name : 'Search and select a supplier...'}
+                  </span>
+                  <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${supplierDropdownOpen ? 'rotate-180' : ''}`} />
+                </div>
+
+                {supplierDropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                    <div className="p-3 border-b border-slate-200">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="Search suppliers..."
+                          value={supplierSearchTerm}
+                          onChange={(e) => setSupplierSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredSuppliers.length === 0 ? (
+                        <div className="p-4 text-center text-slate-500">
+                          {supplierSearchTerm ? 'No suppliers found matching your search.' : 'No suppliers available.'}
+                        </div>
+                      ) : (
+                        filteredSuppliers.map((supplier) => (
+                          <div
+                            key={supplier.supplier_id}
+                            className="p-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-b-0"
+                            onClick={() => handleSupplierSelection(supplier)}
+                          >
+                            <div className="font-medium text-slate-900">{supplier.supplier_name}</div>
+                            {supplier.contact_person && (
+                              <div className="text-sm text-slate-500">{supplier.contact_person}</div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Supplier Ledger Display */}
+            {selectedSupplierForLedger && (
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900">{selectedSupplierForLedger.supplier_name}</h3>
+                      {selectedSupplierForLedger.contact_person && (
+                        <p className="text-sm text-slate-600">Contact: {selectedSupplierForLedger.contact_person}</p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-slate-600">Current Balance</p>
+                      <p className="text-xl font-bold text-slate-900">
+                        ₹{supplierLedgerEntries.length > 0 ? parseFloat(supplierLedgerEntries[supplierLedgerEntries.length - 1]?.running_balance || 0).toFixed(2) : '0.00'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {supplierLedgerLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                    <p className="text-slate-600">Loading ledger entries...</p>
+                  </div>
+                ) : supplierLedgerEntries.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <FileText className="h-10 w-10 text-slate-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">No Transactions Found</h3>
+                    <p className="text-slate-600 max-w-md mx-auto">
+                      No transaction entries found for this supplier. Transactions will appear here once recorded.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold text-slate-900 mb-4">Transaction History</h4>
+                    
+                    {/* Table Header */}
+                    <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+                        <div className="col-span-3">Transaction Details</div>
+                        <div className="col-span-2 text-center">Date</div>
+                        <div className="col-span-2 text-right">Debit (₹)</div>
+                        <div className="col-span-2 text-right">Credit (₹)</div>
+                        <div className="col-span-2 text-right">Balance (₹)</div>
+                        <div className="col-span-1 text-center">Status</div>
+                      </div>
+                    </div>
+
+                    {/* Transaction Entries */}
+                    <div className="space-y-2">
+                      {supplierLedgerEntries.map((entry, index) => (
+                        <div key={entry.ledger_id || index} className="bg-white border border-slate-200 rounded-lg p-4 hover:bg-slate-50 transition-colors">
+                          <div className="grid grid-cols-12 gap-4 items-center">
+                            {/* Transaction Details */}
+                            <div className="col-span-3">
+                              <div className="flex items-center space-x-3">
+                                <div className="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-sm">
+                                  {getTransactionIcon(entry.transaction_type)}
+                                </div>
+                                <div>
+                                  <h5 className="font-semibold text-slate-900 text-sm">{entry.transaction_type}</h5>
+                                  <p className="text-xs text-slate-600 truncate">{entry.description || 'No description'}</p>
+                                  {entry.purchaseOrder?.po_number && (
+                                    <p className="text-xs text-primary-600 font-medium">PO: {entry.purchaseOrder.po_number}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Date */}
+                            <div className="col-span-2 text-center">
+                              <p className="text-sm text-slate-600">
+                                {new Date(entry.transaction_date).toLocaleDateString()}
+                              </p>
+                            </div>
+
+                            {/* Debit Amount */}
+                            <div className="col-span-2 text-right">
+                              {entry.debit_amount && parseFloat(entry.debit_amount) > 0 ? (
+                                <p className="font-bold text-danger-600 text-sm">
+                                  ₹{parseFloat(entry.debit_amount).toFixed(2)}
+                                </p>
+                              ) : (
+                                <p className="text-slate-400 text-sm">-</p>
+                              )}
+                            </div>
+
+                            {/* Credit Amount */}
+                            <div className="col-span-2 text-right">
+                              {entry.credit_amount && parseFloat(entry.credit_amount) > 0 ? (
+                                <p className="font-bold text-success-600 text-sm">
+                                  ₹{parseFloat(entry.credit_amount).toFixed(2)}
+                                </p>
+                              ) : (
+                                <p className="text-slate-400 text-sm">-</p>
+                              )}
+                            </div>
+
+                            {/* Running Balance */}
+                            <div className="col-span-2 text-right">
+                              <p className="font-semibold text-slate-900 text-sm">
+                                ₹{parseFloat(entry.running_balance || 0).toFixed(2)}
+                              </p>
+                            </div>
+
+                            {/* Status */}
+                            <div className="col-span-1 text-center">
+                              <span className={`status-badge text-xs ${
+                                entry.payment_status === 'PAID' ? 'status-success' : 
+                                entry.payment_status === 'PARTIAL' ? 'status-warning' : 'status-pending'
+                              }`}>
+                                {entry.payment_status || 'PENDING'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Summary Row */}
+                    {supplierLedgerEntries.length > 0 && (
+                      <div className="bg-primary-50 border border-primary-200 rounded-lg p-4">
+                        <div className="grid grid-cols-12 gap-4 items-center">
+                          <div className="col-span-3">
+                            <p className="font-bold text-slate-900">Current Balance</p>
+                          </div>
+                          <div className="col-span-2"></div>
+                          <div className="col-span-2 text-right">
+                            <p className="text-sm text-slate-600">
+                              Total Debit: ₹{supplierLedgerEntries.reduce((sum, entry) => sum + parseFloat(entry.debit_amount || 0), 0).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="col-span-2 text-right">
+                            <p className="text-sm text-slate-600">
+                              Total Credit: ₹{supplierLedgerEntries.reduce((sum, entry) => sum + parseFloat(entry.credit_amount || 0), 0).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="col-span-2 text-right">
+                            <p className="font-bold text-lg text-primary-600">
+                              ₹{parseFloat(supplierLedgerEntries[supplierLedgerEntries.length - 1]?.running_balance || 0).toFixed(2)}
+                            </p>
+                          </div>
+                          <div className="col-span-1"></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Payment Form Modal */}
       {showPaymentForm && selectedSupplier && (
         <div className="modal-overlay">
@@ -459,8 +747,8 @@ const SupplierLedgerManagement: React.FC = () => {
                   </label>
                   <input
                     type="date"
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
+                    value={formData.payment_date.split('T')[0]}
+                    onChange={(e) => setFormData(prev => ({ ...prev, payment_date: new Date(e.target.value).toISOString() }))}
                     className="input"
                     required
                   />

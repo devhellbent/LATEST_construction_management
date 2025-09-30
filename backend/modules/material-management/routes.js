@@ -4,7 +4,7 @@ const { Op } = require('sequelize');
 const { sequelize } = require('../../config/database');
 const { 
   Material, Project, ItemCategory, Brand, Unit, Supplier, ItemMaster, ItemSupplier,
-  MaterialIssue, MaterialReturn, MaterialConsumption, InventoryHistory, SiteTransfer,
+  MaterialIssue, MaterialReturn, MaterialConsumption, InventoryHistory,
   MaterialRequirementRequest, MrrItem, PurchaseOrder, PurchaseOrderItem, 
   MaterialReceipt, MaterialReceiptItem, SupplierLedger, User, Warehouse
 } = require('../../models');
@@ -133,7 +133,7 @@ router.get('/inventory/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new material
-router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('item_id').optional().isInt(),
   body('item_code').optional().trim(),
@@ -201,7 +201,7 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Update material
-router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('name').optional().trim().isLength({ min: 2 }),
   body('additional_specification').optional().trim(),
   body('category').optional().trim(),
@@ -267,7 +267,7 @@ router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project
 });
 
 // Delete material
-router.delete('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+router.delete('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
   try {
     const material = await Material.findByPk(req.params.id);
     if (!material) {
@@ -344,7 +344,7 @@ router.get('/issues', authenticateToken, async (req, res) => {
 });
 
 // Create material issue (unified for MRR and direct issues)
-router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity_issued').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -352,7 +352,6 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
   body('location').trim().isLength({ min: 1 }).withMessage('Location is required'),
   body('issued_by_user_id').isInt().withMessage('Issued by user ID is required'),
   body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
-  body('issued_to').optional().trim().isLength({ min: 1 }).withMessage('Issued to information is required'),
   body('is_for_mrr').optional().isBoolean(),
   body('mrr_id').optional().isInt(),
   body('issue_purpose').optional().trim()
@@ -365,7 +364,8 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
 
     const { 
       project_id, material_id, quantity_issued, issue_date, location, 
-      issued_by_user_id, received_by_user_id, issued_to, is_for_mrr, mrr_id, issue_purpose 
+      issued_by_user_id, received_by_user_id, is_for_mrr, mrr_id, issue_purpose,
+      component_id, subcontractor_id
     } = req.body;
 
     // Validate MRR requirement
@@ -420,13 +420,14 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
       issue_date,
       issue_purpose: issue_purpose || '',
       location,
-      issued_to: issued_to || '',
       issued_by_user_id,
       received_by_user_id,
       created_by: req.user.user_id,
       updated_by: req.user.user_id,
       status: 'PENDING',
-      mrr_id: is_for_mrr ? mrr_id : null
+      mrr_id: is_for_mrr ? mrr_id : null,
+      component_id: component_id || null,
+      subcontractor_id: subcontractor_id || null
     });
 
     // Record inventory transaction
@@ -461,7 +462,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
 });
 
 // Update material issue
-router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('quantity_issued').optional().isInt({ min: 1 }),
   body('issue_date').optional().isDate(),
   body('location').optional().trim().isLength({ min: 1 }),
@@ -512,7 +513,7 @@ router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Delete material issue
-router.delete('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+router.delete('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
   try {
     const issue = await MaterialIssue.findByPk(req.params.id);
     if (!issue) {
@@ -568,7 +569,7 @@ router.get('/returns', authenticateToken, async (req, res) => {
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
         { model: User, as: 'returned_by_user', attributes: ['user_id', 'name'] },
         { model: User, as: 'approved_by', attributes: ['user_id', 'name'] },
-        { model: MaterialIssue, as: 'material_issue', attributes: ['issue_id', 'issue_date', 'quantity_issued', 'issued_to', 'issue_purpose', 'location'] },
+        { model: MaterialIssue, as: 'material_issue', attributes: ['issue_id', 'issue_date', 'quantity_issued', 'issue_purpose', 'location'] },
         { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name', 'address'] }
       ],
       limit,
@@ -592,7 +593,7 @@ router.get('/returns', authenticateToken, async (req, res) => {
 });
 
 // Create material return
-router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -685,7 +686,7 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
 });
 
 // Update material return
-router.put('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('quantity').optional().isInt({ min: 1 }),
   body('return_date').optional().isDate(),
   body('return_reason').optional().trim(),
@@ -733,7 +734,7 @@ router.put('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project M
 });
 
 // Delete material return
-router.delete('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+router.delete('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
   try {
     const materialReturn = await MaterialReturn.findByPk(req.params.id);
     if (!materialReturn) {
@@ -1020,7 +1021,7 @@ router.get('/warehouses', authenticateToken, async (req, res) => {
 });
 
 // Create warehouse
-router.post('/warehouses', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+router.post('/warehouses', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
   body('warehouse_name').trim().isLength({ min: 2 }).withMessage('Warehouse name must be at least 2 characters'),
   body('address').optional().trim(),
   body('contact_person').optional().trim(),
@@ -1142,7 +1143,7 @@ router.get('/restock/low-stock', authenticateToken, async (req, res) => {
 });
 
 // Restock single material
-router.post('/restock/single', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/restock/single', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('material_id').isInt().withMessage('Material ID is required'),
   body('restock_quantity').isInt({ min: 1 }).withMessage('Restock quantity must be a positive integer'),
   body('restock_date').isDate().withMessage('Invalid restock date'),
@@ -1222,7 +1223,7 @@ router.post('/restock/single', authenticateToken, authorizeRoles('Admin', 'Proje
 });
 
 // Bulk restock multiple materials
-router.post('/restock/bulk', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/restock/bulk', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('restocks').isArray({ min: 1 }).withMessage('Restocks array is required'),
   body('restocks.*.material_id').isInt().withMessage('Material ID is required for each restock'),
   body('restocks.*.restock_quantity').isInt({ min: 1 }).withMessage('Restock quantity must be a positive integer'),

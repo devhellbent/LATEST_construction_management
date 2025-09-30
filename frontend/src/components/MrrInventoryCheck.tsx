@@ -211,7 +211,7 @@ const MrrInventoryCheck: React.FC<MrrInventoryCheckProps> = ({
           </div>
 
           {/* Status Management Buttons (for Admin and Project Manager) */}
-          {(user?.role === 'Admin' || user?.role === 'Project Manager') && results.mrr_status !== 'CANCELLED' && (
+          {(user?.role === 'Admin' || user?.role === 'Project Manager' || user?.role === 'Inventory Manager') && results.mrr_status !== 'CANCELLED' && (
             <div className="flex gap-2">
               <button
                 onClick={() => setShowStatusModal(true)}

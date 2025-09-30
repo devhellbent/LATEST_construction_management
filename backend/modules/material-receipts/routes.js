@@ -133,7 +133,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // =====================================================
 
 // Create Material Receipt for a PO
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('po_id').isInt().withMessage('PO ID must be an integer'),
   body('received_date').isISO8601().withMessage('Received date must be a valid date'),
   body('delivery_date').optional().custom((value) => {
@@ -287,7 +287,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
 // =====================================================
 
 // Update material receipt with received quantities
-router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.receipt_item_id').isInt().withMessage('Receipt item ID must be an integer'),
   body('items.*.quantity_actually_received').isInt({ min: 0 }).withMessage('Quantity received must be a non-negative integer'),
@@ -347,7 +347,7 @@ router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project M
 // =====================================================
 
 // Complete material receipt and update inventory
-router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
   body('completion_notes').optional().trim()
 ], async (req, res) => {
   try {
@@ -528,7 +528,7 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
 // =====================================================
 
 // Verify Material Receipt (triggers inventory update)
-router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Manager'), [
+router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Manager', 'Inventory Manager'), [
   body('verification_notes').optional().trim(),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.receipt_item_id').isInt().withMessage('Receipt item ID must be an integer'),

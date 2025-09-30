@@ -102,6 +102,22 @@ const MaterialReturn = sequelize.define('MaterialReturn', {
       model: 'warehouses',
       key: 'warehouse_id'
     }
+  },
+  component_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'project_components',
+      key: 'component_id'
+    }
+  },
+  subcontractor_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'subcontractors',
+      key: 'subcontractor_id'
+    }
   }
 }, {
   tableName: 'material_returns',

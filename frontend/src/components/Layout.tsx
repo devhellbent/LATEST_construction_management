@@ -50,7 +50,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
 
   const commercialSubItems = [
-    { name: 'Site Transfers', href: '/commercial/site-transfers', icon: ArrowRightLeft },
     { name: 'Petty Cash', href: '/commercial/petty-cash', icon: IndianRupee },
   ];
 
@@ -106,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     // Handle new object format
     if (typeof user.role === 'object') {
-      return user.role.name === 'Admin' || user.role.name === 'Project Manager';
+      return user.role.name === 'Admin' || user.role.name === 'Project Manager' || user.role.name === 'Inventory Manager';
     }
     
     return false;

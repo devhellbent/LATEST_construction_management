@@ -48,18 +48,13 @@ const CommercialMaterialIssue: React.FC = () => {
         fetchRecentActivity();
       };
 
-      const handleSiteTransfer = () => {
-        fetchRecentActivity();
-      };
 
       socket.on('materialIssue', handleMaterialIssue);
       socket.on('materialReturn', handleMaterialReturn);
-      socket.on('siteTransfer', handleSiteTransfer);
 
       return () => {
         socket.off('materialIssue', handleMaterialIssue);
         socket.off('materialReturn', handleMaterialReturn);
-        socket.off('siteTransfer', handleSiteTransfer);
       };
     }
   }, [socket]);
@@ -98,9 +93,6 @@ const CommercialMaterialIssue: React.FC = () => {
         <nav className="-mb-px flex space-x-8">
           <div className="flex items-center space-x-2 py-2 px-1 text-gray-500 hover:text-gray-700 cursor-pointer">
             <span className="font-medium">Inventory</span>
-          </div>
-          <div className="flex items-center space-x-2 py-2 px-1 text-gray-500 hover:text-gray-700 cursor-pointer">
-            <span className="font-medium">Site Transfers</span>
           </div>
           <div className="flex items-center space-x-2 py-2 px-1 border-b-2 border-primary-500">
             <ShoppingCart className="h-5 w-5 text-primary-600" />
@@ -313,7 +305,7 @@ const CommercialMaterialIssue: React.FC = () => {
                           {activity.material?.name || 'Unknown Material'}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {activity.type === 'ISSUE' ? 'Material Issued' : 'Site Transfer'} • {new Date(activity.date).toLocaleDateString()}
+                          Material Issued • {new Date(activity.date).toLocaleDateString()}
                         </p>
                         <div className="mt-1">
                           <p className="text-sm font-medium text-gray-700">

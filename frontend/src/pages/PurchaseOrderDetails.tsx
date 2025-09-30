@@ -36,6 +36,20 @@ interface PurchaseOrder {
       };
     }>;
   };
+  component?: {
+    component_id: number;
+    component_name: string;
+    component_description?: string;
+    component_type?: string;
+  };
+  subcontractor?: {
+    subcontractor_id: number;
+    company_name: string;
+    contact_person?: string;
+    phone?: string;
+    email?: string;
+    work_type?: string;
+  };
   supplier: {
     supplier_id: number;
     supplier_name: string;
@@ -60,8 +74,24 @@ interface PurchaseOrder {
     requested_by_user_id: number;
     approved_by_user_id?: number;
     approved_at?: string;
+    component_id?: number;
+    subcontractor_id?: number;
     project?: {
       name: string;
+    };
+    component?: {
+      component_id: number;
+      component_name: string;
+      component_description?: string;
+      component_type?: string;
+    };
+    subcontractor?: {
+      subcontractor_id: number;
+      company_name: string;
+      contact_person?: string;
+      phone?: string;
+      email?: string;
+      work_type?: string;
     };
     requestedBy?: {
       name: string;
@@ -426,6 +456,74 @@ const PurchaseOrderDetails: React.FC = () => {
         </div>
       )}
 
+      {/* Project Component Information */}
+      {purchaseOrder.component && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Project Component Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Component Name</h3>
+              <p className="text-sm text-gray-900">{purchaseOrder.component.component_name}</p>
+            </div>
+            
+            {purchaseOrder.component.component_type && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Component Type</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.component.component_type}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.component.component_description && (
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Description</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.component.component_description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Subcontractor Information */}
+      {purchaseOrder.subcontractor && (
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Subcontractor Information</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Company Name</h3>
+              <p className="text-sm text-gray-900">{purchaseOrder.subcontractor.company_name}</p>
+            </div>
+            
+            {purchaseOrder.subcontractor.work_type && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Work Type</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.subcontractor.work_type}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.subcontractor.contact_person && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Contact Person</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.subcontractor.contact_person}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.subcontractor.phone && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Phone</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.subcontractor.phone}</p>
+              </div>
+            )}
+            
+            {purchaseOrder.subcontractor.email && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Email</h3>
+                <p className="text-sm text-gray-900">{purchaseOrder.subcontractor.email}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* MRR Information */}
       {purchaseOrder.mrr && (
         <div className="bg-white p-6 rounded-lg shadow">
@@ -475,6 +573,74 @@ const PurchaseOrderDetails: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* MRR Component Information */}
+          {purchaseOrder.mrr.component && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-md font-medium text-gray-900 mb-4">MRR Component Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Component Name</h4>
+                  <p className="text-sm text-gray-900">{purchaseOrder.mrr.component.component_name}</p>
+                </div>
+                
+                {purchaseOrder.mrr.component.component_type && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Component Type</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.component.component_type}</p>
+                  </div>
+                )}
+                
+                {purchaseOrder.mrr.component.component_description && (
+                  <div className="md:col-span-2">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Description</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.component.component_description}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* MRR Subcontractor Information */}
+          {purchaseOrder.mrr.subcontractor && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-md font-medium text-gray-900 mb-4">MRR Subcontractor Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500 mb-1">Company Name</h4>
+                  <p className="text-sm text-gray-900">{purchaseOrder.mrr.subcontractor.company_name}</p>
+                </div>
+                
+                {purchaseOrder.mrr.subcontractor.work_type && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Work Type</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.subcontractor.work_type}</p>
+                  </div>
+                )}
+                
+                {purchaseOrder.mrr.subcontractor.contact_person && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Contact Person</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.subcontractor.contact_person}</p>
+                  </div>
+                )}
+                
+                {purchaseOrder.mrr.subcontractor.phone && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Phone</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.subcontractor.phone}</p>
+                  </div>
+                )}
+                
+                {purchaseOrder.mrr.subcontractor.email && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Email</h4>
+                    <p className="text-sm text-gray-900">{purchaseOrder.mrr.subcontractor.email}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

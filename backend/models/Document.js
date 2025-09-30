@@ -53,7 +53,10 @@ const Document = sequelize.define('Document', {
     }
   }
 }, {
-  tableName: 'documents'
+  tableName: 'documents',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = Document;

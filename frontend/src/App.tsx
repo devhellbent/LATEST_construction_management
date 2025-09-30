@@ -24,7 +24,6 @@ import Expenses from './pages/Expenses';
 import Users from './pages/Users';
 import Profile from './pages/Profile';
 import Commercial from './pages/Commercial';
-import CommercialSiteTransfers from './pages/CommercialSiteTransfers';
 import CommercialPettyCash from './pages/CommercialPettyCash';
 // New Material Management Pages
 import MaterialManagementDashboard from './pages/MaterialManagementDashboard';
@@ -94,7 +93,6 @@ function App() {
                             <Route path="/profile" element={<Profile />} />
                             {/* Commercial Routes */}
                             <Route path="/commercial" element={<Commercial />} />
-                            <Route path="/commercial/site-transfers" element={<CommercialSiteTransfers />} />
                             <Route path="/commercial/petty-cash" element={<CommercialPettyCash />} />
                             {/* New Material Management Routes */}
                             <Route path="/material-management" element={<MaterialManagementDashboard />} />

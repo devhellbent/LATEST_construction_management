@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { mrrAPI, projectsAPI, materialsAPI } from '../services/api';
+import { mrrAPI, projectsAPI, materialsAPI, subcontractorsAPI } from '../services/api';
 import MrrInventoryCheck from './MrrInventoryCheck';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,6 +18,7 @@ interface MaterialRequirementRequest {
   mrr_number: string;
   project_id: number;
   requested_by_user_id: number;
+  created_by?: number;
   request_date: string;
   required_date: string;
   priority: string;
@@ -27,6 +28,28 @@ interface MaterialRequirementRequest {
   notes?: string;
   approved_by_user_id?: number;
   approved_at?: string;
+  createdBy?: {
+    name: string;
+    email: string;
+  };
+  requestedBy?: {
+    name: string;
+    email: string;
+  };
+  approvedBy?: {
+    name: string;
+    email: string;
+  };
+  component?: {
+    component_id: number;
+    component_name: string;
+    component_type: string;
+  };
+  subcontractor?: {
+    subcontractor_id: number;
+    company_name: string;
+    work_type: string;
+  };
   items: MrrItem[];
 }
 
@@ -36,6 +59,8 @@ const MrrFlowComponent: React.FC = () => {
   const [projects, setProjects] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [units, setUnits] = useState<any[]>([]);
+  const [components, setComponents] = useState<any[]>([]);
+  const [subcontractors, setSubcontractors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showInventoryCheck, setShowInventoryCheck] = useState(false);
@@ -53,6 +78,8 @@ const MrrFlowComponent: React.FC = () => {
     required_date: '',
     priority: 'MEDIUM',
     notes: '',
+    component_id: '',
+    subcontractor_id: '',
     items: [] as MrrItem[]
   });
 
@@ -73,10 +100,47 @@ const MrrFlowComponent: React.FC = () => {
       setProjects(projectsRes.data.projects || []);
       setItems(masterDataRes.data.itemMaster || []);
       setUnits(masterDataRes.data.units || []);
+      // Don't load all subcontractors initially - load them per project
+      setSubcontractors([]);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadComponents = async (projectId: number) => {
+    try {
+      const response = await projectsAPI.getProjectComponents(projectId);
+      console.log('Components response:', response.data);
+      setComponents(response.data.data?.components || []);
+    } catch (error) {
+      console.error('Error loading components:', error);
+      setComponents([]);
+    }
+  };
+
+  const loadSubcontractors = async (projectId: number) => {
+    try {
+      const response = await subcontractorsAPI.getSubcontractorsByProject(projectId);
+      console.log('Subcontractors response:', response.data);
+      setSubcontractors(response.data.data?.subcontractors || []);
+    } catch (error) {
+      console.error('Error loading subcontractors:', error);
+      setSubcontractors([]);
+    }
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    setFormData({ ...formData, project_id: projectId, component_id: '', subcontractor_id: '' });
+    
+    if (projectId) {
+      // Load components and subcontractors for the selected project
+      loadComponents(parseInt(projectId));
+      loadSubcontractors(parseInt(projectId));
+    } else {
+      setComponents([]);
+      setSubcontractors([]);
     }
   };
 
@@ -109,6 +173,8 @@ const MrrFlowComponent: React.FC = () => {
         ...formData,
         project_id: parseInt(formData.project_id),
         required_date: new Date(formData.required_date).toISOString().split('T')[0], // Ensure proper date format
+        component_id: formData.component_id ? parseInt(formData.component_id) : null,
+        subcontractor_id: formData.subcontractor_id ? parseInt(formData.subcontractor_id) : null,
         items: formData.items.map(item => ({
           ...item,
           item_id: parseInt(item.item_id.toString()),
@@ -127,6 +193,8 @@ const MrrFlowComponent: React.FC = () => {
         required_date: '',
         priority: 'MEDIUM',
         notes: '',
+        component_id: '',
+        subcontractor_id: '',
         items: []
       });
       loadData();
@@ -346,7 +414,7 @@ const MrrFlowComponent: React.FC = () => {
                         Check Inventory
                       </button>
                     )}
-                    {(user?.role === 'Admin' || user?.role === 'Project Manager') && mrr.status !== 'CANCELLED' && (
+                    {(user?.role === 'Admin' || user?.role === 'Project Manager' || user?.role === 'Inventory Manager') && mrr.status !== 'CANCELLED' && (
                       <button
                         onClick={() => { 
                           setStatusTarget(mrr); 
@@ -389,7 +457,7 @@ const MrrFlowComponent: React.FC = () => {
                     <label className="label">Project <span className="text-red-500">*</span></label>
                     <select
                       value={formData.project_id}
-                      onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                      onChange={(e) => handleProjectChange(e.target.value)}
                       className="input"
                       required
                     >
@@ -425,6 +493,46 @@ const MrrFlowComponent: React.FC = () => {
                       <option value="HIGH">High</option>
                       <option value="URGENT">Urgent</option>
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="label">Project Component</label>
+                    <select
+                      value={formData.component_id}
+                      onChange={(e) => setFormData({ ...formData, component_id: e.target.value })}
+                      className="input"
+                      disabled={!formData.project_id}
+                    >
+                      <option value="">Select Component</option>
+                      {components.map((component) => (
+                        <option key={component.component_id} value={component.component_id}>
+                          {component.component_name} {component.component_type && `(${component.component_type})`}
+                        </option>
+                      ))}
+                    </select>
+                    {!formData.project_id && (
+                      <p className="text-sm text-gray-500 mt-1">Please select a project first</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="label">Subcontractor</label>
+                    <select
+                      value={formData.subcontractor_id}
+                      onChange={(e) => setFormData({ ...formData, subcontractor_id: e.target.value })}
+                      className="input"
+                      disabled={!formData.project_id}
+                    >
+                      <option value="">Select Subcontractor</option>
+                      {subcontractors.map((subcontractor) => (
+                        <option key={subcontractor.subcontractor_id} value={subcontractor.subcontractor_id}>
+                          {subcontractor.company_name} {subcontractor.work_type && `(${subcontractor.work_type})`}
+                        </option>
+                      ))}
+                    </select>
+                    {!formData.project_id && (
+                      <p className="text-sm text-gray-500 mt-1">Please select a project first</p>
+                    )}
                   </div>
 
                   <div className="md:col-span-2">
@@ -746,18 +854,42 @@ const MrrFlowComponent: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="font-medium text-gray-600">Requested By:</span>
-                    <span className="text-gray-900">User ID: {detailsTarget.requested_by_user_id}</span>
+                    <span className="text-gray-900">
+                      {detailsTarget.requestedBy?.name || `User ID: ${detailsTarget.requested_by_user_id}`}
+                    </span>
                   </div>
-                  {detailsTarget.approved_by_user_id && (
+                  {detailsTarget.createdBy && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Created By:</span>
+                      <span className="text-gray-900">{detailsTarget.createdBy.name}</span>
+                    </div>
+                  )}
+                  {detailsTarget.approvedBy && (
                     <div className="flex justify-between">
                       <span className="font-medium text-gray-600">Approved By:</span>
-                      <span className="text-gray-900">User ID: {detailsTarget.approved_by_user_id}</span>
+                      <span className="text-gray-900">{detailsTarget.approvedBy.name}</span>
                     </div>
                   )}
                   {detailsTarget.approved_at && (
                     <div className="flex justify-between">
                       <span className="font-medium text-gray-600">Approved At:</span>
                       <span className="text-gray-900">{new Date(detailsTarget.approved_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                  {detailsTarget.component && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Component:</span>
+                      <span className="text-gray-900">
+                        {detailsTarget.component.component_name} ({detailsTarget.component.component_type})
+                      </span>
+                    </div>
+                  )}
+                  {detailsTarget.subcontractor && (
+                    <div className="flex justify-between">
+                      <span className="font-medium text-gray-600">Subcontractor:</span>
+                      <span className="text-gray-900">
+                        {detailsTarget.subcontractor.company_name} ({detailsTarget.subcontractor.work_type})
+                      </span>
                     </div>
                   )}
                 </div>

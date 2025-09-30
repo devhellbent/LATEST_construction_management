@@ -3,8 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Plus,
   Trash2,
-  Building2,
-  User,
   Save,
   X
 } from 'lucide-react';
@@ -65,6 +63,8 @@ interface PurchaseOrder {
   mrr?: {
     mrr_id: number;
     mrr_number: string;
+    subwork_project_id?: number;
+    subcontractor_id?: number;
   };
   po_date: string;
   expected_delivery_date?: string;
@@ -73,6 +73,8 @@ interface PurchaseOrder {
   notes?: string;
   status: string;
   items: POItem[];
+  subwork_project_id?: number;
+  subcontractor_id?: number;
 }
 
 const EditPurchaseOrder: React.FC = () => {
@@ -81,8 +83,6 @@ const EditPurchaseOrder: React.FC = () => {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
   const [itemsWithUnits, setItemsWithUnits] = useState<ItemWithUnit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +96,9 @@ const EditPurchaseOrder: React.FC = () => {
     expected_delivery_date: '',
     payment_terms: '',
     delivery_terms: '',
-    notes: ''
+    notes: '',
+    subwork_project_id: '',
+    subcontractor_id: ''
   });
 
   const [poItems, setPoItems] = useState<POItem[]>([]);
@@ -122,8 +124,6 @@ const EditPurchaseOrder: React.FC = () => {
 
       setProjects(projectsRes.data.projects || []);
       setSuppliers(suppliersRes.data.suppliers || []);
-      setItems(masterDataRes.data.itemMaster || []);
-      setUnits(masterDataRes.data.units || []);
 
       // Create items with units
       const itemsWithUnitsData = (masterDataRes.data.itemMaster || []).map((item: Item) => {
@@ -186,7 +186,9 @@ const EditPurchaseOrder: React.FC = () => {
         expected_delivery_date: po.expected_delivery_date ? po.expected_delivery_date.split('T')[0] : '',
         payment_terms: po.payment_terms || '',
         delivery_terms: po.delivery_terms || '',
-        notes: po.notes || ''
+        notes: po.notes || '',
+        subwork_project_id: po.subwork_project_id?.toString() || '',
+        subcontractor_id: po.subcontractor_id?.toString() || ''
       });
 
       // Convert PO items to editable format
@@ -306,6 +308,8 @@ const EditPurchaseOrder: React.FC = () => {
         payment_terms: formData.payment_terms || null,
         delivery_terms: formData.delivery_terms || null,
         notes: formData.notes || null,
+        subwork_project_id: formData.subwork_project_id ? parseInt(formData.subwork_project_id) : null,
+        subcontractor_id: formData.subcontractor_id ? parseInt(formData.subcontractor_id) : null,
         items: poItems.map(item => ({
           po_item_id: item.po_item_id,
           item_id: item.item_id,
@@ -510,6 +514,31 @@ const EditPurchaseOrder: React.FC = () => {
                   placeholder="e.g., FOB destination"
                 />
               </div>
+
+              {/* Subwork Project and Subcontractor Fields (Readonly if from MRR) */}
+              {purchaseOrder?.mrr && (
+                <>
+                  <div>
+                    <label className="label">Subwork Project</label>
+                    <input
+                      type="text"
+                      value={formData.subwork_project_id ? projects.find(p => p.project_id === parseInt(formData.subwork_project_id))?.name || 'Unknown Project' : 'Not specified'}
+                      className="input bg-gray-100"
+                      readOnly
+                    />
+                  </div>
+
+                  <div>
+                    <label className="label">Subcontractor</label>
+                    <input
+                      type="text"
+                      value={formData.subcontractor_id ? 'Subcontractor ID: ' + formData.subcontractor_id : 'Not specified'}
+                      className="input bg-gray-100"
+                      readOnly
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="mt-6">

@@ -45,6 +45,45 @@ const Project = sequelize.define('Project', {
       min: 0
     }
   },
+  tender_cost: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  emd: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  bg: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  planned_budget: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  actual_budget: {
+    type: DataTypes.DECIMAL(20, 2),
+    allowNull: true,
+    validate: {
+      min: 0
+    }
+  },
+  subwork: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   status: {
     type: DataTypes.ENUM('PLANNED', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED'),
     defaultValue: 'PLANNED'

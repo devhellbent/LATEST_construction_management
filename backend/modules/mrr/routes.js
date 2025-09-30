@@ -15,7 +15,9 @@ const {
   MaterialReceiptItem,
   SupplierLedger,
   Material,
-  Warehouse
+  Warehouse,
+  ProjectComponent,
+  Subcontractor
 } = require('../../models');
 const { authenticateToken, authorizeRoles } = require('../../middleware/auth');
 
@@ -26,7 +28,7 @@ const router = express.Router();
 // =====================================================
 
 // Check MRR inventory availability and auto-create missing materials
-router.post('/:id/check-inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Incharge'), async (req, res) => {
+router.post('/:id/check-inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Incharge', 'Inventory Manager'), async (req, res) => {
   try {
     const mrrId = req.params.id;
     
@@ -239,11 +241,14 @@ router.get('/', authenticateToken, [
       include: [
         { model: Project, as: 'project', attributes: ['name'] },
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
+        { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
         { model: MrrItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code'] },
           { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
-        ]}
+        ], attributes: ['mrr_item_id', 'mrr_id', 'item_id', 'quantity_requested', 'unit_id', 'specifications', 'purpose', 'priority', 'estimated_cost_per_unit', 'total_estimated_cost', 'notes', 'created_at', 'updated_at']},
+        { model: ProjectComponent, as: 'component', attributes: ['component_id', 'component_name', 'component_type'] },
+        { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'work_type'] }
       ],
       limit,
       offset,
@@ -272,11 +277,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
       include: [
         { model: Project, as: 'project', attributes: ['name', 'description'] },
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
+        { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false },
         { model: MrrItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code', 'description', 'specifications'] },
           { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
-        ]}
+        ], attributes: ['mrr_item_id', 'mrr_id', 'item_id', 'quantity_requested', 'unit_id', 'specifications', 'purpose', 'priority', 'estimated_cost_per_unit', 'total_estimated_cost', 'notes', 'created_at', 'updated_at']},
+        { model: ProjectComponent, as: 'component', attributes: ['component_id', 'component_name', 'component_type', 'component_description'] },
+        { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'work_type', 'contact_person'] }
       ]
     });
 
@@ -292,7 +300,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create MRR
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID must be an integer'),
   body('required_date').isISO8601().withMessage('Required date must be a valid date'),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
@@ -304,7 +312,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('items.*.specifications').optional().trim(),
   body('items.*.purpose').optional().trim(),
   body('items.*.priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  body('items.*.estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number')
+  body('items.*.estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -312,7 +320,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { project_id, required_date, priority, notes, items } = req.body;
+    const { project_id, required_date, priority, notes, items, component_id, subcontractor_id } = req.body;
 
     // Calculate total estimated cost
     let totalEstimatedCost = 0;
@@ -360,9 +368,11 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       required_date,
       priority: priority || 'MEDIUM',
       status: 'DRAFT',
-      approval_status: 'PENDING',
       total_estimated_cost: totalEstimatedCost,
-      notes
+      notes,
+      component_id,
+      subcontractor_id,
+      created_by: req.user.user_id
     });
 
     // Create MRR items
@@ -386,10 +396,13 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       include: [
         { model: Project, as: 'project', attributes: ['name'] },
         { model: User, as: 'requestedBy', attributes: ['name', 'email'] },
+        { model: User, as: 'createdBy', attributes: ['name', 'email'] },
         { model: MrrItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_id', 'item_name', 'item_code'] },
           { model: Unit, as: 'unit', attributes: ['unit_id', 'unit_name', 'unit_symbol'] }
-        ]}
+        ]},
+        { model: ProjectComponent, as: 'component', attributes: ['component_id', 'component_name', 'component_type'] },
+        { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'work_type'] }
       ]
     });
 
@@ -404,7 +417,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
 });
 
 // Submit MRR for approval
-router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), async (req, res) => {
+router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), async (req, res) => {
   try {
     const mrr = await MaterialRequirementRequest.findByPk(req.params.id);
     if (!mrr) {
@@ -417,7 +430,7 @@ router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project 
 
     await mrr.update({
       status: 'SUBMITTED',
-      approval_status: 'PENDING'
+      updated_by: req.user.user_id
     });
 
     res.json({
@@ -431,7 +444,7 @@ router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project 
 });
 
 // Approve/Reject MRR
-router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
   body('action').isIn(['approve', 'reject']).withMessage('Action must be either approve or reject'),
   body('rejection_reason').optional().trim()
 ], async (req, res) => {
@@ -454,7 +467,8 @@ router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project
 
     const updateData = {
       approved_by_user_id: req.user.user_id,
-      approved_at: new Date()
+      approved_at: new Date(),
+      updated_by: req.user.user_id
     };
 
     if (action === 'approve') {
@@ -477,7 +491,7 @@ router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project
 });
 
 // Update MRR
-router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('required_date').optional().isISO8601().withMessage('Required date must be a valid date'),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   body('notes').optional().trim()
@@ -497,7 +511,8 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager',
       return res.status(400).json({ message: 'Only draft MRRs can be updated' });
     }
 
-    await mrr.update(req.body);
+    const updateData = { ...req.body, updated_by: req.user.user_id };
+    await mrr.update(updateData);
 
     res.json({
       message: 'MRR updated successfully',
@@ -510,7 +525,7 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager',
 });
 
 // Delete MRR
-router.delete('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+router.delete('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
   try {
     const mrr = await MaterialRequirementRequest.findByPk(req.params.id);
     if (!mrr) {
@@ -535,14 +550,14 @@ router.delete('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manage
 // =====================================================
 
 // Add item to MRR
-router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('item_id').isInt().withMessage('Item ID must be an integer'),
   body('quantity_requested').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('unit_id').isInt().withMessage('Unit ID must be an integer'),
   body('specifications').optional().trim(),
   body('purpose').optional().trim(),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  body('estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number')
+  body('estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -593,12 +608,12 @@ router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Update MRR item
-router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('quantity_requested').optional().isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('specifications').optional().trim(),
   body('purpose').optional().trim(),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  body('estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number')
+  body('estimated_cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost must be a positive number'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -647,7 +662,7 @@ router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Pro
 });
 
 // Delete MRR item
-router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), async (req, res) => {
+router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), async (req, res) => {
   try {
     const mrr = await MaterialRequirementRequest.findByPk(req.params.id);
     if (!mrr) {
@@ -682,7 +697,7 @@ router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', '
 });
 
 // Update MRR status (for Project Manager and Admin)
-router.patch('/:id/status', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+router.patch('/:id/status', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
   body('status').isIn(['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'PROCESSING', 'COMPLETED', 'CANCELLED']).withMessage('Invalid status'),
   body('notes').optional().trim()
 ], async (req, res) => {

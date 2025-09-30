@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   mrrAPI, 
   materialManagementAPI, 
-  projectsAPI
+  projectsAPI,
+  subcontractorsAPI
 } from '../services/api';
 
 interface MrrOption {
@@ -13,12 +14,33 @@ interface MrrOption {
     name: string;
   };
   status: string;
+  component_id?: number;
+  subcontractor_id?: number;
+  component?: {
+    component_id: number;
+    component_name: string;
+    component_type: string;
+  };
+  subcontractor?: {
+    subcontractor_id: number;
+    company_name: string;
+    work_type: string;
+  };
   items: Array<{
+    mrr_item_id: number;
     item_id: number;
-    item_name: string;
     quantity_requested: number;
     unit_id: number;
-    unit_name: string;
+    item: {
+      item_id: number;
+      item_name: string;
+      item_code: string;
+    };
+    unit: {
+      unit_id: number;
+      unit_name: string;
+      unit_symbol: string;
+    };
     available_stock?: number;
   }>;
 }
@@ -40,7 +62,8 @@ interface MaterialItem {
 
 interface IssueFormData {
   project_id: number;
-  issued_to: string;
+  component_id: number;
+  subcontractor_id: number;
   issue_date: string;
   notes: string;
   is_mrr_based: boolean;
@@ -58,12 +81,15 @@ const UnifiedMaterialIssue: React.FC = () => {
   const [mrrs, setMrrs] = useState<MrrOption[]>([]);
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [components, setComponents] = useState<any[]>([]);
+  const [subcontractors, setSubcontractors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [materialIssues, setMaterialIssues] = useState<any[]>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [formData, setFormData] = useState<IssueFormData>({
     project_id: 0,
-    issued_to: '',
+    component_id: 0,
+    subcontractor_id: 0,
     issue_date: new Date().toISOString().split('T')[0],
     notes: '',
     is_mrr_based: false,
@@ -78,14 +104,15 @@ const UnifiedMaterialIssue: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [mrrsRes, materialsRes, projectsRes] = await Promise.all([
+      const [mrrsRes, materialsRes, projectsRes, subcontractorsRes] = await Promise.all([
         mrrAPI.getMrrs({ 
           status: 'APPROVED',
           include_items: true,
           include_project: true
         }),
         materialManagementAPI.getInventory(),
-        projectsAPI.getProjects()
+        projectsAPI.getProjects(),
+        import('../services/api').then(api => api.subcontractorsAPI.getSubcontractors())
       ]);
 
       // Process MRRs with stock information
@@ -115,6 +142,7 @@ const UnifiedMaterialIssue: React.FC = () => {
       setMrrs(mrrsWithStock);
       setMaterials(materialsRes.data.materials || []);
       setProjects(projectsRes.data.projects || []);
+      setSubcontractors(subcontractorsRes.data.subcontractors || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -148,20 +176,51 @@ const UnifiedMaterialIssue: React.FC = () => {
     }));
   };
 
-  const handleMrrSelection = (mrrId: number) => {
+  const loadComponents = async (projectId: number) => {
+    try {
+      const response = await projectsAPI.getProjectComponents(projectId);
+      setComponents(response.data.data?.components || []);
+    } catch (error) {
+      console.error('Error loading components:', error);
+      setComponents([]);
+    }
+  };
+
+  const loadSubcontractors = async (projectId: number) => {
+    try {
+      const response = await subcontractorsAPI.getSubcontractorsByProject(projectId);
+      setSubcontractors(response.data.data?.subcontractors || []);
+    } catch (error) {
+      console.error('Error loading subcontractors:', error);
+      setSubcontractors([]);
+    }
+  };
+
+  const handleMrrSelection = async (mrrId: number) => {
     const selectedMrr = mrrs.find(mrr => mrr.mrr_id === mrrId);
     if (selectedMrr) {
+      // Load components and subcontractors for the project
+      if (selectedMrr.project_id) {
+        await loadComponents(selectedMrr.project_id);
+        await loadSubcontractors(selectedMrr.project_id);
+      }
+      
+      // Convert MRR items to material issue items
+      const mrrItems = selectedMrr.items.map(item => ({
+        material_id: item.item.item_id,
+        quantity_issued: Math.min(item.quantity_requested, item.available_stock || 0),
+        item_name: item.item.item_name,
+        unit_name: item.unit.unit_name
+      }));
+
       setFormData(prev => ({
         ...prev,
         mrr_id: mrrId,
         mrr_number: selectedMrr.mrr_number,
         project_id: selectedMrr.project_id,
-        items: selectedMrr.items.map(item => ({
-          material_id: item.item_id,
-          quantity_issued: Math.min(item.quantity_requested, item.available_stock || 0),
-          item_name: item.item_name,
-          unit_name: item.unit_name
-        }))
+        component_id: selectedMrr.component_id || 0,
+        subcontractor_id: selectedMrr.subcontractor_id || 0,
+        items: mrrItems
       }));
     }
   };
@@ -183,15 +242,31 @@ const UnifiedMaterialIssue: React.FC = () => {
       ...prev,
       items: prev.items.map((item, i) => {
         if (i === index) {
-          if (field === 'material_id') {
-            const selectedMaterial = materials.find(m => m.material_id === value);
-            return {
-              ...item,
-              material_id: value,
-              item_name: selectedMaterial?.name || '',
-              unit_name: selectedMaterial?.unit || selectedMaterial?.item?.unit?.unit_symbol || ''
-            };
-          }
+            if (field === 'material_id') {
+              let itemName = '';
+              let unitName = '';
+              
+              if (formData.is_mrr_based && formData.mrr_id) {
+                // For MRR-based issues, get item info from MRR items
+                const selectedMrrItem = mrrs.find(mrr => mrr.mrr_id === formData.mrr_id)?.items.find(mrrItem => mrrItem.item.item_id === value);
+                if (selectedMrrItem) {
+                  itemName = selectedMrrItem.item.item_name;
+                  unitName = selectedMrrItem.unit.unit_name;
+                }
+              } else {
+                // For non-MRR issues, get item info from materials
+                const selectedMaterial = materials.find(m => m.material_id === value);
+                itemName = selectedMaterial?.item?.item_name || selectedMaterial?.name || '';
+                unitName = selectedMaterial?.item?.unit?.unit_name || selectedMaterial?.unit || '';
+              }
+              
+              return {
+                ...item,
+                material_id: value,
+                item_name: itemName,
+                unit_name: unitName
+              };
+            }
           return { ...item, [field]: value };
         }
         return item;
@@ -207,7 +282,7 @@ const UnifiedMaterialIssue: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.project_id || !formData.issued_to || formData.items.length === 0) {
+    if (!formData.project_id || formData.items.length === 0) {
       alert('Please fill in all required fields');
       return;
     }
@@ -241,10 +316,11 @@ const UnifiedMaterialIssue: React.FC = () => {
           issue_date: formData.issue_date,
           issue_purpose: formData.notes || '',
           location: 'Project Site',
-          issued_to: formData.issued_to || '',
           issued_by_user_id: 1, // This should come from auth context
           received_by_user_id: 1, // This should come from auth context
-          is_for_mrr: Boolean(formData.is_mrr_based)
+          is_for_mrr: Boolean(formData.is_mrr_based),
+          component_id: formData.component_id,
+          subcontractor_id: formData.subcontractor_id
         };
 
         // Only add mrr_id if it's actually needed
@@ -267,7 +343,8 @@ const UnifiedMaterialIssue: React.FC = () => {
       alert('Material issued successfully!');
       setFormData({
         project_id: 0,
-        issued_to: '',
+        component_id: 0,
+        subcontractor_id: 0,
         issue_date: new Date().toISOString().split('T')[0],
         notes: '',
         is_mrr_based: false,
@@ -398,19 +475,53 @@ const UnifiedMaterialIssue: React.FC = () => {
 
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div>
-              <label className="label label-required">
-                Issued To
-              </label>
-              <input
-                type="text"
-                value={formData.issued_to}
-                onChange={(e) => setFormData(prev => ({ ...prev, issued_to: e.target.value }))}
-                className="input"
-                placeholder="Contractor/Site name"
-                required
-              />
-            </div>
+            {/* Project (prefilled from MRR) */}
+            {formData.is_mrr_based && (
+              <div>
+                <label className="label">
+                  Project
+                </label>
+                <input
+                  type="text"
+                  value={projects.find(p => p.project_id === formData.project_id)?.name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+              </div>
+            )}
+
+            {/* Subcontractor (prefilled from MRR) */}
+            {formData.is_mrr_based && (
+              <div>
+                <label className="label">
+                  Subcontractor
+                </label>
+                <input
+                  type="text"
+                  value={subcontractors.find(s => s.subcontractor_id === formData.subcontractor_id)?.company_name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+              </div>
+            )}
+
+            {/* Project Component (prefilled from MRR) */}
+            {formData.is_mrr_based && (
+              <div>
+                <label className="label">
+                  Project Component
+                </label>
+                <input
+                  type="text"
+                  value={components.find(c => c.component_id === formData.component_id)?.component_name || ''}
+                  className="input bg-gray-100"
+                  readOnly
+                />
+                <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+              </div>
+            )}
             
             <div>
               <label className="label">
@@ -455,11 +566,21 @@ const UnifiedMaterialIssue: React.FC = () => {
                         required
                       >
                         <option value={0}>Select Material</option>
-                        {materials.map((material) => (
-                          <option key={material.material_id} value={material.material_id}>
-                            {material.name}
-                          </option>
-                        ))}
+                        {formData.is_mrr_based && formData.mrr_id ? (
+                          // Show only MRR items when MRR is selected
+                          mrrs.find(mrr => mrr.mrr_id === formData.mrr_id)?.items.map((mrrItem) => (
+                            <option key={mrrItem.item.item_id} value={mrrItem.item.item_id}>
+                              {mrrItem.item.item_name}
+                            </option>
+                          ))
+                        ) : (
+                          // Show all materials when not MRR-based
+                          materials.map((material) => (
+                            <option key={material.material_id} value={material.material_id}>
+                              {material.item?.item_name || material.name}
+                            </option>
+                          ))
+                        )}
                       </select>
                     </div>
                     
@@ -482,7 +603,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                         Unit
                       </label>
                       <div className="px-4 py-3 bg-slate-100 rounded-xl text-slate-900 font-medium">
-                        {item.unit_name || 'Select material first'}
+                        {item.unit_name || materials.find(m => m.material_id === item.material_id)?.item?.unit?.unit_name || 'Select material first'}
                       </div>
                     </div>
                     
@@ -500,7 +621,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                   {item.material_id > 0 && (
                     <div className="mt-4 p-3 bg-slate-50 rounded-xl">
                       <p className="text-sm text-slate-600">
-                        <span className="font-semibold">Available Stock:</span> {materials.find(m => m.material_id === item.material_id)?.stock_qty || 0} {item.unit_name}
+                        <span className="font-semibold">Available Stock:</span> {materials.find(m => m.material_id === item.material_id)?.stock_qty || 0} {item.unit_name || materials.find(m => m.material_id === item.material_id)?.item?.unit?.unit_name || ''}
                       </p>
                     </div>
                   )}

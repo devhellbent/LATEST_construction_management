@@ -39,9 +39,13 @@ const MaterialIssue = sequelize.define('MaterialIssue', {
     type: DataTypes.STRING(255),
     allowNull: true
   },
-  issued_to: {
-    type: DataTypes.STRING(255),
-    allowNull: true
+  subcontractor_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'subcontractors',
+      key: 'subcontractor_id'
+    }
   },
   issued_by_user_id: {
     type: DataTypes.INTEGER,
@@ -104,12 +108,20 @@ const MaterialIssue = sequelize.define('MaterialIssue', {
     }
   },
   issue_type: {
-    type: DataTypes.ENUM('STORE_ISSUE', 'PO_ISSUE', 'TRANSFER'),
+    type: DataTypes.ENUM('STORE_ISSUE', 'PO_ISSUE'),
     defaultValue: 'STORE_ISSUE'
   },
   reference_number: {
     type: DataTypes.STRING(50),
     allowNull: true
+  },
+  component_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'project_components',
+      key: 'component_id'
+    }
   }
 }, {
   tableName: 'material_issues',

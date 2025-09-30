@@ -6,7 +6,7 @@ import {
   Building2,
   User
 } from 'lucide-react';
-import { purchaseOrdersAPI, projectsAPI, suppliersAPI, mrrAPI, materialManagementAPI } from '../services/api';
+import { purchaseOrdersAPI, projectsAPI, suppliersAPI, mrrAPI, materialManagementAPI, subcontractorsAPI } from '../services/api';
 
 interface Project {
   project_id: number;
@@ -24,6 +24,7 @@ interface Supplier {
 interface MRR {
   mrr_id: number;
   mrr_number: string;
+  project_id: number;
   project: Project;
   items: Array<{
     mrr_item_id: number;
@@ -39,6 +40,18 @@ interface MRR {
       unit_symbol: string;
     };
     specifications?: string;
+    component_id?: number;
+    subcontractor_id?: number;
+    component?: {
+      component_id: number;
+      component_name: string;
+      component_type: string;
+    };
+    subcontractor?: {
+      subcontractor_id: number;
+      company_name: string;
+      work_type: string;
+    };
   }>;
 }
 
@@ -101,6 +114,8 @@ const CreatePurchaseOrder: React.FC = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [itemsWithUnits, setItemsWithUnits] = useState<ItemWithUnit[]>([]);
+  const [components, setComponents] = useState<any[]>([]);
+  const [subcontractors, setSubcontractors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -108,6 +123,8 @@ const CreatePurchaseOrder: React.FC = () => {
   const [formData, setFormData] = useState({
     mrr_id: '',
     project_id: '',
+    component_id: '',
+    subcontractor_id: '',
     supplier_id: '',
     po_date: new Date().toISOString().split('T')[0],
     expected_delivery_date: '',
@@ -148,6 +165,8 @@ const CreatePurchaseOrder: React.FC = () => {
       setItems(itemsRes.data.itemMaster || []);
       setUnits(itemsRes.data.units || []);
       setMrrs(mrrsRes.data.mrrs || []);
+      // Don't load all subcontractors initially - load them per project
+      setSubcontractors([]);
       
       // Combine items with units
       const itemsWithUnitsData: ItemWithUnit[] = (itemsRes.data.itemMaster || []).map((item: Item) => {
@@ -167,6 +186,28 @@ const CreatePurchaseOrder: React.FC = () => {
     }
   };
 
+  const loadComponents = async (projectId: number) => {
+    try {
+      const response = await projectsAPI.getProjectComponents(projectId);
+      console.log('Components response:', response.data);
+      setComponents(response.data.data?.components || []);
+    } catch (error) {
+      console.error('Error loading components:', error);
+      setComponents([]);
+    }
+  };
+
+  const loadSubcontractors = async (projectId: number) => {
+    try {
+      const response = await subcontractorsAPI.getSubcontractorsByProject(projectId);
+      console.log('Subcontractors response:', response.data);
+      setSubcontractors(response.data.data?.subcontractors || []);
+    } catch (error) {
+      console.error('Error loading subcontractors:', error);
+      setSubcontractors([]);
+    }
+  };
+
   const fetchMRRData = async () => {
     if (!mrrId || mrrId === '') {
       console.log('No MRR ID provided, skipping MRR data fetch');
@@ -180,11 +221,21 @@ const CreatePurchaseOrder: React.FC = () => {
       console.log('MRR Data:', mrrData);
       setMrr(mrrData);
 
-      // Pre-fill form with MRR data
+      // Load components and subcontractors for the project first
+      if (mrrData.project_id) {
+        await Promise.all([
+          loadComponents(mrrData.project_id),
+          loadSubcontractors(mrrData.project_id)
+        ]);
+      }
+
+      // Pre-fill form with MRR data after components and subcontractors are loaded
       setFormData(prev => ({
         ...prev,
         mrr_id: mrrId,
-        project_id: mrrData.project?.project_id?.toString() || ''
+        project_id: mrrData.project_id?.toString() || '',
+        component_id: mrrData.component_id?.toString() || '',
+        subcontractor_id: mrrData.subcontractor_id?.toString() || ''
       }));
 
       // Convert MRR items to PO items
@@ -212,6 +263,20 @@ const CreatePurchaseOrder: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // If project changes, load components and subcontractors for that project
+    if (name === 'project_id' && value) {
+      const projectId = parseInt(value);
+      loadComponents(projectId);
+      loadSubcontractors(projectId);
+      // Clear component and subcontractor when project changes
+      setFormData(prev => ({ 
+        ...prev, 
+        [name]: value,
+        component_id: '',
+        subcontractor_id: ''
+      }));
+    }
   };
 
   const addItem = () => {
@@ -264,20 +329,31 @@ const CreatePurchaseOrder: React.FC = () => {
     if (!mrrId) {
       setMrr(null);
       setPoItems([]);
-      setFormData(prev => ({ ...prev, mrr_id: '', project_id: '' }));
+      setFormData(prev => ({ ...prev, mrr_id: '', project_id: '', component_id: '', subcontractor_id: '' }));
       return;
     }
 
     try {
       const response = await mrrAPI.getMrr(parseInt(mrrId));
       const mrrData = response.data.mrr; // Note: response.data.mrr not response.data
+      console.log('MRR Data for prefilling:', mrrData);
       setMrr(mrrData);
 
-      // Pre-fill form with MRR data
+      // Load components and subcontractors for the project first
+      if (mrrData.project_id) {
+        await Promise.all([
+          loadComponents(mrrData.project_id),
+          loadSubcontractors(mrrData.project_id)
+        ]);
+      }
+
+      // Pre-fill form with MRR data after components are loaded
       setFormData(prev => ({
         ...prev,
         mrr_id: mrrId,
-        project_id: mrrData.project?.project_id?.toString() || ''
+        project_id: mrrData.project_id?.toString() || '',
+        component_id: mrrData.component_id?.toString() || '',
+        subcontractor_id: mrrData.subcontractor_id?.toString() || ''
       }));
 
       // Convert MRR items to PO items
@@ -332,6 +408,7 @@ const CreatePurchaseOrder: React.FC = () => {
         ...formData,
         mrr_id: formData.mrr_id ? parseInt(formData.mrr_id) : null,
         project_id: formData.project_id ? parseInt(formData.project_id) : null,
+        component_id: formData.component_id ? parseInt(formData.component_id) : null,
         supplier_id: parseInt(formData.supplier_id),
         subtotal,
         tax_amount: taxAmount,
@@ -451,8 +528,16 @@ const CreatePurchaseOrder: React.FC = () => {
               <select
                 name="project_id"
                 value={formData.project_id}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (e.target.value) {
+                    loadComponents(parseInt(e.target.value));
+                    // Clear subcontractor when project changes
+                    setFormData(prev => ({ ...prev, subcontractor_id: '' }));
+                  }
+                }}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
+                disabled={!!mrr}
               >
                 <option value="">Select Project (Optional)</option>
                 {projects.map((project) => (
@@ -461,6 +546,63 @@ const CreatePurchaseOrder: React.FC = () => {
                   </option>
                 ))}
               </select>
+              {mrr && (
+                <p className="mt-1 text-sm text-gray-500">Prefilled from MRR</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Project Component
+              </label>
+              <select
+                name="component_id"
+                value={formData.component_id}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
+                disabled={!formData.project_id || !!mrr}
+              >
+                <option value="">Select Component (Optional)</option>
+                {components.map((component) => (
+                  <option key={component.component_id} value={component.component_id}>
+                    {component.component_name} {component.component_type && `(${component.component_type})`}
+                  </option>
+                ))}
+              </select>
+              {!formData.project_id && (
+                <p className="mt-1 text-sm text-gray-500">Please select a project first</p>
+              )}
+              {mrr && (
+                <p className="mt-1 text-sm text-gray-500">Prefilled from MRR</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subcontractor
+              </label>
+              <select
+                name="subcontractor_id"
+                value={formData.subcontractor_id}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
+                disabled={!!mrr || !formData.project_id}
+              >
+                <option value="">Select Subcontractor (Optional)</option>
+                {subcontractors
+                  .filter(sub => sub.project_id === parseInt(formData.project_id))
+                  .map((subcontractor) => (
+                  <option key={subcontractor.subcontractor_id} value={subcontractor.subcontractor_id}>
+                    {subcontractor.company_name} {subcontractor.work_type && `(${subcontractor.work_type})`}
+                  </option>
+                ))}
+              </select>
+              {!formData.project_id && (
+                <p className="mt-1 text-sm text-gray-500">Please select a project first</p>
+              )}
+              {mrr && (
+                <p className="mt-1 text-sm text-gray-500">Prefilled from MRR</p>
+              )}
             </div>
 
             <div>

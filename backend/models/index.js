@@ -1,6 +1,7 @@
 const User = require('./User');
 const Role = require('./Role');
 const Project = require('./Project');
+const ProjectComponent = require('./ProjectComponent');
 const ProjectMember = require('./ProjectMember');
 const Task = require('./Task');
 const Material = require('./Material');
@@ -11,7 +12,6 @@ const Issue = require('./Issue');
 const Report = require('./Report');
 const PettyCashExpense = require('./PettyCashExpense');
 const Document = require('./Document');
-const SiteTransfer = require('./SiteTransfer');
 const MaterialReturn = require('./MaterialReturn');
 const MaterialConsumption = require('./MaterialConsumption');
 const MaterialIssue = require('./MaterialIssue');
@@ -31,6 +31,7 @@ const MaterialReceipt = require('./MaterialReceipt');
 const MaterialReceiptItem = require('./MaterialReceiptItem');
 const SupplierLedger = require('./SupplierLedger');
 const Warehouse = require('./Warehouse');
+const Subcontractor = require('./Subcontractor');
 
 // Role associations
 Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
@@ -54,6 +55,7 @@ User.hasMany(Payment, { foreignKey: 'deleted_by_user_id', as: 'deletedPayments' 
 // Project associations
 Project.belongsTo(User, { foreignKey: 'owner_user_id', as: 'owner' });
 Project.hasMany(ProjectMember, { foreignKey: 'project_id', as: 'members' });
+Project.hasMany(ProjectComponent, { foreignKey: 'project_id', as: 'components' });
 Project.hasMany(Task, { foreignKey: 'project_id', as: 'tasks' });
 Project.hasMany(Material, { foreignKey: 'project_id', as: 'materials' });
 Project.hasMany(LabourAttendance, { foreignKey: 'project_id', as: 'labourAttendance' });
@@ -63,6 +65,13 @@ Project.hasMany(Report, { foreignKey: 'project_id', as: 'reports' });
 Project.hasMany(PettyCashExpense, { foreignKey: 'project_id', as: 'expenses' });
 Project.hasMany(Document, { foreignKey: 'project_id', as: 'documents' });
 Project.hasMany(Payment, { foreignKey: 'project_id', as: 'payments' });
+
+// ProjectComponent associations
+ProjectComponent.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+ProjectComponent.hasMany(MaterialRequirementRequest, { foreignKey: 'component_id', as: 'mrrs' });
+ProjectComponent.hasMany(MaterialIssue, { foreignKey: 'component_id', as: 'materialIssues' });
+ProjectComponent.hasMany(MaterialReturn, { foreignKey: 'component_id', as: 'materialReturns' });
+ProjectComponent.hasMany(PurchaseOrder, { foreignKey: 'component_id', as: 'purchaseOrders' });
 
 // ProjectMember associations
 ProjectMember.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
@@ -116,12 +125,6 @@ PettyCashExpense.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'appro
 Document.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 Document.belongsTo(User, { foreignKey: 'uploaded_by_user_id', as: 'uploadedBy' });
 
-// SiteTransfer associations
-SiteTransfer.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
-SiteTransfer.belongsTo(Project, { foreignKey: 'from_project_id', as: 'from_project' });
-SiteTransfer.belongsTo(Project, { foreignKey: 'to_project_id', as: 'to_project' });
-SiteTransfer.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requested_by' });
-SiteTransfer.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approved_by' });
 
 // MaterialReturn associations
 MaterialReturn.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
@@ -143,6 +146,8 @@ MaterialIssue.belongsTo(User, { foreignKey: 'issued_by_user_id', as: 'issued_by'
 MaterialIssue.belongsTo(User, { foreignKey: 'received_by_user_id', as: 'received_by' });
 MaterialIssue.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' });
 MaterialIssue.belongsTo(User, { foreignKey: 'updated_by', as: 'updated_by_user' });
+MaterialIssue.belongsTo(ProjectComponent, { foreignKey: 'component_id', as: 'component' });
+MaterialIssue.belongsTo(Subcontractor, { foreignKey: 'subcontractor_id', as: 'subcontractor' });
 
 // InventoryHistory associations
 InventoryHistory.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });
@@ -191,7 +196,11 @@ Payment.belongsTo(User, { foreignKey: 'deleted_by_user_id', as: 'deletedByUser' 
 // MaterialRequirementRequest associations
 MaterialRequirementRequest.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
 MaterialRequirementRequest.belongsTo(User, { foreignKey: 'requested_by_user_id', as: 'requestedBy' });
+MaterialRequirementRequest.belongsTo(User, { foreignKey: 'created_by', as: 'createdBy' });
+MaterialRequirementRequest.belongsTo(User, { foreignKey: 'updated_by', as: 'updatedBy' });
 MaterialRequirementRequest.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
+MaterialRequirementRequest.belongsTo(ProjectComponent, { foreignKey: 'component_id', as: 'component' });
+MaterialRequirementRequest.belongsTo(Subcontractor, { foreignKey: 'subcontractor_id', as: 'subcontractor' });
 MaterialRequirementRequest.hasMany(MrrItem, { foreignKey: 'mrr_id', as: 'items' });
 MaterialRequirementRequest.hasMany(PurchaseOrder, { foreignKey: 'mrr_id', as: 'purchaseOrders' });
 
@@ -203,6 +212,8 @@ MrrItem.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
 // PurchaseOrder associations
 PurchaseOrder.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', as: 'mrr' });
 PurchaseOrder.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+PurchaseOrder.belongsTo(ProjectComponent, { foreignKey: 'component_id', as: 'component' });
+PurchaseOrder.belongsTo(Subcontractor, { foreignKey: 'subcontractor_id', as: 'subcontractor' });
 PurchaseOrder.belongsTo(Supplier, { foreignKey: 'supplier_id', as: 'supplier' });
 PurchaseOrder.belongsTo(User, { foreignKey: 'created_by_user_id', as: 'createdBy' });
 PurchaseOrder.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
@@ -249,10 +260,19 @@ InventoryHistory.belongsTo(MaterialRequirementRequest, { foreignKey: 'mrr_id', a
 InventoryHistory.belongsTo(PurchaseOrder, { foreignKey: 'po_id', as: 'purchaseOrder' });
 InventoryHistory.belongsTo(MaterialReceipt, { foreignKey: 'receipt_id', as: 'receipt' });
 
+// Subcontractor associations
+Project.hasMany(Subcontractor, { foreignKey: 'project_id', as: 'subcontractors' });
+Subcontractor.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+Subcontractor.hasMany(MaterialRequirementRequest, { foreignKey: 'subcontractor_id', as: 'mrrs' });
+Subcontractor.hasMany(MaterialIssue, { foreignKey: 'subcontractor_id', as: 'materialIssues' });
+Subcontractor.hasMany(MaterialReturn, { foreignKey: 'subcontractor_id', as: 'materialReturns' });
+Subcontractor.hasMany(PurchaseOrder, { foreignKey: 'subcontractor_id', as: 'purchaseOrders' });
+
 module.exports = {
   User,
   Role,
   Project,
+  ProjectComponent,
   ProjectMember,
   Task,
   Material,
@@ -263,7 +283,6 @@ module.exports = {
   Report,
   PettyCashExpense,
   Document,
-  SiteTransfer,
   MaterialReturn,
   MaterialConsumption,
   MaterialIssue,
@@ -284,5 +303,6 @@ module.exports = {
   MaterialReceipt,
   MaterialReceiptItem,
   SupplierLedger,
-  Warehouse
+  Warehouse,
+  Subcontractor
 };

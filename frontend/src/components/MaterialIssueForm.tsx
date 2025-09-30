@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown, Settings, Plus } from 'lucide-react';
-import { commercialAPI, projectsAPI, materialsAPI, usersAPI } from '../services/api';
+import { commercialAPI, projectsAPI, materialsAPI, usersAPI, mrrAPI, subcontractorsAPI } from '../services/api';
 
 interface MaterialIssueFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   editData?: any; // For editing existing material issue
+  mrrData?: any; // MRR data for prefilling
 }
 
 interface Project {
   project_id: number;
   name: string;
+}
+
+interface ProjectComponent {
+  component_id: number;
+  component_name: string;
+  component_description?: string;
+  component_type?: string;
 }
 
 interface Material {
@@ -28,14 +36,35 @@ interface User {
   name: string;
 }
 
+interface MRR {
+  mrr_id: number;
+  mrr_number: string;
+  project_id: number;
+  project?: Project;
+  items?: Array<{
+    mrr_item_id: number;
+    item_id: number;
+    component_id?: number;
+    subcontractor_id?: number;
+    quantity_requested: number;
+    item?: {
+      item_id: number;
+      item_name: string;
+      item_code: string;
+    };
+    component?: ProjectComponent;
+  }>;
+}
+
 interface MaterialItem {
   material_id: number;
   quantity: number;
   material?: Material;
 }
 
-const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, onSuccess, editData }) => {
+const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, onSuccess, editData, mrrData }) => {
   const [formData, setFormData] = useState({
+    mrr_id: '',
     project_id: '',
     material_id: '',
     quantity_issued: '',
@@ -44,12 +73,18 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
     location: '',
     issued_by_user_id: '',
     received_by_user_id: '',
-    status: 'PENDING'
+    status: 'PENDING',
+    component_id: '',
+    subcontractor_id: ''
   });
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [components, setComponents] = useState<ProjectComponent[]>([]);
+  const [subcontractors, setSubcontractors] = useState<any[]>([]);
+  const [mrrs, setMrrs] = useState<MRR[]>([]);
+  const [selectedMrr, setSelectedMrr] = useState<MRR | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string>('');
@@ -59,21 +94,28 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
       fetchInitialData();
       if (editData) {
         populateEditData();
+      } else if (mrrData) {
+        populateMrrData();
       }
     }
-  }, [isOpen, editData]);
+  }, [isOpen, editData, mrrData]);
 
   const fetchInitialData = async () => {
     try {
-      const [projectsRes, materialsRes, usersRes] = await Promise.all([
+      const [projectsRes, materialsRes, usersRes, mrrsRes, subcontractorsRes] = await Promise.all([
         projectsAPI.getProjects(),
         materialsAPI.getMaterials(),
-        usersAPI.getUsers()
+        usersAPI.getUsers(),
+        mrrAPI.getMrrs({ status: 'APPROVED' }),
+        subcontractorsAPI.getSubcontractors()
       ]);
 
       setProjects(projectsRes.data.projects || []);
       setAllMaterials(materialsRes.data.materials || []);
       setUsers(usersRes.data.users || []);
+      setMrrs(mrrsRes.data.mrrs || []);
+      setSubcontractors(subcontractorsRes.data.subcontractors || []);
+      console.log('MRRs loaded:', mrrsRes.data.mrrs);
     } catch (error) {
       console.error('Error fetching initial data:', error);
     }
@@ -82,6 +124,7 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
   const populateEditData = () => {
     if (editData) {
       setFormData({
+        mrr_id: editData.mrr_id?.toString() || '',
         project_id: editData.project_id?.toString() || '',
         material_id: editData.material_id?.toString() || '',
         quantity_issued: editData.quantity_issued?.toString() || '',
@@ -90,8 +133,36 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
         location: editData.location || '',
         issued_by_user_id: editData.issued_by_user_id?.toString() || '',
         received_by_user_id: editData.received_by_user_id?.toString() || '',
-        status: editData.status || 'PENDING'
+        status: editData.status || 'PENDING',
+        component_id: editData.component_id?.toString() || '',
+        subcontractor_id: editData.subcontractor_id?.toString() || ''
       });
+    }
+  };
+
+  const populateMrrData = () => {
+    if (mrrData) {
+      console.log('Populating MRR data:', mrrData);
+      setSelectedMrr(mrrData);
+      setFormData({
+        mrr_id: mrrData.mrr_id?.toString() || '',
+        project_id: mrrData.project_id?.toString() || '',
+        material_id: '',
+        quantity_issued: '',
+        issue_date: '',
+        issue_purpose: '',
+        location: '',
+        issued_by_user_id: '',
+        received_by_user_id: '',
+        status: 'PENDING',
+        component_id: mrrData.component_id?.toString() || '',
+        subcontractor_id: mrrData.subcontractor_id?.toString() || ''
+      });
+      
+      // Load components for the project
+      if (mrrData.project_id) {
+        loadComponents(mrrData.project_id);
+      }
     }
   };
 
@@ -99,6 +170,47 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // If project changes, load components for that project and clear subcontractor
+    if (field === 'project_id' && value) {
+      loadComponents(parseInt(value));
+      setFormData(prev => ({ ...prev, subcontractor_id: '' }));
+    }
+    
+    // If MRR changes, populate fields from MRR
+    if (field === 'mrr_id' && value) {
+      const mrr = mrrs.find(m => m.mrr_id === parseInt(value));
+      console.log('Selected MRR:', mrr);
+      if (mrr) {
+        setSelectedMrr(mrr);
+        console.log('MRR project_id:', mrr.project_id);
+        console.log('MRR items:', mrr.items);
+        console.log('First item component_id:', mrr.items?.[0]?.component_id);
+        
+        setFormData(prev => ({
+          ...prev,
+          project_id: mrr.project_id?.toString() || '',
+          component_id: mrr.items?.[0]?.component_id?.toString() || '',
+          subcontractor_id: mrr.items?.[0]?.subcontractor_id?.toString() || ''
+        }));
+        
+        // Load components for the project
+        if (mrr.project_id) {
+          loadComponents(mrr.project_id);
+        }
+      }
+    }
+  };
+
+  const loadComponents = async (projectId: number) => {
+    try {
+      const response = await projectsAPI.getProjectComponents(projectId);
+      console.log('Components response:', response.data);
+      setComponents(response.data.data?.components || []);
+    } catch (error) {
+      console.error('Error loading components:', error);
+      setComponents([]);
     }
   };
 
@@ -149,7 +261,9 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
         location: formData.location,
         issued_by_user_id: parseInt(formData.issued_by_user_id),
         received_by_user_id: parseInt(formData.received_by_user_id),
-        status: formData.status
+        status: formData.status,
+        component_id: formData.component_id ? parseInt(formData.component_id) : null,
+        subcontractor_id: formData.subcontractor_id ? parseInt(formData.subcontractor_id) : null
       };
 
       // Create or update material issue
@@ -183,6 +297,7 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
 
   const resetForm = () => {
     setFormData({
+      mrr_id: '',
       project_id: '',
       material_id: '',
       quantity_issued: '',
@@ -191,8 +306,11 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
       location: '',
       issued_by_user_id: '',
       received_by_user_id: '',
-      status: 'PENDING'
+      status: 'PENDING',
+      component_id: '',
+      subcontractor_id: ''
     });
+    setSelectedMrr(null);
     setErrors({});
     setError('');
   };
@@ -236,6 +354,26 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
           {/* Main Form Section */}
           <div className="card p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* MRR Selection */}
+              <div>
+                <label className="label">MRR Reference</label>
+                <div className="relative">
+                  <select
+                    value={formData.mrr_id}
+                    onChange={(e) => handleInputChange('mrr_id', e.target.value)}
+                    className="input"
+                  >
+                    <option value="">Select MRR (Optional)</option>
+                    {mrrs.map(mrr => (
+                      <option key={mrr.mrr_id} value={mrr.mrr_id}>
+                        {mrr.mrr_number} - {mrr.project?.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+
               {/* Project */}
               <div>
                 <label className="label">Project*</label>
@@ -243,7 +381,8 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
                   <select
                     value={formData.project_id}
                     onChange={(e) => handleInputChange('project_id', e.target.value)}
-                    className={`input ${errors.project_id ? 'border-red-500' : ''}`}
+                    className={`input ${errors.project_id ? 'border-red-500' : ''} ${selectedMrr ? 'bg-gray-100' : ''}`}
+                    disabled={!!selectedMrr}
                   >
                     <option value="">Select Project</option>
                     {projects.map(project => (
@@ -255,6 +394,9 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
                   <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                 </div>
                 {errors.project_id && <p className="text-red-500 text-sm mt-1">{errors.project_id}</p>}
+                {selectedMrr && (
+                  <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+                )}
               </div>
 
               {/* Material */}
@@ -378,6 +520,62 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
                   <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                 </div>
                 {errors.received_by_user_id && <p className="text-red-500 text-sm mt-1">{errors.received_by_user_id}</p>}
+              </div>
+
+              {/* Subcontractor */}
+              <div>
+                <label className="label">Subcontractor</label>
+                <div className="relative">
+                  <select
+                    value={formData.subcontractor_id}
+                    onChange={(e) => handleInputChange('subcontractor_id', e.target.value)}
+                    className={`input ${selectedMrr ? 'bg-gray-100' : ''}`}
+                    disabled={!!selectedMrr || !formData.project_id}
+                  >
+                    <option value="">Select Subcontractor</option>
+                    {subcontractors
+                      .filter(sub => sub.project_id === parseInt(formData.project_id))
+                      .map(subcontractor => (
+                      <option key={subcontractor.subcontractor_id} value={subcontractor.subcontractor_id}>
+                        {subcontractor.company_name} {subcontractor.work_type && `(${subcontractor.work_type})`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+                {!formData.project_id && (
+                  <p className="text-sm text-gray-500 mt-1">Please select a project first</p>
+                )}
+                {selectedMrr && (
+                  <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+                )}
+              </div>
+
+              {/* Project Component */}
+              <div>
+                <label className="label">Project Component</label>
+                <div className="relative">
+                  <select
+                    value={formData.component_id}
+                    onChange={(e) => handleInputChange('component_id', e.target.value)}
+                    className={`input ${selectedMrr ? 'bg-gray-100' : ''}`}
+                    disabled={!formData.project_id || !!selectedMrr}
+                  >
+                    <option value="">Select Component</option>
+                    {components.map(component => (
+                      <option key={component.component_id} value={component.component_id}>
+                        {component.component_name} {component.component_type && `(${component.component_type})`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                </div>
+                {!formData.project_id && (
+                  <p className="text-sm text-gray-500 mt-1">Please select a project first</p>
+                )}
+                {selectedMrr && (
+                  <p className="text-sm text-gray-500 mt-1">Prefilled from MRR</p>
+                )}
               </div>
             </div>
           </div>

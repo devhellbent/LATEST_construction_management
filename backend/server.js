@@ -27,6 +27,7 @@ const supplierLedgerRoutes = require('./modules/supplier-ledger/routes');
 const supplierRoutes = require('./modules/suppliers/routes');
 const materialReceiptRoutes = require('./modules/material-receipts/routes');
 const materialManagementRoutes = require('./modules/material-management/routes');
+const subcontractorRoutes = require('./modules/subcontractors/routes');
 
 const { authenticateToken } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -115,6 +116,7 @@ app.use('/api/supplier-ledger', authenticateToken, supplierLedgerRoutes);
 app.use('/api/suppliers', authenticateToken, supplierRoutes);
 app.use('/api/material-receipts', authenticateToken, materialReceiptRoutes);
 app.use('/api/material-management', authenticateToken, materialManagementRoutes);
+app.use('/api/subcontractors', authenticateToken, subcontractorRoutes);
 
 // Socket.io setup
 setupSocketHandlers(io);

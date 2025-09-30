@@ -24,13 +24,6 @@ const Commercial: React.FC = () => {
 
   const commercialSections = [
     {
-      name: 'Site Transfers',
-      href: '/commercial/site-transfers',
-      icon: ArrowRightLeft,
-      description: 'Transfer materials between sites',
-      color: 'bg-green-50 text-green-700 border-green-200'
-    },
-    {
       name: 'Petty Cash',
       href: '/commercial/petty-cash',
       icon: IndianRupee,

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from 'react-query';
+import { useQuery, useQueryClient } from 'react-query';
 import { projectsAPI } from '../services/api';
-import { FolderOpen, Plus, Calendar, DollarSign, User, AlertCircle, Clock, Mail } from 'lucide-react';
+import { FolderOpen, Plus, Calendar, DollarSign, User, AlertCircle, Clock, Mail, Eye } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface Project {
@@ -12,6 +13,12 @@ interface Project {
   start_date: string;
   end_date: string;
   budget: number;
+  tender_cost?: number;
+  emd?: number;
+  bg?: number;
+  planned_budget?: number;
+  actual_budget?: number;
+  subwork?: string;
   status: 'PLANNED' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED' | 'CANCELLED';
   owner: {
     user_id: number;
@@ -23,8 +30,27 @@ interface Project {
 
 const Projects: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Check if user is admin or project manager
+  const isAdminOrManager = () => {
+    if (!user?.role) return false;
+    
+    // Handle old string format
+    if (typeof user.role === 'string') {
+      return user.role === 'OWNER' || user.role === 'PROJECT_MANAGER';
+    }
+    
+    // Handle new object format
+    if (typeof user.role === 'object') {
+      return user.role.name === 'Admin' || user.role.name === 'Project Manager' || user.role.name === 'Inventory Manager';
+    }
+    
+    return false;
+  };
 
   const { data: projectsData, isLoading, error } = useQuery(
     ['projects', { search: searchTerm, status: statusFilter }],
@@ -42,11 +68,41 @@ const Projects: React.FC = () => {
     }
   );
 
+  // Listen for project updates and refresh the list
+  React.useEffect(() => {
+    const handleProjectUpdate = () => {
+      queryClient.invalidateQueries(['projects']);
+    };
+
+    // Listen for custom events from other components
+    window.addEventListener('projectUpdated', handleProjectUpdate);
+    window.addEventListener('projectCreated', handleProjectUpdate);
+
+    return () => {
+      window.removeEventListener('projectUpdated', handleProjectUpdate);
+      window.removeEventListener('projectCreated', handleProjectUpdate);
+    };
+  }, [queryClient]);
+
   const projects: Project[] = projectsData?.data?.projects || [];
 
   const handleNewProject = () => {
     navigate('/projects/new');
   };
+
+  const handleViewDetails = (projectId: number) => {
+    navigate(`/projects/${projectId}`);
+  };
+
+  // Refresh projects list when returning from detail page
+  React.useEffect(() => {
+    const handleFocus = () => {
+      queryClient.invalidateQueries(['projects']);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [queryClient]);
 
 
   const getStatusColor = (status: string) => {
@@ -110,13 +166,15 @@ const Projects: React.FC = () => {
           <h1 className="text-4xl font-bold text-slate-900">Projects</h1>
           <p className="text-lg text-slate-600 mt-2">Manage and track your construction projects</p>
         </div>
-        <button 
-          onClick={handleNewProject}
-          className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          New Project
-        </button>
+        {isAdminOrManager() && (
+          <button 
+            onClick={handleNewProject}
+            className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            New Project
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -209,6 +267,9 @@ const Projects: React.FC = () => {
                   <div>
                     <div className="text-xs text-slate-500">Budget</div>
                     <div className="font-medium text-lg">{formatCurrency(project.budget)}</div>
+                    {project.planned_budget && (
+                      <div className="text-xs text-slate-500">Planned: {formatCurrency(project.planned_budget)}</div>
+                    )}
                   </div>
                 </div>
                 
@@ -232,6 +293,17 @@ const Projects: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* View Details Button */}
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => handleViewDetails(project.project_id)}
+                  className="w-full btn btn-outline-primary flex items-center justify-center group"
+                >
+                  <Eye className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                  View Details
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -248,13 +320,15 @@ const Projects: React.FC = () => {
                 : 'Get started by creating your first construction project to begin tracking progress and managing resources.'
               }
             </p>
-            <button 
-              onClick={handleNewProject}
-              className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create Your First Project
-            </button>
+            {isAdminOrManager() && (
+              <button 
+                onClick={handleNewProject}
+                className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Create Your First Project
+              </button>
+            )}
           </div>
         </div>
       )}

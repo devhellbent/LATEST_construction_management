@@ -6,9 +6,11 @@ const {
   PurchaseOrderItem, 
   Project, 
   ProjectMember,
+  ProjectComponent,
   User, 
   Role,
   Supplier,
+  Subcontractor,
   ItemMaster, 
   Unit,
   MaterialRequirementRequest,
@@ -229,13 +231,27 @@ router.get('/:id', authenticateToken, async (req, res) => {
         { 
           model: MaterialRequirementRequest, 
           as: 'mrr', 
-          attributes: ['mrr_number', 'request_date', 'project_id', 'requested_by_user_id', 'approved_by_user_id', 'approved_at'], 
+          attributes: ['mrr_number', 'request_date', 'project_id', 'requested_by_user_id', 'approved_by_user_id', 'approved_at', 'component_id', 'subcontractor_id'], 
           required: false,
           include: [
             { model: Project, as: 'project', attributes: ['name'], required: false },
+            { model: ProjectComponent, as: 'component', attributes: ['component_id', 'component_name', 'component_description', 'component_type'], required: false },
+            { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'contact_person', 'phone', 'email', 'work_type'], required: false },
             { model: User, as: 'requestedBy', attributes: ['name', 'email'], required: false },
             { model: User, as: 'approvedBy', attributes: ['name', 'email'], required: false }
           ]
+        },
+        { 
+          model: ProjectComponent, 
+          as: 'component', 
+          attributes: ['component_id', 'component_name', 'component_description', 'component_type'], 
+          required: false 
+        },
+        { 
+          model: Subcontractor, 
+          as: 'subcontractor', 
+          attributes: ['subcontractor_id', 'company_name', 'contact_person', 'phone', 'email', 'work_type'], 
+          required: false 
         },
         { model: PurchaseOrderItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code', 'description', 'specifications'] },

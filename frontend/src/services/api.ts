@@ -146,6 +146,8 @@ export const projectsAPI = {
     api.delete(`/projects/${id}`),
   getProjectStats: (id: number) =>
     api.get(`/projects/${id}/stats`),
+  getProjectComponents: (projectId: number) =>
+    api.get(`/projects/${projectId}/components`),
 };
 
 // Tasks API
@@ -568,6 +570,21 @@ export const materialReceiptsAPI = {
 };
 
 // Commercial API
+export const subcontractorsAPI = {
+  getSubcontractors: (params?: any) =>
+    api.get('/subcontractors', { params }),
+  getSubcontractorsByProject: (projectId: number, params?: any) =>
+    api.get(`/subcontractors/project/${projectId}`, { params }),
+  getSubcontractor: (id: number) =>
+    api.get(`/subcontractors/${id}`),
+  createSubcontractor: (data: any) =>
+    api.post('/subcontractors', data),
+  updateSubcontractor: (id: number, data: any) =>
+    api.put(`/subcontractors/${id}`, data),
+  deleteSubcontractor: (id: number) =>
+    api.delete(`/subcontractors/${id}`),
+};
+
 export const commercialAPI = {
   // Inventory
   getInventory: (params?: any) =>
@@ -575,17 +592,6 @@ export const commercialAPI = {
   getInventoryByProject: (projectId: number, params?: any) =>
     api.get(`/commercial/inventory/${projectId}`, { params }),
   
-  // Site Transfers
-  getSiteTransfers: (params?: any) =>
-    api.get('/commercial/site-transfers', { params }),
-  getSiteTransfer: (id: number) =>
-    api.get(`/commercial/site-transfers/${id}`),
-  createSiteTransfer: (transferData: any) =>
-    api.post('/commercial/site-transfers', transferData),
-  updateSiteTransferStatus: (id: number, status: string) =>
-    api.patch(`/commercial/site-transfers/${id}/status`, { status }),
-  deleteSiteTransfer: (id: number) =>
-    api.delete(`/commercial/site-transfers/${id}`),
   
   // Material Issue
   getMaterialIssues: (params?: any) =>

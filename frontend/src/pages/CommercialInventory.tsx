@@ -96,20 +96,13 @@ const CommercialInventory: React.FC = () => {
         toast.success('New material return detected');
       };
 
-      const handleSiteTransfer = () => {
-        fetchRecentActivity();
-        fetchRecentHistory();
-        toast.success('New site transfer detected');
-      };
 
       socket.on('materialIssue', handleMaterialIssue);
       socket.on('materialReturn', handleMaterialReturn);
-      socket.on('siteTransfer', handleSiteTransfer);
 
       return () => {
         socket.off('materialIssue', handleMaterialIssue);
         socket.off('materialReturn', handleMaterialReturn);
-        socket.off('siteTransfer', handleSiteTransfer);
       };
     }
   }, [socket]);
@@ -289,9 +282,6 @@ const CommercialInventory: React.FC = () => {
           <div className="flex items-center space-x-2 py-2 px-1 border-b-2 border-primary-500">
             <Package className="h-5 w-5 text-primary-600" />
             <span className="text-primary-600 font-medium">Inventory</span>
-          </div>
-          <div className="flex items-center space-x-2 py-2 px-1 text-gray-500 hover:text-gray-700">
-            <span className="font-medium">Site Transfers</span>
           </div>
           <div className="flex items-center space-x-2 py-2 px-1 text-gray-500 hover:text-gray-700">
             <span className="font-medium">Material Issue</span>
@@ -622,7 +612,7 @@ const CommercialInventory: React.FC = () => {
                             {activity.material?.name || 'Unknown Material'}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {activity.type === 'ISSUE' ? 'Material Issued' : 'Site Transfer'} • {new Date(activity.date).toLocaleDateString()}
+                            Material Issued • {new Date(activity.date).toLocaleDateString()}
                           </p>
                           <div className="mt-1">
                             <p className="text-sm font-medium text-gray-700">

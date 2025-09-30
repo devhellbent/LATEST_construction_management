@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult, query } = require('express-validator');
 const { Op } = require('sequelize');
-const { Material, MaterialAllocation, Project, PettyCashExpense, User, SiteTransfer, MaterialReturn, MaterialConsumption, MaterialIssue } = require('../../models');
+const { Material, MaterialAllocation, Project, PettyCashExpense, User, MaterialReturn, MaterialConsumption, MaterialIssue, ProjectComponent, Subcontractor } = require('../../models');
 const { authenticateToken, authorizeRoles } = require('../../middleware/auth');
 const InventoryService = require('../../services/inventoryService');
 const socketService = require('../../services/socketService');
@@ -93,329 +93,12 @@ router.get('/inventory', authenticateToken, async (req, res) => {
   }
 });
 
-// Site Transfers - Get transfer history
-router.get('/site-transfers', authenticateToken, async (req, res) => {
-  try {
-    const { project_id, status, material_id, from_project_id, to_project_id, requested_by_user_id, approved_by_user_id, transfer_date_from, transfer_date_to } = req.query;
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
 
-    const whereClause = {};
-    if (project_id) {
-      whereClause[Op.or] = [
-        { from_project_id: project_id },
-        { to_project_id: project_id }
-      ];
-    }
-    if (status) whereClause.status = status;
-    if (material_id) whereClause.material_id = material_id;
-    if (from_project_id) whereClause.from_project_id = from_project_id;
-    if (to_project_id) whereClause.to_project_id = to_project_id;
-    if (requested_by_user_id) whereClause.requested_by_user_id = requested_by_user_id;
-    if (approved_by_user_id) whereClause.approved_by_user_id = approved_by_user_id;
-    
-    // Date range filter
-    if (transfer_date_from || transfer_date_to) {
-      whereClause.transfer_date = {};
-      if (transfer_date_from) whereClause.transfer_date[Op.gte] = transfer_date_from;
-      if (transfer_date_to) whereClause.transfer_date[Op.lte] = transfer_date_to;
-    }
 
-    const { count, rows: transfers } = await SiteTransfer.findAndCountAll({
-      where: whereClause,
-      include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
-        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
-        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
-        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
-      ],
-      limit,
-      offset,
-      order: [['transfer_date', 'DESC']]
-    });
 
-    res.json({
-      transfers,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(count / limit),
-        totalItems: count,
-        itemsPerPage: limit
-      }
-    });
-  } catch (error) {
-    console.error('Get site transfers error:', error);
-    res.status(500).json({ message: 'Failed to fetch site transfers' });
-  }
-});
-
-// Site Transfers - Create new transfer
-router.post('/site-transfers', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
-  body('from_project_id').isInt().withMessage('From project ID is required'),
-  body('to_project_id').isInt().withMessage('To project ID is required'),
-  body('material_id').isInt().withMessage('Material ID is required'),
-  body('quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
-  body('transfer_date').isISO8601().withMessage('Invalid transfer date'),
-  body('transfer_reason').optional().isString().withMessage('Transfer reason must be a string')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { from_project_id, to_project_id, material_id, quantity, transfer_date, transfer_reason } = req.body;
-
-    // Verify projects exist
-    const fromProject = await Project.findByPk(from_project_id);
-    const toProject = await Project.findByPk(to_project_id);
-    if (!fromProject || !toProject) {
-      return res.status(404).json({ message: 'One or both projects not found' });
-    }
-
-    // Verify material exists and check available quantity from issued materials
-    const material = await Material.findByPk(material_id);
-    if (!material) {
-      return res.status(404).json({ message: 'Material not found' });
-    }
-
-    // Get total issued quantity for this material in the from project
-    const issuedIssues = await MaterialIssue.findAll({
-      where: {
-        project_id: from_project_id,
-        material_id: material_id,
-        status: { [Op.notIn]: ['CANCELLED'] }
-      }
-    });
-
-    const totalIssued = issuedIssues.reduce((sum, issue) => sum + issue.quantity_issued, 0);
-
-    // Get total returned quantity for this material in the from project
-    const returnedIssues = await MaterialReturn.findAll({
-      where: {
-        project_id: from_project_id,
-        material_id: material_id,
-        status: { [Op.notIn]: ['REJECTED'] }
-      }
-    });
-
-    const totalReturned = returnedIssues.reduce((sum, returnItem) => sum + returnItem.quantity, 0);
-
-    // Get total transferred out quantity for this material from the from project
-    const transferredOut = await SiteTransfer.findAll({
-      where: {
-        from_project_id: from_project_id,
-        material_id: material_id,
-        status: { [Op.notIn]: ['CANCELLED'] }
-      }
-    });
-
-    const totalTransferredOut = transferredOut.reduce((sum, transfer) => sum + transfer.quantity, 0);
-
-    // Calculate available quantity: issued - returned - transferred out
-    const availableQuantity = totalIssued - totalReturned - totalTransferredOut;
-
-    if (availableQuantity < quantity) {
-      return res.status(400).json({ 
-        message: `Insufficient available quantity for ${material.name}. Available: ${availableQuantity}, Requested: ${quantity}` 
-      });
-    }
-
-    // Create site transfer record
-    const siteTransfer = await SiteTransfer.create({
-      from_project_id,
-      to_project_id,
-      material_id,
-      quantity,
-      transfer_date,
-      transfer_reason: transfer_reason || '',
-      status: 'PENDING',
-      requested_by_user_id: req.user.user_id
-    });
-
-    // Record inventory transaction for the transfer
-    await InventoryService.recordTransaction({
-      material_id,
-      project_id: from_project_id,
-      transaction_type: 'TRANSFER',
-      transaction_id: siteTransfer.transfer_id,
-      quantity_change: -quantity, // Negative for transfer out
-      reference_number: `TRANSFER-${siteTransfer.transfer_id}`,
-      description: `Material transferred to project ${toProject.name}: ${transfer_reason || 'No description'}`,
-      location: 'Site Transfer',
-      performed_by_user_id: req.user.user_id
-    });
-
-    // Get the created transfer with associations
-    const createdTransfer = await SiteTransfer.findByPk(siteTransfer.transfer_id, {
-      include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
-        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
-        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
-        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
-      ]
-    });
-
-    // Emit socket events for real-time updates to both projects
-    socketService.emitToProject(from_project_id, 'siteTransfer', {
-      transferId: siteTransfer.transfer_id,
-      materialId: material_id,
-      quantity,
-      fromProjectId: from_project_id,
-      toProjectId: to_project_id,
-      type: 'OUTGOING'
-    });
-
-    socketService.emitToProject(to_project_id, 'siteTransfer', {
-      transferId: siteTransfer.transfer_id,
-      materialId: material_id,
-      quantity,
-      fromProjectId: from_project_id,
-      toProjectId: to_project_id,
-      type: 'INCOMING'
-    });
-
-    res.status(201).json({
-      message: 'Site transfer created successfully',
-      transfer: createdTransfer
-    });
-  } catch (error) {
-    console.error('Create site transfer error:', error);
-    res.status(500).json({ message: 'Failed to create site transfer' });
-  }
-});
-
-// Site Transfers - Update transfer status
-router.patch('/site-transfers/:id/status', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
-  body('status').isIn(['PENDING', 'APPROVED', 'COMPLETED', 'CANCELLED']).withMessage('Invalid status')
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const transfer = await SiteTransfer.findByPk(id);
-    if (!transfer) {
-      return res.status(404).json({ message: 'Site transfer not found' });
-    }
-
-    // Update transfer status
-    const updateData = { status };
-    if (status === 'APPROVED' || status === 'COMPLETED') {
-      updateData.approved_by_user_id = req.user.user_id;
-    }
-
-    await transfer.update(updateData);
-
-    // If status is CANCELLED, record inventory transaction to reverse the transfer
-    if (status === 'CANCELLED' && transfer.status !== 'CANCELLED') {
-      await InventoryService.recordTransaction({
-        material_id: transfer.material_id,
-        project_id: transfer.from_project_id,
-        transaction_type: 'TRANSFER',
-        transaction_id: transfer.transfer_id,
-        quantity_change: transfer.quantity, // Positive to reverse the transfer
-        reference_number: `TRANSFER-CANCEL-${transfer.transfer_id}`,
-        description: `Site transfer cancelled - material restored`,
-        location: 'Site Transfer',
-        performed_by_user_id: req.user.user_id
-      });
-    }
-
-    // Get updated transfer with associations
-    const updatedTransfer = await SiteTransfer.findByPk(id, {
-      include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
-        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
-        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
-        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
-      ]
-    });
-
-    res.json({
-      message: 'Site transfer status updated successfully',
-      transfer: updatedTransfer
-    });
-  } catch (error) {
-    console.error('Update site transfer status error:', error);
-    res.status(500).json({ message: 'Failed to update site transfer status' });
-  }
-});
-
-// Site Transfers - Delete transfer (soft delete by setting status to CANCELLED)
-router.delete('/site-transfers/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const transfer = await SiteTransfer.findByPk(id);
-    if (!transfer) {
-      return res.status(404).json({ message: 'Site transfer not found' });
-    }
-
-    // If transfer is not already cancelled, record inventory transaction to reverse the transfer
-    if (transfer.status !== 'CANCELLED') {
-      await InventoryService.recordTransaction({
-        material_id: transfer.material_id,
-        project_id: transfer.from_project_id,
-        transaction_type: 'TRANSFER',
-        transaction_id: transfer.transfer_id,
-        quantity_change: transfer.quantity, // Positive to reverse the transfer
-        reference_number: `TRANSFER-DELETE-${transfer.transfer_id}`,
-        description: `Site transfer deleted - material restored`,
-        location: 'Site Transfer',
-        performed_by_user_id: req.user.user_id
-      });
-    }
-
-    // Update status to CANCELLED instead of hard delete
-    await transfer.update({ 
-      status: 'CANCELLED',
-      approved_by_user_id: req.user.user_id
-    });
-
-    res.json({ message: 'Site transfer cancelled successfully' });
-  } catch (error) {
-    console.error('Delete site transfer error:', error);
-    res.status(500).json({ message: 'Failed to cancel site transfer' });
-  }
-});
-
-// Site Transfers - Get single transfer
-router.get('/site-transfers/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const transfer = await SiteTransfer.findByPk(id, {
-      include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit', 'stock_qty'] },
-        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
-        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
-        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] },
-        { model: User, as: 'approved_by', foreignKey: 'approved_by_user_id', attributes: ['user_id', 'name'] }
-      ]
-    });
-
-    if (!transfer) {
-      return res.status(404).json({ message: 'Site transfer not found' });
-    }
-
-    res.json({ transfer });
-  } catch (error) {
-    console.error('Get site transfer error:', error);
-    res.status(500).json({ message: 'Failed to fetch site transfer' });
-  }
-});
 
 // Create Material Issue
-router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity_issued').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -423,7 +106,6 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
   body('location').trim().isLength({ min: 1 }).withMessage('Location is required'),
   body('issued_by_user_id').isInt().withMessage('Issued by user ID is required'),
   body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
-  body('issued_to').optional().trim().isLength({ min: 1 }).withMessage('Issued to information is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -431,7 +113,7 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { project_id, material_id, quantity_issued, issue_date, issue_purpose, location, issued_by_user_id, received_by_user_id, issued_to, status } = req.body;
+    const { project_id, material_id, quantity_issued, issue_date, issue_purpose, location, issued_by_user_id, received_by_user_id, status, component_id, subcontractor_id } = req.body;
 
     // Verify project exists
     const project = await Project.findByPk(project_id);
@@ -470,12 +152,13 @@ router.post('/material-issue', authenticateToken, authorizeRoles('Admin', 'Proje
       issue_date,
       issue_purpose: issue_purpose || '',
       location,
-      issued_to: issued_to || '',
       issued_by_user_id,
       received_by_user_id,
       created_by: req.user.user_id,
       updated_by: req.user.user_id,
-      status: status || 'PENDING'
+      status: status || 'PENDING',
+      component_id: component_id || null,
+      subcontractor_id: subcontractor_id || null
     });
 
     // Record inventory transaction and update stock
@@ -528,7 +211,9 @@ router.get('/material-issue', authenticateToken, async (req, res) => {
         { model: User, as: 'issued_by', foreignKey: 'issued_by_user_id', attributes: ['user_id', 'name'] },
         { model: User, as: 'received_by', foreignKey: 'received_by_user_id', attributes: ['user_id', 'name'] },
         { model: User, as: 'created_by_user', foreignKey: 'created_by', attributes: ['user_id', 'name'] },
-        { model: User, as: 'updated_by_user', foreignKey: 'updated_by', attributes: ['user_id', 'name'] }
+        { model: User, as: 'updated_by_user', foreignKey: 'updated_by', attributes: ['user_id', 'name'] },
+        { model: ProjectComponent, as: 'component', attributes: ['component_id', 'component_name', 'component_type'] },
+        { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'work_type'] }
       ],
       limit,
       offset,
@@ -551,7 +236,7 @@ router.get('/material-issue', authenticateToken, async (req, res) => {
 });
 
 // Update Material Issue
-router.put('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity_issued').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -651,7 +336,7 @@ router.put('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 'Pr
 });
 
 // Delete Material Issue
-router.delete('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+router.delete('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -696,7 +381,7 @@ router.delete('/material-issue/:id', authenticateToken, authorizeRoles('Admin', 
 });
 
 // Cancel Material Issue
-router.patch('/material-issue/:id/cancel', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), async (req, res) => {
+router.patch('/material-issue/:id/cancel', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -747,7 +432,7 @@ router.patch('/material-issue/:id/cancel', authenticateToken, authorizeRoles('Ad
 });
 
 // Create Material Return
-router.post('/material-return', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/material-return', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_return_id').trim().isLength({ min: 1 }).withMessage('Material Return ID is required'),
   body('return_from').trim().isLength({ min: 1 }).withMessage('Return from is required'),
@@ -1079,18 +764,6 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
       order: [['issue_date', 'DESC']]
     });
 
-    // Get recent site transfers
-    const recentTransfers = await SiteTransfer.findAll({
-      where: whereClause,
-      include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
-        { model: Project, as: 'from_project', foreignKey: 'from_project_id', attributes: ['project_id', 'name'] },
-        { model: Project, as: 'to_project', foreignKey: 'to_project_id', attributes: ['project_id', 'name'] },
-        { model: User, as: 'requested_by', foreignKey: 'requested_by_user_id', attributes: ['user_id', 'name'] }
-      ],
-      limit: Math.floor(limit / 3),
-      order: [['transfer_date', 'DESC']]
-    });
 
     // Get recent material returns
     const recentReturns = await MaterialReturn.findAll({
@@ -1116,18 +789,6 @@ router.get('/recent-activity', authenticateToken, async (req, res) => {
         user: issue.issued_by,
         status: issue.status,
         description: issue.issue_purpose
-      })),
-      ...recentTransfers.map(transfer => ({
-        type: 'TRANSFER',
-        id: transfer.transfer_id,
-        date: transfer.transfer_date,
-        material: transfer.material,
-        from_project: transfer.from_project,
-        to_project: transfer.to_project,
-        quantity: transfer.quantity,
-        user: transfer.requested_by,
-        status: transfer.status,
-        description: transfer.transfer_reason
       })),
       ...recentReturns.map(returnItem => ({
         type: 'RETURN',
@@ -1194,17 +855,8 @@ router.get('/consumptions/calculate', authenticateToken, async (req, res) => {
         }
       });
 
-      // Get total transferred out quantity
-      const totalTransferredOut = await SiteTransfer.sum('quantity', {
-        where: {
-          from_project_id: projectId,
-          material_id: materialId,
-          status: { [Op.notIn]: ['CANCELLED'] }
-        }
-      });
-
-      // Calculate consumed quantity: issued - returned - transferred out
-      const consumedQuantity = totalIssued - (totalReturned || 0) - (totalTransferredOut || 0);
+      // Calculate consumed quantity: issued - returned
+      const consumedQuantity = totalIssued - (totalReturned || 0);
 
       if (consumedQuantity > 0) {
         // Check if consumption record already exists

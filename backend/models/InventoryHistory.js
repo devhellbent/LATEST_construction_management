@@ -24,7 +24,7 @@ const InventoryHistory = sequelize.define('InventoryHistory', {
     }
   },
   transaction_type: {
-    type: DataTypes.ENUM('ISSUE', 'RETURN', 'ADJUSTMENT', 'PURCHASE', 'CONSUMPTION', 'TRANSFER', 'RESTOCK'),
+    type: DataTypes.ENUM('ISSUE', 'RETURN', 'ADJUSTMENT', 'PURCHASE', 'CONSUMPTION', 'RESTOCK'),
     allowNull: false
   },
   transaction_id: {

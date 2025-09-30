@@ -67,6 +67,38 @@ const MaterialRequirementRequest = sequelize.define('MaterialRequirementRequest'
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  created_by: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  updated_by: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  component_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'project_components',
+      key: 'component_id'
+    }
+  },
+  subcontractor_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'subcontractors',
+      key: 'subcontractor_id'
+    }
   }
 }, {
   tableName: 'material_requirement_requests',
