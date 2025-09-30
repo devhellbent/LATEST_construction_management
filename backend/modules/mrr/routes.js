@@ -171,14 +171,11 @@ router.post('/:id/check-inventory', authenticateToken, authorizeRoles('Admin', '
       }
     }
 
-    // Only update MRR status if it's currently APPROVED and materials are available
-    // This allows the MRR to move from APPROVED to PROCESSING when ready to issue
+    // Keep current MRR status - no automatic status changes
+    // Users can manually update status when ready to process materials
     let newStatus = mrr.status;
-    if (mrr.status === 'APPROVED' && allMaterialsAvailable) {
-      newStatus = 'PROCESSING'; // Ready to issue materials
-      await mrr.update({ status: newStatus });
-    }
-    // For other cases, keep the current status and let users manually update if needed
+    // Removed automatic status change to PROCESSING
+    // Status should be manually updated by users when appropriate
 
     res.json({
       message: 'Inventory check completed',
@@ -715,6 +712,25 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('Admin', 'Project 
       return res.status(404).json({ message: 'MRR not found' });
     }
 
+    // Validate status transitions
+    const validTransitions = {
+      'DRAFT': ['SUBMITTED', 'CANCELLED'],
+      'SUBMITTED': ['UNDER_REVIEW', 'APPROVED', 'REJECTED', 'CANCELLED'],
+      'UNDER_REVIEW': ['APPROVED', 'REJECTED', 'CANCELLED'],
+      'APPROVED': ['PROCESSING', 'CANCELLED'],
+      'PROCESSING': ['COMPLETED', 'CANCELLED'],
+      'REJECTED': ['DRAFT', 'CANCELLED'],
+      'COMPLETED': [],
+      'CANCELLED': []
+    };
+
+    if (!validTransitions[mrr.status]?.includes(status)) {
+      return res.status(400).json({ 
+        message: `Invalid status transition from ${mrr.status} to ${status}`,
+        validTransitions: validTransitions[mrr.status]
+      });
+    }
+
     // Update MRR status
     await mrr.update({ 
       status,
@@ -735,6 +751,48 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('Admin', 'Project 
   } catch (error) {
     console.error('Update MRR status error:', error);
     res.status(500).json({ message: 'Failed to update MRR status' });
+  }
+});
+
+// Convenience endpoint to mark MRR as ready for processing
+router.patch('/:id/mark-processing', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
+  body('notes').optional().trim()
+], async (req, res) => {
+  try {
+    const mrrId = req.params.id;
+    const { notes } = req.body;
+
+    const mrr = await MaterialRequirementRequest.findByPk(mrrId);
+    if (!mrr) {
+      return res.status(404).json({ message: 'MRR not found' });
+    }
+
+    if (mrr.status !== 'APPROVED') {
+      return res.status(400).json({ 
+        message: `Cannot mark MRR as processing. Current status is ${mrr.status}. Only approved MRRs can be marked as processing.` 
+      });
+    }
+
+    // Update MRR status to PROCESSING
+    await mrr.update({ 
+      status: 'PROCESSING',
+      notes: notes || mrr.notes,
+      updated_by: req.user.user_id
+    });
+
+    res.json({
+      message: 'MRR marked as processing successfully',
+      mrr: {
+        mrr_id: mrr.mrr_id,
+        mrr_number: mrr.mrr_number,
+        status: mrr.status,
+        notes: mrr.notes
+      }
+    });
+
+  } catch (error) {
+    console.error('Mark MRR as processing error:', error);
+    res.status(500).json({ message: 'Failed to mark MRR as processing' });
   }
 });
 

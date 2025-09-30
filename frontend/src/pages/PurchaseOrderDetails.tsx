@@ -130,6 +130,13 @@ interface PurchaseOrder {
     unit_price: number;
     total_price: number;
     specifications?: string;
+    cgst_rate?: number;
+    sgst_rate?: number;
+    igst_rate?: number;
+    cgst_amount?: number;
+    sgst_amount?: number;
+    igst_amount?: number;
+    size?: string;
   }>;
   created_at: string;
   updated_at: string;
@@ -706,6 +713,9 @@ const PurchaseOrderDetails: React.FC = () => {
                   Total Price
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  GST Details
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
               </tr>
@@ -740,6 +750,22 @@ const PurchaseOrderDetails: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       ₹{toNumber(item.total_price).toFixed(2)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="space-y-1">
+                        {item.cgst_rate && item.cgst_rate > 0 && (
+                          <div>CGST: {item.cgst_rate}% (₹{toNumber(item.cgst_amount).toFixed(2)})</div>
+                        )}
+                        {item.sgst_rate && item.sgst_rate > 0 && (
+                          <div>SGST: {item.sgst_rate}% (₹{toNumber(item.sgst_amount).toFixed(2)})</div>
+                        )}
+                        {item.igst_rate && item.igst_rate > 0 && (
+                          <div>IGST: {item.igst_rate}% (₹{toNumber(item.igst_amount).toFixed(2)})</div>
+                        )}
+                        {(!item.cgst_rate && !item.sgst_rate && !item.igst_rate) && (
+                          <div className="text-gray-400">No GST</div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         status === 'Fully Received' ? 'bg-green-100 text-green-800' :
@@ -765,10 +791,43 @@ const PurchaseOrderDetails: React.FC = () => {
             <span className="text-gray-600">Subtotal:</span>
             <span className="font-medium">₹{toNumber(purchaseOrder.subtotal).toFixed(2)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Tax (18%):</span>
-            <span className="font-medium">₹{toNumber(purchaseOrder.tax_amount).toFixed(2)}</span>
-          </div>
+          
+          {/* Calculate GST totals from items */}
+          {(() => {
+            const totalCgstAmount = (purchaseOrder.items || []).reduce((sum, item) => sum + toNumber(item.cgst_amount), 0);
+            const totalSgstAmount = (purchaseOrder.items || []).reduce((sum, item) => sum + toNumber(item.sgst_amount), 0);
+            const totalIgstAmount = (purchaseOrder.items || []).reduce((sum, item) => sum + toNumber(item.igst_amount), 0);
+            
+            return (
+              <>
+                {totalCgstAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">CGST:</span>
+                    <span className="font-medium">₹{totalCgstAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {totalSgstAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SGST:</span>
+                    <span className="font-medium">₹{totalSgstAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {totalIgstAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">IGST:</span>
+                    <span className="font-medium">₹{totalIgstAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {(totalCgstAmount > 0 || totalSgstAmount > 0 || totalIgstAmount > 0) && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total GST:</span>
+                    <span className="font-medium">₹{(totalCgstAmount + totalSgstAmount + totalIgstAmount).toFixed(2)}</span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+          
           <div className="flex justify-between text-lg font-bold border-t pt-2">
             <span>Total Amount:</span>
             <span>₹{toNumber(purchaseOrder.total_amount).toFixed(2)}</span>

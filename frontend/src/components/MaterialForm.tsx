@@ -11,6 +11,7 @@ interface Material {
   category?: string;
   brand?: string;
   color?: string;
+  size?: string;
   type?: string;
   unit?: string;
   cost_per_unit?: number;
@@ -20,6 +21,7 @@ interface Material {
   maximum_stock_level?: number;
   reorder_point?: number;
   location?: string;
+  warehouse_id?: number;
   status?: string;
   project_id?: number;
 }
@@ -29,6 +31,7 @@ interface MasterData {
   brands: Array<{ brand_id: number; brand_name: string }>;
   units: Array<{ unit_id: number; unit_name: string; unit_symbol: string }>;
   suppliers: Array<{ supplier_id: number; supplier_name: string }>;
+  warehouses: Array<{ warehouse_id: number; warehouse_name: string; address?: string }>;
   itemMaster: Array<{ item_id: number; item_code: string; item_name: string; category_id: number; brand_id: number; unit_id: number }>;
   itemSuppliers?: Array<{ supplier_id: number; supplier_name: string; cost_per_unit: number; is_preferred: boolean }>;
 }
@@ -56,6 +59,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
     category: '',
     brand: '',
     color: '',
+    size: '',
     type: '',
     unit: '',
     cost_per_unit: '',
@@ -65,6 +69,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
     maximum_stock_level: '',
     reorder_point: '',
     location: '',
+    warehouse_id: '',
     status: 'ACTIVE',
     project_id: projectId || ''
   });
@@ -88,6 +93,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         category: material.category || '',
         brand: material.brand || '',
         color: material.color || '',
+        size: material.size || '',
         type: material.type || '',
         unit: material.unit || '',
         cost_per_unit: material.cost_per_unit?.toString() || '',
@@ -97,6 +103,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         maximum_stock_level: material.maximum_stock_level?.toString() || '',
         reorder_point: material.reorder_point?.toString() || '',
         location: material.location || '',
+        warehouse_id: material.warehouse_id?.toString() || '',
         status: material.status || 'ACTIVE',
         project_id: material.project_id?.toString() || projectId?.toString() || ''
       });
@@ -109,6 +116,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         category: '',
         brand: '',
         color: '',
+        size: '',
         type: '',
         unit: '',
         cost_per_unit: '',
@@ -118,6 +126,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         maximum_stock_level: '',
         reorder_point: '',
         location: '',
+        warehouse_id: '',
         status: 'ACTIVE',
         project_id: projectId?.toString() || ''
       });
@@ -412,7 +421,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Color
@@ -422,6 +431,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 name="color"
                 value={formData.color}
                 onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Size
+              </label>
+              <input
+                type="text"
+                name="size"
+                value={formData.size}
+                onChange={handleInputChange}
+                placeholder="e.g., 10mm, Large, 2x4"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -516,18 +539,37 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Location
+            </label>
+            <input
+              type="text"
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Warehouse
+            </label>
+            <select
+              name="warehouse_id"
+              value={formData.warehouse_id}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select Warehouse</option>
+              {masterData?.warehouses?.map((warehouse) => (
+                <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
+                  {warehouse.warehouse_name}
+                </option>
+              ))}
+            </select>
+          </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">

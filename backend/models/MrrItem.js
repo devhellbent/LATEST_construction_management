@@ -67,6 +67,10 @@ const MrrItem = sequelize.define('MrrItem', {
   notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  size: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   }
 }, {
   tableName: 'mrr_items',

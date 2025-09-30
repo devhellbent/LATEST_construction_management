@@ -48,6 +48,7 @@ interface MrrOption {
 interface MaterialItem {
   material_id: number;
   name: string;
+  size?: string;
   unit: string;
   stock_qty: number;
   item?: {
@@ -92,7 +93,8 @@ const UnifiedMaterialIssue: React.FC = () => {
     subcontractor_id: 0,
     issue_date: new Date().toISOString().split('T')[0],
     notes: '',
-    is_mrr_based: false,
+    // Direct Issue temporarily disabled; keep MRR-based flow only
+    is_mrr_based: true,
     items: []
   });
 
@@ -105,8 +107,8 @@ const UnifiedMaterialIssue: React.FC = () => {
     setLoading(true);
     try {
       const [mrrsRes, materialsRes, projectsRes, subcontractorsRes] = await Promise.all([
+        // Fetch MRRs without restricting by status; we'll filter client-side
         mrrAPI.getMrrs({ 
-          status: 'APPROVED',
           include_items: true,
           include_project: true
         }),
@@ -116,8 +118,10 @@ const UnifiedMaterialIssue: React.FC = () => {
       ]);
 
       // Process MRRs with stock information
+      const allowedStatuses = ['APPROVED', 'PROCESSING', 'COMPLETED'];
+      const filteredMrrs = (mrrsRes.data.mrrs || []).filter((m: any) => allowedStatuses.includes(m.status));
       const mrrsWithStock = await Promise.all(
-        (mrrsRes.data.mrrs || []).map(async (mrr: any) => {
+        filteredMrrs.map(async (mrr: any) => {
           const itemsWithStock = await Promise.all(
             mrr.items.map(async (item: any) => {
               try {
@@ -401,6 +405,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                   </div>
                 </div>
               </label>
+              {/**
               <label className="card-interactive p-6 cursor-pointer group">
                 <div className="flex items-center space-x-4">
                   <input
@@ -419,6 +424,7 @@ const UnifiedMaterialIssue: React.FC = () => {
                   </div>
                 </div>
               </label>
+              **/}
             </div>
           </div>
 
@@ -451,8 +457,8 @@ const UnifiedMaterialIssue: React.FC = () => {
             </div>
           )}
 
-          {/* Project Selection (if direct issue) */}
-          {!formData.is_mrr_based && (
+          {/* Project Selection (if direct issue) - temporarily disabled */}
+          {false && !formData.is_mrr_based && (
             <div className="mb-8">
               <label className="label label-required">
                 Project

@@ -414,7 +414,9 @@ const MrrFlowComponent: React.FC = () => {
                         Check Inventory
                       </button>
                     )}
-                    {(user?.role === 'Admin' || user?.role === 'Project Manager' || user?.role === 'Inventory Manager') && mrr.status !== 'CANCELLED' && (
+                    {((typeof user?.role === 'string' && (user.role === 'Admin' || user.role === 'Project Manager' || user.role === 'Inventory Manager')) || 
+                      (typeof user?.role === 'object' && user?.role?.name && (user.role.name === 'Admin' || user.role.name === 'Project Manager' || user.role.name === 'Inventory Manager'))) && 
+                     mrr.status !== 'CANCELLED' && (
                       <button
                         onClick={() => { 
                           setStatusTarget(mrr); 
@@ -524,7 +526,9 @@ const MrrFlowComponent: React.FC = () => {
                       disabled={!formData.project_id}
                     >
                       <option value="">Select Subcontractor</option>
-                      {subcontractors.map((subcontractor) => (
+                      {subcontractors
+                        .filter(sub => sub.project_id === parseInt(formData.project_id))
+                        .map((subcontractor) => (
                         <option key={subcontractor.subcontractor_id} value={subcontractor.subcontractor_id}>
                           {subcontractor.company_name} {subcontractor.work_type && `(${subcontractor.work_type})`}
                         </option>

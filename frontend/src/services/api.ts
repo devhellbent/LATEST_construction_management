@@ -188,6 +188,8 @@ export const materialsAPI = {
     api.patch(`/materials/${id}/stock`, { quantity, operation }),
   getMaterialsByProject: (projectId: number) =>
     api.get(`/materials/project/${projectId}`),
+  getMaterialsByWarehouse: (warehouseId: number) =>
+    api.get(`/materials/warehouse/${warehouseId}`),
   getFilterOptions: () =>
     api.get('/materials/filters/options'),
   getMasterData: () =>
@@ -495,6 +497,8 @@ export const mrrAPI = {
     api.post(`/mrr/${mrrId}/check-inventory`, { auto_create_materials: autoCreateMaterials }),
   updateMrrStatus: (mrrId: number, status: string, notes?: string) =>
     api.patch(`/mrr/${mrrId}/status`, { status, notes }),
+  markMrrProcessing: (mrrId: number, notes?: string) =>
+    api.patch(`/mrr/${mrrId}/mark-processing`, { notes }),
 };
 
 // Purchase Orders API

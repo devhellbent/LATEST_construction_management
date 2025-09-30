@@ -9,6 +9,7 @@ interface Material {
   category?: string;
   brand?: string;
   color?: string;
+  size?: string;
   type?: string;
   unit?: string;
   cost_per_unit?: number;
@@ -253,11 +254,12 @@ const MaterialSelectionModal: React.FC<MaterialSelectionModalProps> = ({
                             )}
                           </div>
                           
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-gray-600">
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm text-gray-600">
                             {material.category && <span>Category: {material.category}</span>}
                             {material.brand && <span>Brand: {material.brand}</span>}
                             {material.type && <span>Type: {material.type}</span>}
                             {material.color && <span>Color: {material.color}</span>}
+                            {material.size && <span>Size: {material.size}</span>}
                           </div>
                           
                           <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
@@ -303,6 +305,7 @@ const MaterialSelectionModal: React.FC<MaterialSelectionModalProps> = ({
 };
 
 export default MaterialSelectionModal;
+
 
 
 

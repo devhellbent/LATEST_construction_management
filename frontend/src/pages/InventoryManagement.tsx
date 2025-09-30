@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { 
   materialManagementAPI, 
-  projectsAPI 
+  projectsAPI,
+  materialsAPI,
+  commercialAPI
 } from '../services/api';
+import MaterialDetailsModal from '../components/MaterialDetailsModal';
+import MaterialForm from '../components/MaterialForm';
+import InventoryHistory from '../components/InventoryHistory';
+import WarehouseSelectionModal from '../components/WarehouseSelectionModal';
+import WarehouseMaterialEditModal from '../components/WarehouseMaterialEditModal';
+import { useSocket } from '../contexts/SocketContext';
+import toast from 'react-hot-toast';
 import { 
   AlertTriangle, 
   Package, 
@@ -21,7 +30,11 @@ import {
   ShoppingCart,
   ArrowUpDown,
   CheckCircle,
-  Clock
+  Clock,
+  Edit,
+  Trash2,
+  Upload,
+  ChevronDown
 } from 'lucide-react';
 
 interface InventoryItem {
@@ -29,6 +42,7 @@ interface InventoryItem {
   name: string;
   category: string;
   brand: string;
+  size?: string;
   unit: string;
   stock_qty: number;
   minimum_stock_level: number;
@@ -122,30 +136,30 @@ const InventoryManagement: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [filterWarehouse, setFilterWarehouse] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Material details modal state
+  const [showMaterialDetails, setShowMaterialDetails] = useState(false);
+  const [selectedMaterialId, setSelectedMaterialId] = useState<number | null>(null);
+  
+  // Additional modals and states from CommercialInventory
+  const [showNewMaterialModal, setShowNewMaterialModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<any>(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedMaterialForHistory, setSelectedMaterialForHistory] = useState<any>(null);
+  const [recentHistory, setRecentHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  
+  // Warehouse editing states
+  const [showWarehouseSelectionModal, setShowWarehouseSelectionModal] = useState(false);
+  const [showWarehouseMaterialEditModal, setShowWarehouseMaterialEditModal] = useState(false);
+  const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
+  
+  // Socket integration
+  const { socket } = useSocket();
   
   // Low stock materials state
   const [lowStockMaterials, setLowStockMaterials] = useState<InventoryItem[]>([]);
-  const [addFormData, setAddFormData] = useState({
-    item_id: '',
-    name: '',
-    item_code: '',
-    additional_specification: '',
-    category: '',
-    brand: '',
-    color: '',
-    type: '',
-    unit: '',
-    cost_per_unit: '',
-    supplier: '',
-    stock_qty: '',
-    minimum_stock_level: '',
-    maximum_stock_level: '',
-    reorder_point: '',
-    location: '',
-    warehouse_id: '',
-    status: 'ACTIVE'
-  });
 
   useEffect(() => {
     loadData();
@@ -221,6 +235,108 @@ const InventoryManagement: React.FC = () => {
     return { status: 'normal', color: 'text-green-600', bgColor: 'bg-green-50' };
   };
 
+  const handleMaterialClick = (materialId: number) => {
+    setSelectedMaterialId(materialId);
+    setShowMaterialDetails(true);
+  };
+
+  const handleMaterialDetailsClose = () => {
+    setShowMaterialDetails(false);
+    setSelectedMaterialId(null);
+  };
+
+  const handleMaterialEditSuccess = () => {
+    // Refresh the inventory data after material edit
+    loadData();
+  };
+
+  // Additional handlers from CommercialInventory
+
+  const handleDeleteMaterial = async (materialId: number) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) {
+      return;
+    }
+
+    try {
+      await materialsAPI.deleteMaterial(materialId);
+      toast.success('Material deleted successfully');
+      loadData();
+    } catch (err) {
+      console.error('Error deleting material:', err);
+      toast.error('Failed to delete material');
+    }
+  };
+
+  const handleMaterialFormSubmit = () => {
+    setShowNewMaterialModal(false);
+    setEditingMaterial(null);
+    loadData();
+  };
+
+  const handleViewHistory = (material: any) => {
+    setSelectedMaterialForHistory(material);
+    setShowHistoryModal(true);
+  };
+
+  const handleEditMaterialsByWarehouse = () => {
+    setShowWarehouseSelectionModal(true);
+  };
+
+  const handleWarehouseSelect = (warehouse: any) => {
+    setSelectedWarehouse(warehouse);
+    setShowWarehouseSelectionModal(false);
+    setShowWarehouseMaterialEditModal(true);
+  };
+
+  const handleWarehouseMaterialEditSuccess = () => {
+    setShowWarehouseMaterialEditModal(false);
+    setSelectedWarehouse(null);
+    loadData(); // Refresh the main inventory list
+  };
+
+  const handleWarehouseMaterialEditClose = () => {
+    setShowWarehouseMaterialEditModal(false);
+    setSelectedWarehouse(null);
+  };
+
+  const fetchRecentHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const params = {
+        limit: 10,
+        page: 1
+      };
+      
+      let response;
+      if (filterProject) {
+        response = await commercialAPI.getProjectInventoryHistory(filterProject, params);
+      } else {
+        setRecentHistory([]);
+        return;
+      }
+
+      setRecentHistory(response.data.history || []);
+    } catch (error: any) {
+      console.error('Error fetching recent history:', error);
+      setRecentHistory([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await commercialAPI.getRecentActivity({ 
+        project_id: filterProject,
+        limit: 10 
+      });
+      setRecentActivity(response.data.activities || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+      setRecentActivity([]);
+    }
+  };
+
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
       case 'PURCHASE': return 'text-success-600';
@@ -270,57 +386,6 @@ const InventoryManagement: React.FC = () => {
     window.location.href = '/create-purchase-order?restock=true';
   };
 
-  const handleAddMaterial = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const materialData = {
-        ...addFormData,
-        item_id: addFormData.item_id ? parseInt(addFormData.item_id) : null,
-        cost_per_unit: parseFloat(addFormData.cost_per_unit) || 0,
-        stock_qty: parseInt(addFormData.stock_qty) || 0,
-        minimum_stock_level: parseInt(addFormData.minimum_stock_level) || 0,
-        maximum_stock_level: parseInt(addFormData.maximum_stock_level) || 1000,
-        reorder_point: parseInt(addFormData.reorder_point) || parseInt(addFormData.minimum_stock_level) || 0,
-        warehouse_id: addFormData.warehouse_id ? parseInt(addFormData.warehouse_id) : null,
-        project_id: filterProject || null
-      };
-
-      await materialManagementAPI.createMaterial(materialData);
-      alert('Material added successfully!');
-      setShowAddForm(false);
-      resetForm();
-      loadData();
-    } catch (error) {
-      console.error('Error adding material:', error);
-      alert('Failed to add material');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const resetForm = () => {
-    setAddFormData({
-      item_id: '',
-      name: '',
-      item_code: '',
-      additional_specification: '',
-      category: '',
-      brand: '',
-      color: '',
-      type: '',
-      unit: '',
-      cost_per_unit: '',
-      supplier: '',
-      stock_qty: '',
-      minimum_stock_level: '',
-      maximum_stock_level: '',
-      reorder_point: '',
-      location: '',
-      warehouse_id: '',
-      status: 'ACTIVE'
-    });
-  };
 
   if (loading && inventoryItems.length === 0) {
     return (
@@ -338,13 +403,22 @@ const InventoryManagement: React.FC = () => {
           <h1 className="text-4xl font-bold text-slate-900">Inventory Management</h1>
           <p className="text-lg text-slate-600 mt-2">Monitor stock levels, track movements, and manage inventory</p>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Add Material
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowNewMaterialModal(true)}
+            className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Add Material
+          </button>
+          <button 
+            onClick={handleEditMaterialsByWarehouse}
+            className="btn btn-outline flex items-center"
+          >
+            <Edit className="h-5 w-5 mr-2" />
+            Edit by Warehouse
+          </button>
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -497,12 +571,14 @@ const InventoryManagement: React.FC = () => {
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Material</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Current Stock</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Min Level</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Project</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Warehouse</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Last Updated</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -512,11 +588,17 @@ const InventoryManagement: React.FC = () => {
                         <tr key={item.material_id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div>
-                              <div className="text-sm font-semibold text-slate-900">{item.name}</div>
+                              <button
+                                onClick={() => handleMaterialClick(item.material_id)}
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
+                              >
+                                {item.name}
+                              </button>
                               <div className="text-sm text-slate-500">{item.item?.item_code || 'N/A'}</div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.category}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.size || 'N/A'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.stock_qty} {item.unit}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.minimum_stock_level} {item.unit}</td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -531,6 +613,24 @@ const InventoryManagement: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.warehouse?.warehouse_name || 'N/A'}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                             {new Date(item.updated_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleViewHistory(item)}
+                                className="text-green-600 hover:text-green-800 transition-colors"
+                                title="View History"
+                              >
+                                <History className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteMaterial(item.material_id)}
+                                className="text-red-600 hover:text-red-800 transition-colors"
+                                title="Delete Material"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -688,255 +788,56 @@ const InventoryManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Add Material Modal */}
-      {showAddForm && (
-        <div className="modal-overlay">
-          {!masterData ? (
-            <div className="modal-content animate-scale-in w-full max-w-md">
-              <div className="flex items-center justify-center p-8">
-                <div className="loading-spinner h-8 w-8"></div>
-                <span className="ml-3 text-slate-600 font-medium">Loading form data...</span>
-              </div>
-            </div>
-          ) : (
-          <div className="modal-content animate-scale-in w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Add New Material</h2>
-                <p className="text-sm text-slate-600 mt-1">Add a new material to your inventory</p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  resetForm();
-                }}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
 
-            <form onSubmit={handleAddMaterial}>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Basic Information */}
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-slate-900">Basic Information</h3>
-                    
-                    <div>
-                      <label className="label label-required">Select Material from Master Data</label>
-                      <select
-                        value={addFormData.item_id}
-                        onChange={(e) => {
-                          const selectedItem = masterData?.itemMaster?.find(item => item.item_id === parseInt(e.target.value));
-                          setAddFormData({
-                            ...addFormData, 
-                            item_id: e.target.value,
-                            name: selectedItem?.item_name || '',
-                            item_code: selectedItem?.item_code || '',
-                            category: selectedItem?.category_id ? masterData?.categories?.find(cat => cat.category_id === selectedItem.category_id)?.category_name || '' : '',
-                            brand: selectedItem?.brand_id ? masterData?.brands?.find(brand => brand.brand_id === selectedItem.brand_id)?.brand_name || '' : '',
-                            unit: selectedItem?.unit_id ? masterData?.units?.find(unit => unit.unit_id === selectedItem.unit_id)?.unit_name || '' : ''
-                          });
-                        }}
-                        className="input"
-                        required
-                      >
-                        <option value="">Select Material from Master Data</option>
-                        {masterData?.itemMaster?.map((item) => (
-                          <option key={item.item_id} value={item.item_id}>
-                            {item.item_name} ({item.item_code})
-                          </option>
-                        )) || []}
-                      </select>
-                    </div>
-                  
-                    <div>
-                      <label className="label label-required">Material Name</label>
-                      <input
-                        type="text"
-                        value={addFormData.name}
-                        onChange={(e) => setAddFormData({...addFormData, name: e.target.value})}
-                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
-                        placeholder="Enter material name"
-                        required
-                        readOnly={addFormData.item_id ? true : false}
-                      />
-                    </div>
+      {/* Material Details Modal */}
+      <MaterialDetailsModal
+        isOpen={showMaterialDetails}
+        onClose={handleMaterialDetailsClose}
+        materialId={selectedMaterialId}
+        onEditSuccess={handleMaterialEditSuccess}
+      />
 
-                    <div>
-                      <label className="label">Item Code</label>
-                      <input
-                        type="text"
-                        value={addFormData.item_code}
-                        onChange={(e) => setAddFormData({...addFormData, item_code: e.target.value})}
-                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
-                        placeholder="Enter item code"
-                        readOnly={addFormData.item_id ? true : false}
-                      />
-                    </div>
 
-                    <div>
-                      <label className="label">Category</label>
-                      <input
-                        type="text"
-                        value={addFormData.category}
-                        onChange={(e) => setAddFormData({...addFormData, category: e.target.value})}
-                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
-                        placeholder="Enter category"
-                        readOnly={addFormData.item_id ? true : false}
-                      />
-                    </div>
+      {/* Material Form Modal */}
+      <MaterialForm
+        isOpen={showNewMaterialModal}
+        onClose={() => {
+          setShowNewMaterialModal(false);
+          setEditingMaterial(null);
+        }}
+        onSuccess={handleMaterialFormSubmit}
+        projectId={filterProject || undefined}
+        material={editingMaterial}
+      />
 
-                    <div>
-                      <label className="label">Brand</label>
-                      <input
-                        type="text"
-                        value={addFormData.brand}
-                        onChange={(e) => setAddFormData({...addFormData, brand: e.target.value})}
-                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
-                        placeholder="Enter brand"
-                        readOnly={addFormData.item_id ? true : false}
-                      />
-                    </div>
-                  </div>
+      {/* Inventory History Modal */}
+      <InventoryHistory
+        isOpen={showHistoryModal}
+        onClose={() => {
+          setShowHistoryModal(false);
+          setSelectedMaterialForHistory(null);
+        }}
+        materialId={selectedMaterialForHistory?.material_id}
+        projectId={filterProject || undefined}
+        materialName={selectedMaterialForHistory?.name}
+      />
 
-                  {/* Stock Information */}
-                  <div className="space-y-6">
-                    <h3 className="text-xl font-bold text-slate-900">Stock Information</h3>
-                    
-                    <div>
-                      <label className="label">Unit</label>
-                      <input
-                        type="text"
-                        value={addFormData.unit}
-                        onChange={(e) => setAddFormData({...addFormData, unit: e.target.value})}
-                        className={`input ${addFormData.item_id ? 'bg-slate-100' : ''}`}
-                        placeholder="Enter unit"
-                        readOnly={addFormData.item_id ? true : false}
-                      />
-                    </div>
+      {/* Warehouse Selection Modal */}
+      <WarehouseSelectionModal
+        isOpen={showWarehouseSelectionModal}
+        onClose={() => setShowWarehouseSelectionModal(false)}
+        onSelectWarehouse={handleWarehouseSelect}
+        title="Select Warehouse to Edit Materials"
+      />
 
-                    <div>
-                      <label className="label">Cost per Unit</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={addFormData.cost_per_unit}
-                        onChange={(e) => setAddFormData({...addFormData, cost_per_unit: e.target.value})}
-                        className="input"
-                        placeholder="Enter cost per unit"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Initial Stock Quantity</label>
-                      <input
-                        type="number"
-                        value={addFormData.stock_qty}
-                        onChange={(e) => setAddFormData({...addFormData, stock_qty: e.target.value})}
-                        className="input"
-                        placeholder="Enter initial stock quantity"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Minimum Stock Level</label>
-                      <input
-                        type="number"
-                        value={addFormData.minimum_stock_level}
-                        onChange={(e) => setAddFormData({...addFormData, minimum_stock_level: e.target.value})}
-                        className="input"
-                        placeholder="Enter minimum stock level"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Maximum Stock Level</label>
-                      <input
-                        type="number"
-                        value={addFormData.maximum_stock_level}
-                        onChange={(e) => setAddFormData({...addFormData, maximum_stock_level: e.target.value})}
-                        className="input"
-                        placeholder="Enter maximum stock level"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Reorder Point</label>
-                      <input
-                        type="number"
-                        value={addFormData.reorder_point}
-                        onChange={(e) => setAddFormData({...addFormData, reorder_point: e.target.value})}
-                        className="input"
-                        placeholder="Enter reorder point"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="label">Warehouse</label>
-                      <select
-                        value={addFormData.warehouse_id}
-                        onChange={(e) => setAddFormData({...addFormData, warehouse_id: e.target.value})}
-                        className="input"
-                      >
-                        <option value="">Select Warehouse</option>
-                        {masterData?.warehouses?.map((warehouse) => (
-                          <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
-                            {warehouse.warehouse_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="label">Location</label>
-                      <input
-                        type="text"
-                        value={addFormData.location}
-                        onChange={(e) => setAddFormData({...addFormData, location: e.target.value})}
-                        className="input"
-                        placeholder="Enter location"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-4 p-6 pt-0 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddForm(false);
-                    resetForm();
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  {loading ? (
-                    <>
-                      <div className="loading-spinner h-4 w-4 mr-2"></div>
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Material
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-          )}
-        </div>
-      )}
+      {/* Warehouse Material Edit Modal */}
+      <WarehouseMaterialEditModal
+        isOpen={showWarehouseMaterialEditModal}
+        onClose={handleWarehouseMaterialEditClose}
+        onSuccess={handleWarehouseMaterialEditSuccess}
+        selectedWarehouse={selectedWarehouse}
+        projectId={filterProject || undefined}
+      />
     </div>
   );
 };

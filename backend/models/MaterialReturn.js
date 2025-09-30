@@ -118,6 +118,10 @@ const MaterialReturn = sequelize.define('MaterialReturn', {
       model: 'subcontractors',
       key: 'subcontractor_id'
     }
+  },
+  size: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   }
 }, {
   tableName: 'material_returns',

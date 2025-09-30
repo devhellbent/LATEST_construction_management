@@ -252,19 +252,7 @@ const SupplierLedgerManagement: React.FC = () => {
                 <span>Transaction Ledger</span>
               </div>
             </button>
-            <button
-              onClick={() => setActiveTab('overdue')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
-                activeTab === 'overdue'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Overdue Payments</span>
-              </div>
-            </button>
+            {/** Overdue tab temporarily removed **/}
             <button
               onClick={() => setActiveTab('supplier-ledger')}
               className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
@@ -450,30 +438,7 @@ const SupplierLedgerManagement: React.FC = () => {
         </div>
       )}
 
-      {activeTab === 'overdue' && (
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Overdue Payments</h2>
-                <p className="text-slate-600 mt-1">Track and manage overdue supplier payments</p>
-              </div>
-              <div className="h-12 w-12 bg-warning-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-warning-600" />
-              </div>
-            </div>
-            <div className="text-center py-12">
-              <div className="h-20 w-20 bg-warning-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <AlertTriangle className="h-10 w-10 text-warning-500" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Overdue Payments Feature</h3>
-              <p className="text-slate-600 max-w-md mx-auto">
-                The overdue payments tracking feature is currently under development and will be available soon.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Overdue section temporarily removed */}
 
       {activeTab === 'supplier-ledger' && (
         <div className="space-y-6">

@@ -107,6 +107,55 @@ const MaterialReceiptItem = sequelize.define('MaterialReceiptItem', {
   verification_notes: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  cgst_rate: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0,
+      max: 100
+    }
+  },
+  sgst_rate: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0,
+      max: 100
+    }
+  },
+  igst_rate: {
+    type: DataTypes.DECIMAL(5, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0,
+      max: 100
+    }
+  },
+  cgst_amount: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0
+    }
+  },
+  sgst_amount: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0
+    }
+  },
+  igst_amount: {
+    type: DataTypes.DECIMAL(15, 2),
+    defaultValue: 0.00,
+    validate: {
+      min: 0
+    }
+  },
+  size: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   }
 }, {
   tableName: 'material_receipt_items',

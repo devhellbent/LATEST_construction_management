@@ -122,6 +122,10 @@ const MaterialIssue = sequelize.define('MaterialIssue', {
       model: 'project_components',
       key: 'component_id'
     }
+  },
+  size: {
+    type: DataTypes.STRING(100),
+    allowNull: true
   }
 }, {
   tableName: 'material_issues',

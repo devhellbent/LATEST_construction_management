@@ -86,6 +86,25 @@ const MrrInventoryCheck: React.FC<MrrInventoryCheckProps> = ({
     }
   };
 
+  const handleMarkProcessing = async () => {
+    if (results.mrr_status !== 'APPROVED') {
+      alert('Only approved MRRs can be marked as processing');
+      return;
+    }
+
+    setStatusLoading(true);
+    try {
+      await mrrAPI.markMrrProcessing(mrrId, 'Marked as processing after inventory check');
+      alert('MRR marked as processing successfully');
+      onInventoryChecked({ ...results, mrr_status: 'PROCESSING' });
+    } catch (error) {
+      console.error('Error marking MRR as processing:', error);
+      alert('Failed to mark MRR as processing');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'AVAILABLE':
@@ -211,7 +230,9 @@ const MrrInventoryCheck: React.FC<MrrInventoryCheckProps> = ({
           </div>
 
           {/* Status Management Buttons (for Admin and Project Manager) */}
-          {(user?.role === 'Admin' || user?.role === 'Project Manager' || user?.role === 'Inventory Manager') && results.mrr_status !== 'CANCELLED' && (
+          {((typeof user?.role === 'string' && (user.role === 'Admin' || user.role === 'Project Manager' || user.role === 'Inventory Manager')) || 
+            (typeof user?.role === 'object' && user?.role?.name && (user.role.name === 'Admin' || user.role.name === 'Project Manager' || user.role.name === 'Inventory Manager'))) && 
+           results.mrr_status !== 'CANCELLED' && (
             <div className="flex gap-2">
               <button
                 onClick={() => setShowStatusModal(true)}
@@ -219,6 +240,15 @@ const MrrInventoryCheck: React.FC<MrrInventoryCheckProps> = ({
               >
                 Update MRR Status
               </button>
+              {results.mrr_status === 'APPROVED' && results.inventory_status === 'READY_FOR_ISSUE' && (
+                <button
+                  onClick={handleMarkProcessing}
+                  disabled={statusLoading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                >
+                  {statusLoading ? 'Processing...' : 'Mark as Processing'}
+                </button>
+              )}
             </div>
           )}
 

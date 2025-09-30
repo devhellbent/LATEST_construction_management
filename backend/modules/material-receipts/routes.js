@@ -163,7 +163,11 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
     if (value === null || value === undefined || value === '') return true;
     return !isNaN(Date.parse(value));
   }),
-  body('items.*.notes').optional().trim()
+  body('items.*.notes').optional().trim(),
+  body('items.*.cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('items.*.sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('items.*.igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('items.*.size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -193,7 +197,15 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
     const po = await PurchaseOrder.findByPk(po_id, {
       include: [
         { model: Project, as: 'project' },
-        { model: Supplier, as: 'supplier' }
+        { model: Supplier, as: 'supplier' },
+        { 
+          model: PurchaseOrderItem, 
+          as: 'items',
+          include: [
+            { model: ItemMaster, as: 'item' },
+            { model: Unit, as: 'unit' }
+          ]
+        }
       ]
     });
 
@@ -245,6 +257,19 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
     // Create receipt items from the request data
     const receiptItems = [];
     for (const item of items) {
+      // Find the corresponding PO item to get GST values
+      const poItem = po.items.find(poItem => poItem.po_item_id === item.po_item_id);
+      
+      // Calculate GST amounts
+      const totalPrice = item.unit_price * item.quantity_received;
+      const cgstRate = item.cgst_rate !== undefined ? item.cgst_rate : (poItem ? poItem.cgst_rate : 0);
+      const sgstRate = item.sgst_rate !== undefined ? item.sgst_rate : (poItem ? poItem.sgst_rate : 0);
+      const igstRate = item.igst_rate !== undefined ? item.igst_rate : (poItem ? poItem.igst_rate : 0);
+      
+      const cgstAmount = (totalPrice * cgstRate) / 100;
+      const sgstAmount = (totalPrice * sgstRate) / 100;
+      const igstAmount = (totalPrice * igstRate) / 100;
+      
       const receiptItem = await MaterialReceiptItem.create({
         receipt_id: receipt.receipt_id,
         po_item_id: item.po_item_id,
@@ -252,14 +277,21 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
         quantity_received: item.quantity_received,
         unit_id: item.unit_id,
         unit_price: item.unit_price,
-        total_price: item.unit_price * item.quantity_received,
+        total_price: totalPrice,
         condition_status: item.condition_status || 'GOOD',
         batch_number: item.batch_number,
         expiry_date: item.expiry_date,
         notes: item.notes,
         delivery_status: 'PENDING',
         delivery_quantity: 0,
-        delivery_condition: 'GOOD'
+        delivery_condition: 'GOOD',
+        cgst_rate: cgstRate,
+        sgst_rate: sgstRate,
+        igst_rate: igstRate,
+        cgst_amount: cgstAmount,
+        sgst_amount: sgstAmount,
+        igst_amount: igstAmount,
+        size: item.size || (poItem ? poItem.size : null)
       });
       receiptItems.push(receiptItem);
     }

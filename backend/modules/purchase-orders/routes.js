@@ -284,7 +284,11 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
   body('items.*.unit_id').isInt().withMessage('Unit ID must be an integer'),
   body('items.*.unit_price').isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('items.*.specifications').optional().trim(),
-  body('items.*.notes').optional().trim()
+  body('items.*.notes').optional().trim(),
+  body('items.*.cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('items.*.sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('items.*.igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('items.*.size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -305,14 +309,31 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
       return res.status(400).json({ message: 'Only approved MRRs can be converted to Purchase Orders' });
     }
 
-    // Calculate totals
+    // Calculate totals with GST
     let subtotal = 0;
+    let totalCgstAmount = 0;
+    let totalSgstAmount = 0;
+    let totalIgstAmount = 0;
+    
     items.forEach(item => {
       item.total_price = item.unit_price * item.quantity_ordered;
       subtotal += item.total_price;
+      
+      // Calculate GST amounts
+      const cgstRate = item.cgst_rate || 0;
+      const sgstRate = item.sgst_rate || 0;
+      const igstRate = item.igst_rate || 0;
+      
+      item.cgst_amount = (item.total_price * cgstRate) / 100;
+      item.sgst_amount = (item.total_price * sgstRate) / 100;
+      item.igst_amount = (item.total_price * igstRate) / 100;
+      
+      totalCgstAmount += item.cgst_amount;
+      totalSgstAmount += item.sgst_amount;
+      totalIgstAmount += item.igst_amount;
     });
 
-    const taxAmount = subtotal * 0.18; // Assuming 18% GST
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
     // Generate PO number if not provided
@@ -364,12 +385,19 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
         unit_price: item.unit_price,
         total_price: item.total_price,
         specifications: item.specifications,
-        notes: item.notes
+        notes: item.notes,
+        cgst_rate: item.cgst_rate || 0,
+        sgst_rate: item.sgst_rate || 0,
+        igst_rate: item.igst_rate || 0,
+        cgst_amount: item.cgst_amount || 0,
+        sgst_amount: item.sgst_amount || 0,
+        igst_amount: item.igst_amount || 0,
+        size: item.size
       }))
     );
 
-    // Update MRR status
-    await mrr.update({ status: 'PROCESSING' });
+    // MRR status update removed - users should manually update status when appropriate
+    // await mrr.update({ status: 'PROCESSING' });
 
     // Fetch the created PO with associations
     const createdPO = await PurchaseOrder.findByPk(purchaseOrder.po_id, {
@@ -417,7 +445,11 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
   body('items.*.unit_id').isInt().withMessage('Unit ID must be an integer'),
   body('items.*.unit_price').isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('items.*.specifications').optional().trim(),
-  body('items.*.notes').optional().trim()
+  body('items.*.notes').optional().trim(),
+  body('items.*.cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('items.*.sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('items.*.igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('items.*.size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -430,14 +462,31 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
     // Handle optional project_id - convert empty string to null
     const finalProjectId = project_id === '' || project_id === undefined ? null : project_id;
 
-    // Calculate totals
+    // Calculate totals with GST
     let subtotal = 0;
+    let totalCgstAmount = 0;
+    let totalSgstAmount = 0;
+    let totalIgstAmount = 0;
+    
     items.forEach(item => {
       item.total_price = item.unit_price * item.quantity_ordered;
       subtotal += item.total_price;
+      
+      // Calculate GST amounts
+      const cgstRate = item.cgst_rate || 0;
+      const sgstRate = item.sgst_rate || 0;
+      const igstRate = item.igst_rate || 0;
+      
+      item.cgst_amount = (item.total_price * cgstRate) / 100;
+      item.sgst_amount = (item.total_price * sgstRate) / 100;
+      item.igst_amount = (item.total_price * igstRate) / 100;
+      
+      totalCgstAmount += item.cgst_amount;
+      totalSgstAmount += item.sgst_amount;
+      totalIgstAmount += item.igst_amount;
     });
 
-    const taxAmount = subtotal * 0.18; // Assuming 18% GST
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
     // Generate PO number if not provided
@@ -488,7 +537,14 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
         unit_price: item.unit_price,
         total_price: item.total_price,
         specifications: item.specifications,
-        notes: item.notes
+        notes: item.notes,
+        cgst_rate: item.cgst_rate || 0,
+        sgst_rate: item.sgst_rate || 0,
+        igst_rate: item.igst_rate || 0,
+        cgst_amount: item.cgst_amount || 0,
+        sgst_amount: item.sgst_amount || 0,
+        igst_amount: item.igst_amount || 0,
+        size: item.size
       }))
     );
 
@@ -674,7 +730,11 @@ router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Ma
   body('unit_id').isInt().withMessage('Unit ID must be an integer'),
   body('unit_price').isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('specifications').optional().trim(),
-  body('notes').optional().trim()
+  body('notes').optional().trim(),
+  body('cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -691,8 +751,13 @@ router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Ma
       return res.status(400).json({ message: 'Only draft Purchase Orders can be modified' });
     }
 
-    const { item_id, quantity_ordered, unit_id, unit_price, specifications, notes } = req.body;
+    const { item_id, quantity_ordered, unit_id, unit_price, specifications, notes, cgst_rate, sgst_rate, igst_rate, size } = req.body;
     const total_price = unit_price * quantity_ordered;
+    
+    // Calculate GST amounts
+    const cgstAmount = (total_price * (cgst_rate || 0)) / 100;
+    const sgstAmount = (total_price * (sgst_rate || 0)) / 100;
+    const igstAmount = (total_price * (igst_rate || 0)) / 100;
 
     const poItem = await PurchaseOrderItem.create({
       po_id: purchaseOrder.po_id,
@@ -702,14 +767,30 @@ router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Ma
       unit_price,
       total_price,
       specifications,
-      notes
+      notes,
+      cgst_rate: cgst_rate || 0,
+      sgst_rate: sgst_rate || 0,
+      igst_rate: igst_rate || 0,
+      cgst_amount: cgstAmount,
+      sgst_amount: sgstAmount,
+      igst_amount: igstAmount,
+      size
     });
 
     // Update PO totals
     const subtotal = await PurchaseOrderItem.sum('total_price', {
       where: { po_id: purchaseOrder.po_id }
     });
-    const taxAmount = subtotal * 0.18;
+    const totalCgstAmount = await PurchaseOrderItem.sum('cgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalSgstAmount = await PurchaseOrderItem.sum('sgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalIgstAmount = await PurchaseOrderItem.sum('igst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
     await purchaseOrder.update({
@@ -733,7 +814,11 @@ router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Pro
   body('quantity_ordered').optional().isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('unit_price').optional().isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('specifications').optional().trim(),
-  body('notes').optional().trim()
+  body('notes').optional().trim(),
+  body('cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -761,6 +846,25 @@ router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Pro
     const updateData = { ...req.body };
     if (updateData.unit_price && updateData.quantity_ordered) {
       updateData.total_price = updateData.unit_price * updateData.quantity_ordered;
+      
+      // Recalculate GST amounts if price or quantity changed
+      const cgstRate = updateData.cgst_rate !== undefined ? updateData.cgst_rate : poItem.cgst_rate;
+      const sgstRate = updateData.sgst_rate !== undefined ? updateData.sgst_rate : poItem.sgst_rate;
+      const igstRate = updateData.igst_rate !== undefined ? updateData.igst_rate : poItem.igst_rate;
+      
+      updateData.cgst_amount = (updateData.total_price * cgstRate) / 100;
+      updateData.sgst_amount = (updateData.total_price * sgstRate) / 100;
+      updateData.igst_amount = (updateData.total_price * igstRate) / 100;
+    } else if (updateData.cgst_rate !== undefined || updateData.sgst_rate !== undefined || updateData.igst_rate !== undefined) {
+      // Recalculate GST amounts if rates changed
+      const totalPrice = updateData.total_price || poItem.total_price;
+      const cgstRate = updateData.cgst_rate !== undefined ? updateData.cgst_rate : poItem.cgst_rate;
+      const sgstRate = updateData.sgst_rate !== undefined ? updateData.sgst_rate : poItem.sgst_rate;
+      const igstRate = updateData.igst_rate !== undefined ? updateData.igst_rate : poItem.igst_rate;
+      
+      updateData.cgst_amount = (totalPrice * cgstRate) / 100;
+      updateData.sgst_amount = (totalPrice * sgstRate) / 100;
+      updateData.igst_amount = (totalPrice * igstRate) / 100;
     }
 
     await poItem.update(updateData);
@@ -769,7 +873,16 @@ router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Pro
     const subtotal = await PurchaseOrderItem.sum('total_price', {
       where: { po_id: purchaseOrder.po_id }
     });
-    const taxAmount = subtotal * 0.18;
+    const totalCgstAmount = await PurchaseOrderItem.sum('cgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalSgstAmount = await PurchaseOrderItem.sum('sgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalIgstAmount = await PurchaseOrderItem.sum('igst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
     await purchaseOrder.update({
@@ -814,7 +927,16 @@ router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', '
     const subtotal = await PurchaseOrderItem.sum('total_price', {
       where: { po_id: purchaseOrder.po_id }
     });
-    const taxAmount = subtotal * 0.18;
+    const totalCgstAmount = await PurchaseOrderItem.sum('cgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalSgstAmount = await PurchaseOrderItem.sum('sgst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const totalIgstAmount = await PurchaseOrderItem.sum('igst_amount', {
+      where: { po_id: purchaseOrder.po_id }
+    });
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
     await purchaseOrder.update({

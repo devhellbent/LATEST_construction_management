@@ -93,6 +93,13 @@ interface POItem {
   unit_price: number;
   total_price: number;
   specifications?: string;
+  cgst_rate?: number;
+  sgst_rate?: number;
+  igst_rate?: number;
+  cgst_amount?: number;
+  sgst_amount?: number;
+  igst_amount?: number;
+  size?: string;
 }
 
 const CreatePurchaseOrder: React.FC = () => {
@@ -290,7 +297,14 @@ const CreatePurchaseOrder: React.FC = () => {
       quantity_ordered: 1,
       unit_price: 0,
       total_price: 0,
-      specifications: ''
+      specifications: '',
+      cgst_rate: 0,
+      sgst_rate: 0,
+      igst_rate: 0,
+      cgst_amount: 0,
+      sgst_amount: 0,
+      igst_amount: 0,
+      size: ''
     };
     setPoItems(prev => [...prev, newItem]);
   };
@@ -307,6 +321,14 @@ const CreatePurchaseOrder: React.FC = () => {
       // Calculate total price when quantity or unit price changes
       if (field === 'quantity_ordered' || field === 'unit_price') {
         updated[index].total_price = updated[index].quantity_ordered * updated[index].unit_price;
+      }
+
+      // Recalculate GST amounts when rates or total price changes
+      if (field === 'cgst_rate' || field === 'sgst_rate' || field === 'igst_rate' || field === 'total_price') {
+        const item = updated[index];
+        item.cgst_amount = (item.total_price * (item.cgst_rate || 0)) / 100;
+        item.sgst_amount = (item.total_price * (item.sgst_rate || 0)) / 100;
+        item.igst_amount = (item.total_price * (item.igst_rate || 0)) / 100;
       }
 
       return updated;
@@ -379,10 +401,13 @@ const CreatePurchaseOrder: React.FC = () => {
 
   const calculateTotals = () => {
     const subtotal = poItems.reduce((sum, item) => sum + item.total_price, 0);
-    const taxAmount = subtotal * 0.18; // 18% GST
+    const totalCgstAmount = poItems.reduce((sum, item) => sum + (item.cgst_amount || 0), 0);
+    const totalSgstAmount = poItems.reduce((sum, item) => sum + (item.sgst_amount || 0), 0);
+    const totalIgstAmount = poItems.reduce((sum, item) => sum + (item.igst_amount || 0), 0);
+    const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
     const totalAmount = subtotal + taxAmount;
 
-    return { subtotal, taxAmount, totalAmount };
+    return { subtotal, taxAmount, totalAmount, totalCgstAmount, totalSgstAmount, totalIgstAmount };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -402,7 +427,7 @@ const CreatePurchaseOrder: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const { subtotal, taxAmount, totalAmount } = calculateTotals();
+      const { subtotal, taxAmount, totalAmount, totalCgstAmount, totalSgstAmount, totalIgstAmount } = calculateTotals();
 
       const poData = {
         ...formData,
@@ -419,7 +444,14 @@ const CreatePurchaseOrder: React.FC = () => {
           unit_id: item.unit_id,
           unit_price: item.unit_price,
           total_price: item.total_price,
-          specifications: item.specifications
+          specifications: item.specifications,
+          cgst_rate: item.cgst_rate || 0,
+          sgst_rate: item.sgst_rate || 0,
+          igst_rate: item.igst_rate || 0,
+          cgst_amount: item.cgst_amount || 0,
+          sgst_amount: item.sgst_amount || 0,
+          igst_amount: item.igst_amount || 0,
+          size: item.size
         }))
       };
 
@@ -439,7 +471,7 @@ const CreatePurchaseOrder: React.FC = () => {
     }
   };
 
-  const { subtotal, taxAmount, totalAmount } = calculateTotals();
+  const { subtotal, taxAmount, totalAmount, totalCgstAmount, totalSgstAmount, totalIgstAmount } = calculateTotals();
 
   if (initialLoading) {
     return (
@@ -785,17 +817,121 @@ const CreatePurchaseOrder: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Specifications
-                  </label>
-                  <input
-                    type="text"
-                    value={item.specifications || ''}
-                    onChange={(e) => updateItem(index, 'specifications', e.target.value)}
-                    placeholder="Item specifications..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
+                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Specifications
+                    </label>
+                    <input
+                      type="text"
+                      value={item.specifications || ''}
+                      onChange={(e) => updateItem(index, 'specifications', e.target.value)}
+                      placeholder="Item specifications..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Size
+                    </label>
+                    <input
+                      type="text"
+                      value={item.size || ''}
+                      onChange={(e) => updateItem(index, 'size', e.target.value)}
+                      placeholder="Item size..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* GST Fields */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">GST Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        CGST Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={item.cgst_rate || 0}
+                        onChange={(e) => updateItem(index, 'cgst_rate', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        SGST Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={item.sgst_rate || 0}
+                        onChange={(e) => updateItem(index, 'sgst_rate', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        IGST Rate (%)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={item.igst_rate || 0}
+                        onChange={(e) => updateItem(index, 'igst_rate', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        CGST Amount
+                      </label>
+                      <input
+                        type="text"
+                        value={`₹${(item.cgst_amount || 0).toFixed(2)}`}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        SGST Amount
+                      </label>
+                      <input
+                        type="text"
+                        value={`₹${(item.sgst_amount || 0).toFixed(2)}`}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        IGST Amount
+                      </label>
+                      <input
+                        type="text"
+                        value={`₹${(item.igst_amount || 0).toFixed(2)}`}
+                        readOnly
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -807,6 +943,41 @@ const CreatePurchaseOrder: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Totals Summary */}
+        {poItems.length > 0 && (
+          <div className="bg-gray-50 p-6 rounded-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal:</span>
+                <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+              </div>
+              {totalCgstAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">CGST:</span>
+                  <span className="font-medium">₹{totalCgstAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {totalSgstAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">SGST:</span>
+                  <span className="font-medium">₹{totalSgstAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {totalIgstAmount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">IGST:</span>
+                  <span className="font-medium">₹{totalIgstAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t pt-2">
+                <span className="text-lg font-semibold text-gray-900">Total Amount:</span>
+                <span className="text-lg font-semibold text-gray-900">₹{totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-4">

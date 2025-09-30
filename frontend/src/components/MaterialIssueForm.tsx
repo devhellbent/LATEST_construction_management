@@ -26,6 +26,7 @@ interface Material {
   material_id: number;
   name: string;
   type: string;
+  size?: string;
   unit: string;
   stock_qty: number;
   cost_per_unit: number;

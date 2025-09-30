@@ -15,6 +15,7 @@ router.get('/', authenticateToken, [
   query('category').optional().trim(),
   query('brand').optional().trim(),
   query('color').optional().trim(),
+  query('size').optional().trim(),
   query('status').optional().trim(),
   query('search').optional().trim(),
   query('project_id').optional().isInt().withMessage('Project ID must be an integer')
@@ -28,7 +29,7 @@ router.get('/', authenticateToken, [
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const { type, category, brand, color, status, search, project_id } = req.query;
+    const { type, category, brand, color, size, status, search, project_id } = req.query;
 
     // Build where clause
     const whereClause = {};
@@ -36,6 +37,7 @@ router.get('/', authenticateToken, [
     if (category) whereClause.category = category;
     if (brand) whereClause.brand = brand;
     if (color) whereClause.color = color;
+    if (size) whereClause.size = size;
     if (status) whereClause.status = status;
     if (project_id) whereClause.project_id = project_id;
     
@@ -45,7 +47,8 @@ router.get('/', authenticateToken, [
         { item_code: { [Op.like]: `%${search}%` } },
         { additional_specification: { [Op.like]: `%${search}%` } },
         { supplier: { [Op.like]: `%${search}%` } },
-        { brand: { [Op.like]: `%${search}%` } }
+        { brand: { [Op.like]: `%${search}%` } },
+        { size: { [Op.like]: `%${search}%` } }
       ];
     }
 
@@ -87,6 +90,32 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
     console.error('Get materials by project error:', error);
     console.error('Error details:', error.message);
     res.status(500).json({ message: 'Failed to fetch materials for project', error: error.message });
+  }
+});
+
+// Get materials by warehouse ID
+router.get('/warehouse/:warehouseId', authenticateToken, async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+    
+    // Get materials in this warehouse
+    const materials = await Material.findAll({
+      where: { warehouse_id: warehouseId },
+      include: [
+        {
+          model: require('../../models').Warehouse,
+          as: 'warehouse',
+          attributes: ['warehouse_id', 'warehouse_name', 'address']
+        }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({ materials });
+  } catch (error) {
+    console.error('Get materials by warehouse error:', error);
+    console.error('Error details:', error.message);
+    res.status(500).json({ message: 'Failed to fetch materials for warehouse', error: error.message });
   }
 });
 
@@ -293,6 +322,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('category').optional().trim(),
   body('brand').optional().trim(),
   body('color').optional().trim(),
+  body('size').optional().trim(),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost per unit must be a positive number'),
@@ -302,6 +332,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('maximum_stock_level').optional().isInt({ min: 0 }).withMessage('Maximum stock level must be a non-negative integer'),
   body('reorder_point').optional().isInt({ min: 0 }).withMessage('Reorder point must be a non-negative integer'),
   body('location').optional().trim(),
+  body('warehouse_id').optional().isInt().withMessage('Warehouse ID must be an integer'),
   body('status').optional().isIn(['ACTIVE', 'INACTIVE', 'DISCONTINUED']).withMessage('Status must be ACTIVE, INACTIVE, or DISCONTINUED'),
   body('project_id').optional().custom((value) => {
     if (value === null || value === undefined || value === '') {
@@ -371,11 +402,13 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
 // Update material
 router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
+  body('size').optional().trim(),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost per unit must be a positive number'),
   body('supplier').optional().trim(),
-  body('stock_qty').optional().isInt({ min: 0 }).withMessage('Stock quantity must be a non-negative integer')
+  body('stock_qty').optional().isInt({ min: 0 }).withMessage('Stock quantity must be a non-negative integer'),
+  body('warehouse_id').optional().isInt().withMessage('Warehouse ID must be an integer')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

@@ -58,15 +58,19 @@ const MaterialIssueManagement: React.FC = () => {
     setLoading(true);
     try {
       const response = await mrrAPI.getMrrs({ 
-        approval_status: 'APPROVED',
-        status: 'APPROVED',
         include_items: true,
         include_project: true
       });
       
-      // Filter MRRs that have items available for issue
+      // Filter allowed statuses: APPROVED, PROCESSING, COMPLETED
+      const allowedStatuses = ['APPROVED', 'PROCESSING', 'COMPLETED'];
+      const filteredMrrs = (response.data.mrrs || []).filter((mrr: any) =>
+        allowedStatuses.includes(mrr.status)
+      );
+
+      // For these MRRs, compute available stock on items
       const mrrsWithStock = await Promise.all(
-        response.data.mrrs.map(async (mrr: any) => {
+        filteredMrrs.map(async (mrr: any) => {
           const itemsWithStock = await Promise.all(
             mrr.items.map(async (item: any) => {
               try {

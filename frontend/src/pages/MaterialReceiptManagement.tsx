@@ -94,6 +94,13 @@ interface ReceiptFormData {
     expiry_date: string;
     notes: string;
     receipt_item_id?: number; // Optional for new items
+    cgst_rate?: number;
+    sgst_rate?: number;
+    igst_rate?: number;
+    cgst_amount?: number;
+    sgst_amount?: number;
+    igst_amount?: number;
+    size?: string;
   }>;
 }
 
@@ -200,7 +207,14 @@ const MaterialReceiptManagement: React.FC = () => {
           batch_number: item.batch_number || '',
           expiry_date: item.expiry_date || '',
           notes: item.notes || '',
-          receipt_item_id: item.receipt_item_id // Include receipt_item_id for existing items
+          receipt_item_id: item.receipt_item_id, // Include receipt_item_id for existing items
+          cgst_rate: item.cgst_rate || 0,
+          sgst_rate: item.sgst_rate || 0,
+          igst_rate: item.igst_rate || 0,
+          cgst_amount: item.cgst_amount || 0,
+          sgst_amount: item.sgst_amount || 0,
+          igst_amount: item.igst_amount || 0,
+          size: item.size || ''
         })) || []
       });
     } else {
@@ -228,7 +242,14 @@ const MaterialReceiptManagement: React.FC = () => {
           batch_number: '',
           expiry_date: '',
           notes: '',
-          receipt_item_id: undefined // New items don't have receipt_item_id yet
+          receipt_item_id: undefined, // New items don't have receipt_item_id yet
+          cgst_rate: (item as any).cgst_rate || 0,
+          sgst_rate: (item as any).sgst_rate || 0,
+          igst_rate: (item as any).igst_rate || 0,
+          cgst_amount: (item as any).cgst_amount || 0,
+          sgst_amount: (item as any).sgst_amount || 0,
+          igst_amount: (item as any).igst_amount || 0,
+          size: (item as any).size || ''
         }))
       });
     }
@@ -727,7 +748,20 @@ const MaterialReceiptManagement: React.FC = () => {
                           />
                         </div>
                         
-                        <div className="md:col-span-4">
+                        <div>
+                          <label className="label">
+                            Size
+                          </label>
+                          <input
+                            type="text"
+                            value={item.size || ''}
+                            onChange={(e) => updateItemReceipt(item.po_item_id, 'size', e.target.value)}
+                            className="input"
+                            placeholder="Item size"
+                          />
+                        </div>
+                        
+                        <div className="md:col-span-3">
                           <label className="label">
                             Notes
                           </label>
@@ -738,6 +772,95 @@ const MaterialReceiptManagement: React.FC = () => {
                             className="input"
                             placeholder="Quality notes and remarks"
                           />
+                        </div>
+                      </div>
+                      
+                      {/* GST Fields */}
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">GST Details</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="label">
+                              CGST Rate (%)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={item.cgst_rate || 0}
+                              onChange={(e) => updateItemReceipt(item.po_item_id, 'cgst_rate', parseFloat(e.target.value) || 0)}
+                              className="input"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="label">
+                              SGST Rate (%)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={item.sgst_rate || 0}
+                              onChange={(e) => updateItemReceipt(item.po_item_id, 'sgst_rate', parseFloat(e.target.value) || 0)}
+                              className="input"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="label">
+                              IGST Rate (%)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={item.igst_rate || 0}
+                              onChange={(e) => updateItemReceipt(item.po_item_id, 'igst_rate', parseFloat(e.target.value) || 0)}
+                              className="input"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="label">
+                              CGST Amount
+                            </label>
+                            <input
+                              type="text"
+                              value={`₹${((item.cgst_rate || 0) * (item.unit_price * item.quantity_received) / 100).toFixed(2)}`}
+                              readOnly
+                              className="input bg-gray-50"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="label">
+                              SGST Amount
+                            </label>
+                            <input
+                              type="text"
+                              value={`₹${((item.sgst_rate || 0) * (item.unit_price * item.quantity_received) / 100).toFixed(2)}`}
+                              readOnly
+                              className="input bg-gray-50"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="label">
+                              IGST Amount
+                            </label>
+                            <input
+                              type="text"
+                              value={`₹${((item.igst_rate || 0) * (item.unit_price * item.quantity_received) / 100).toFixed(2)}`}
+                              readOnly
+                              className="input bg-gray-50"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
