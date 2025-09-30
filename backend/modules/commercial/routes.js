@@ -496,7 +496,8 @@ router.post('/material-return', authenticateToken, authorizeRoles('Admin', 'Proj
         reference_number: `RETURN-${materialReturn.return_id}`,
         description: `Material returned: ${remarks || 'No description'}`,
         location: return_to_inventory,
-        performed_by_user_id: req.user.user_id
+        performed_by_user_id: req.user.user_id,
+        warehouse_id: formData.warehouse_id || null
       });
     }
 

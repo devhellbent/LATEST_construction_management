@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Users, Flag, CheckSquare } from 'lucide-react';
+import { X, Users, Flag, CheckSquare } from 'lucide-react';
 import { tasksAPI, projectsAPI, usersAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
+import SearchableDropdown from './SearchableDropdown';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -36,8 +37,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     end_date: '',
     priority: 'MEDIUM',
     status: 'TODO',
-    milestone: false,
-    dependencies: ''
+    milestone: false
   });
   const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -90,8 +90,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         end_date: formData.end_date || null,
         priority: formData.priority,
         status: formData.status,
-        milestone: formData.milestone,
-        dependencies: formData.dependencies && formData.dependencies !== '' ? JSON.parse(formData.dependencies) : null
+        milestone: formData.milestone
       };
 
       await tasksAPI.createTask(taskData);
@@ -132,20 +131,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Project <span className="text-red-500">*</span>
             </label>
-            <select
+            <SearchableDropdown
+              options={projects.map(project => ({
+                value: project.project_id.toString(),
+                label: project.name,
+                searchText: project.name
+              }))}
               value={formData.project_id}
-              onChange={(e) => handleInputChange('project_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(value) => handleInputChange('project_id', value.toString())}
+              placeholder="Select project"
+              searchPlaceholder="Search projects..."
+              className="w-full"
               required
               disabled={loadingData}
-            >
-              <option value="">Select project</option>
-              {projects.map(project => (
-                <option key={project.project_id} value={project.project_id}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Task Title */}
@@ -183,19 +182,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </label>
             <div className="relative">
               <Users className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-              <select
+              <SearchableDropdown
+              options={users.map(user => ({
+                value: user.user_id.toString(),
+                label: `${user.name} (${user.email})`,
+                searchText: `${user.name} ${user.email}`
+              }))}
                 value={formData.assigned_user_id}
-                onChange={(e) => handleInputChange('assigned_user_id', e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(value) => handleInputChange('assigned_user_id', value.toString())}
+                placeholder="Select user to assign"
+                searchPlaceholder="Search users..."
+                className="w-full"
                 disabled={loadingData}
-              >
-                <option value="">Select user to assign</option>
-                {users.map(user => (
-                  <option key={user.user_id} value={user.user_id}>
-                    {user.name} ({user.email})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
@@ -205,30 +204,24 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Start Date
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
+              <input
+                type="date"
+                value={formData.start_date}
+                onChange={(e) => handleInputChange('start_date', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 End Date
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-10"
-                />
-                <Calendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
+              <input
+                type="date"
+                value={formData.end_date}
+                onChange={(e) => handleInputChange('end_date', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
             </div>
           </div>
 
@@ -240,16 +233,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </label>
               <div className="relative">
                 <Flag className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <select
+                <SearchableDropdown
+                  options={[
+                    { value: 'LOW', label: 'Low' },
+                    { value: 'MEDIUM', label: 'Medium' },
+                    { value: 'HIGH', label: 'High' },
+                    { value: 'CRITICAL', label: 'Critical' }
+                  ]}
                   value={formData.priority}
-                  onChange={(e) => handleInputChange('priority', e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="LOW">Low</option>
-                  <option value="MEDIUM">Medium</option>
-                  <option value="HIGH">High</option>
-                  <option value="CRITICAL">Critical</option>
-                </select>
+                  onChange={(value) => handleInputChange('priority', value.toString())}
+                  placeholder="Select priority"
+                  searchPlaceholder="Search priority..."
+                  className="w-full"
+                />
               </div>
             </div>
 
@@ -259,16 +255,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
               </label>
               <div className="relative">
                 <CheckSquare className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                <select
+                <SearchableDropdown
+                  options={[
+                    { value: 'TODO', label: 'To Do' },
+                    { value: 'IN_PROGRESS', label: 'In Progress' },
+                    { value: 'BLOCKED', label: 'Blocked' },
+                    { value: 'DONE', label: 'Done' }
+                  ]}
                   value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="TODO">To Do</option>
-                  <option value="IN_PROGRESS">In Progress</option>
-                  <option value="BLOCKED">Blocked</option>
-                  <option value="DONE">Done</option>
-                </select>
+                  onChange={(value) => handleInputChange('status', value.toString())}
+                  placeholder="Select status"
+                  searchPlaceholder="Search status..."
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
@@ -288,21 +287,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </label>
           </div>
 
-          {/* Dependencies */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dependencies (JSON format)
-            </label>
-            <textarea
-              value={formData.dependencies}
-              onChange={(e) => handleInputChange('dependencies', e.target.value)}
-              placeholder='Enter dependencies as JSON array, e.g., [1, 2, 3]'
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-20 resize-none font-mono text-sm"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Enter task IDs that this task depends on as a JSON array
-            </p>
-          </div>
+          
 
           {/* Submit Button */}
           <div className="flex justify-end pt-4">

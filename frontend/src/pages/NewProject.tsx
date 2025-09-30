@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, X, Plus, Trash2 } from 'lucide-react';
 import { projectsAPI, usersAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 interface ProjectComponent {
   component_name: string;
@@ -428,22 +429,21 @@ const NewProject: React.FC = () => {
 
             {/* Status */}
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                Status
-              </label>
-              <select
-                id="status"
-                name="status"
+              <SearchableDropdown
+                label="Status"
+                options={[
+                  { value: 'PLANNED', label: 'Planned' },
+                  { value: 'ACTIVE', label: 'Active' },
+                  { value: 'ON_HOLD', label: 'On Hold' },
+                  { value: 'COMPLETED', label: 'Completed' },
+                  { value: 'CANCELLED', label: 'Cancelled' }
+                ]}
                 value={formData.status}
-                onChange={handleInputChange}
-                className="input w-full"
-              >
-                <option value="PLANNED">Planned</option>
-                <option value="ACTIVE">Active</option>
-                <option value="ON_HOLD">On Hold</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}
+                placeholder="Select Status"
+                searchPlaceholder="Search status..."
+                className="w-full"
+              />
             </div>
 
             {/* Subwork */}
@@ -464,24 +464,20 @@ const NewProject: React.FC = () => {
 
             {/* Project Owner */}
             <div className="md:col-span-2">
-              <label htmlFor="owner_user_id" className="block text-sm font-medium text-gray-700 mb-2">
-                Project Owner *
-              </label>
-              <select
-                id="owner_user_id"
-                name="owner_user_id"
+              <SearchableDropdown
+                label="Project Owner"
+                options={Array.isArray(users) ? users.map((user) => ({
+                  value: user.user_id.toString(),
+                  label: `${user.name} (${user.email})`,
+                  searchText: `${user.name} ${user.email}`
+                })) : []}
                 value={formData.owner_user_id}
-                onChange={handleInputChange}
-                className="input w-full"
+                onChange={(value) => setFormData(prev => ({ ...prev, owner_user_id: parseInt(value.toString()) }))}
+                placeholder="Select a project owner"
+                searchPlaceholder="Search users..."
+                className="w-full"
                 required
-              >
-                <option value={0}>Select a project owner</option>
-                {Array.isArray(users) && users.map((user) => (
-                  <option key={user.user_id} value={user.user_id}>
-                    {user.name} ({user.email})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
@@ -574,43 +570,44 @@ const NewProject: React.FC = () => {
 
                       {/* Work Type */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Work Type
-                        </label>
-                        <select
+                        <SearchableDropdown
+                          label="Work Type"
+                          options={[
+                            { value: 'Civil', label: 'Civil' },
+                            { value: 'Electrical', label: 'Electrical' },
+                            { value: 'Mechanical', label: 'Mechanical' },
+                            { value: 'Plumbing', label: 'Plumbing' },
+                            { value: 'HVAC', label: 'HVAC' },
+                            { value: 'Structural', label: 'Structural' },
+                            { value: 'Painting', label: 'Painting' },
+                            { value: 'Flooring', label: 'Flooring' },
+                            { value: 'Roofing', label: 'Roofing' },
+                            { value: 'Other', label: 'Other' }
+                          ]}
                           value={subcontractor.work_type}
-                          onChange={(e) => updateSubcontractor(index, 'work_type', e.target.value)}
-                          className="input w-full"
-                        >
-                          <option value="">Select work type</option>
-                          <option value="Civil">Civil</option>
-                          <option value="Electrical">Electrical</option>
-                          <option value="Mechanical">Mechanical</option>
-                          <option value="Plumbing">Plumbing</option>
-                          <option value="HVAC">HVAC</option>
-                          <option value="Structural">Structural</option>
-                          <option value="Painting">Painting</option>
-                          <option value="Flooring">Flooring</option>
-                          <option value="Roofing">Roofing</option>
-                          <option value="Other">Other</option>
-                        </select>
+                          onChange={(value) => updateSubcontractor(index, 'work_type', value.toString())}
+                          placeholder="Select work type"
+                          searchPlaceholder="Search work types..."
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Status */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Status
-                        </label>
-                        <select
+                        <SearchableDropdown
+                          label="Status"
+                          options={[
+                            { value: 'ACTIVE', label: 'Active' },
+                            { value: 'INACTIVE', label: 'Inactive' },
+                            { value: 'COMPLETED', label: 'Completed' },
+                            { value: 'TERMINATED', label: 'Terminated' }
+                          ]}
                           value={subcontractor.status}
-                          onChange={(e) => updateSubcontractor(index, 'status', e.target.value)}
-                          className="input w-full"
-                        >
-                          <option value="ACTIVE">Active</option>
-                          <option value="INACTIVE">Inactive</option>
-                          <option value="COMPLETED">Completed</option>
-                          <option value="TERMINATED">Terminated</option>
-                        </select>
+                          onChange={(value) => updateSubcontractor(index, 'status', value.toString())}
+                          placeholder="Select status"
+                          searchPlaceholder="Search status..."
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Contract Value */}
@@ -768,41 +765,42 @@ const NewProject: React.FC = () => {
 
                       {/* Component Type */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Component Type
-                        </label>
-                        <select
+                        <SearchableDropdown
+                          label="Component Type"
+                          options={[
+                            { value: 'Civil', label: 'Civil' },
+                            { value: 'Electrical', label: 'Electrical' },
+                            { value: 'Mechanical', label: 'Mechanical' },
+                            { value: 'Plumbing', label: 'Plumbing' },
+                            { value: 'HVAC', label: 'HVAC' },
+                            { value: 'Structural', label: 'Structural' },
+                            { value: 'Other', label: 'Other' }
+                          ]}
                           value={component.component_type}
-                          onChange={(e) => updateComponent(index, 'component_type', e.target.value)}
-                          className="input w-full"
-                        >
-                          <option value="">Select type</option>
-                          <option value="Civil">Civil</option>
-                          <option value="Electrical">Electrical</option>
-                          <option value="Mechanical">Mechanical</option>
-                          <option value="Plumbing">Plumbing</option>
-                          <option value="HVAC">HVAC</option>
-                          <option value="Structural">Structural</option>
-                          <option value="Other">Other</option>
-                        </select>
+                          onChange={(value) => updateComponent(index, 'component_type', value.toString())}
+                          placeholder="Select type"
+                          searchPlaceholder="Search types..."
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Component Status */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Status
-                        </label>
-                        <select
+                        <SearchableDropdown
+                          label="Status"
+                          options={[
+                            { value: 'PLANNED', label: 'Planned' },
+                            { value: 'IN_PROGRESS', label: 'In Progress' },
+                            { value: 'COMPLETED', label: 'Completed' },
+                            { value: 'ON_HOLD', label: 'On Hold' },
+                            { value: 'CANCELLED', label: 'Cancelled' }
+                          ]}
                           value={component.status}
-                          onChange={(e) => updateComponent(index, 'status', e.target.value)}
-                          className="input w-full"
-                        >
-                          <option value="PLANNED">Planned</option>
-                          <option value="IN_PROGRESS">In Progress</option>
-                          <option value="COMPLETED">Completed</option>
-                          <option value="ON_HOLD">On Hold</option>
-                          <option value="CANCELLED">Cancelled</option>
-                        </select>
+                          onChange={(value) => updateComponent(index, 'status', value.toString())}
+                          placeholder="Select status"
+                          searchPlaceholder="Search status..."
+                          className="w-full"
+                        />
                       </div>
 
                       {/* Estimated Cost */}

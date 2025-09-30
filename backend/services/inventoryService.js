@@ -25,37 +25,95 @@ class InventoryService {
       reference_number,
       description,
       location,
-      performed_by_user_id
+      performed_by_user_id,
+      warehouse_id
     } = transactionData;
 
     // Start a transaction to ensure data consistency
     const transaction = await Material.sequelize.transaction();
 
     try {
-      // Get current material
-      const material = await Material.findByPk(material_id, { transaction });
-      if (!material) {
-        throw new Error(`Material with ID ${material_id} not found`);
+      let material;
+      let quantity_before;
+      let quantity_after;
+
+      if (warehouse_id) {
+        // For transactions with warehouse_id, find the material in that specific warehouse
+        material = await Material.findOne({
+          where: {
+            material_id: material_id,
+            warehouse_id: warehouse_id
+          },
+          transaction
+        });
+
+        if (!material) {
+          // If material doesn't exist in this warehouse, find the original material and create a copy in the warehouse
+          const originalMaterial = await Material.findByPk(material_id, { transaction });
+          if (!originalMaterial) {
+            throw new Error(`Material with ID ${material_id} not found`);
+          }
+
+          // Create a new material record in the target warehouse
+          material = await Material.create({
+            name: originalMaterial.name,
+            item_id: originalMaterial.item_id,
+            warehouse_id: warehouse_id,
+            stock_qty: 0,
+            unit: originalMaterial.unit,
+            status: 'ACTIVE',
+            category: originalMaterial.category,
+            brand: originalMaterial.brand,
+            size: originalMaterial.size,
+            type: originalMaterial.type,
+            color: originalMaterial.color,
+            cost_per_unit: originalMaterial.cost_per_unit,
+            supplier: originalMaterial.supplier,
+            minimum_stock_level: originalMaterial.minimum_stock_level,
+            maximum_stock_level: originalMaterial.maximum_stock_level,
+            reorder_point: originalMaterial.reorder_point,
+            location: originalMaterial.location
+          }, { transaction });
+        }
+
+        quantity_before = material.stock_qty;
+        quantity_after = quantity_before + quantity_change;
+
+        // Check if the transaction would result in negative stock
+        if (quantity_after < 0) {
+          throw new Error(`Insufficient stock in warehouse. Available: ${quantity_before}, Requested: ${Math.abs(quantity_change)}`);
+        }
+
+        // Update material stock in specific warehouse
+        await material.update(
+          { stock_qty: quantity_after },
+          { transaction }
+        );
+      } else {
+        // For transactions without warehouse_id, use the original logic
+        material = await Material.findByPk(material_id, { transaction });
+        if (!material) {
+          throw new Error(`Material with ID ${material_id} not found`);
+        }
+
+        quantity_before = material.stock_qty;
+        quantity_after = quantity_before + quantity_change;
+
+        // Check if the transaction would result in negative stock
+        if (quantity_after < 0) {
+          throw new Error(`Insufficient stock. Available: ${quantity_before}, Requested: ${Math.abs(quantity_change)}`);
+        }
+
+        // Update material stock
+        await material.update(
+          { stock_qty: quantity_after },
+          { transaction }
+        );
       }
-
-      // Calculate new stock quantity
-      const quantity_before = material.stock_qty;
-      const quantity_after = quantity_before + quantity_change;
-
-      // Check if the transaction would result in negative stock
-      if (quantity_after < 0) {
-        throw new Error(`Insufficient stock. Available: ${quantity_before}, Requested: ${Math.abs(quantity_change)}`);
-      }
-
-      // Update material stock
-      await material.update(
-        { stock_qty: quantity_after },
-        { transaction }
-      );
 
       // Create inventory history record
       const historyRecord = await InventoryHistory.create({
-        material_id,
+        material_id: material.material_id,
         project_id,
         transaction_type,
         transaction_id,

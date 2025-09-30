@@ -423,9 +423,11 @@ const MrrFlowComponent: React.FC = () => {
                           setNewStatus(mrr.status);
                           setShowStatusModal(true); 
                         }}
-                        className="btn btn-warning text-sm"
+                        className="btn btn-ghost btn-sm p-2"
+                        title="Change Status"
+                        aria-label="Change Status"
                       >
-                        Change Status
+                        <span role="img" aria-hidden="true">🔄</span>
                       </button>
                     )}
                   </div>

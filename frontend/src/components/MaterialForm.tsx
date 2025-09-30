@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { materialsAPI } from '../services/api';
+import { materialsAPI, materialManagementAPI } from '../services/api';
+import SearchableDropdown from './SearchableDropdown';
 
 interface Material {
   material_id: number;
@@ -133,6 +134,39 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
     }
   }, [material, projectId]);
 
+  // Reset form when modal opens for new material
+  useEffect(() => {
+    if (isOpen && !material) {
+      setFormData({
+        name: '',
+        item_id: '',
+        item_code: '',
+        additional_specification: '',
+        category: '',
+        brand: '',
+        color: '',
+        size: '',
+        type: '',
+        unit: '',
+        cost_per_unit: '',
+        supplier: '',
+        stock_qty: '',
+        minimum_stock_level: '',
+        maximum_stock_level: '',
+        reorder_point: '',
+        location: '',
+        warehouse_id: '',
+        status: 'ACTIVE',
+        project_id: projectId?.toString() || ''
+      });
+      setSelectedItemId(null);
+      setItemSearchQuery('');
+      setShowItemSearch(false);
+      setSearchResults([]);
+      setError(null);
+    }
+  }, [isOpen, material, projectId]);
+
   // Fetch master data when component mounts
   useEffect(() => {
     if (isOpen) {
@@ -142,10 +176,20 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
 
   const fetchMasterData = async () => {
     try {
-      const response = await materialsAPI.getMasterData();
-      setMasterData(response.data);
+      // Fetch general master data and active warehouses in parallel
+      const [masterRes, warehousesRes] = await Promise.all([
+        materialsAPI.getMasterData(),
+        materialManagementAPI.getWarehouses()
+      ]);
+
+      const warehouses = warehousesRes.data?.warehouses || [];
+      setMasterData({
+        ...(masterRes.data || {}),
+        warehouses
+      });
     } catch (err) {
       console.error('Error fetching master data:', err);
+      // Fail-safe: still set master data if one of the calls succeeded previously
     }
   };
 
@@ -243,7 +287,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         minimum_stock_level: formData.minimum_stock_level ? parseInt(formData.minimum_stock_level) : 0,
         maximum_stock_level: formData.maximum_stock_level ? parseInt(formData.maximum_stock_level) : 1000,
         reorder_point: formData.reorder_point ? parseInt(formData.reorder_point) : 0,
-        project_id: formData.project_id ? parseInt(formData.project_id.toString()) : null
+        project_id: formData.project_id ? parseInt(formData.project_id.toString()) : null,
+        warehouse_id: formData.warehouse_id ? parseInt(formData.warehouse_id) : null
       };
 
       // Remove empty string fields and null values to avoid validation issues
@@ -264,7 +309,14 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || `Failed to ${material ? 'update' : 'create'} material`);
+      const errorMessage = err.response?.data?.message || `Failed to ${material ? 'update' : 'create'} material`;
+      setError(errorMessage);
+      
+      // If it's a duplicate error, highlight the name field
+      if (err.response?.data?.field === 'name') {
+        // You could add visual highlighting here if needed
+        console.log('Duplicate material name detected');
+      }
     } finally {
       setLoading(false);
     }
@@ -383,41 +435,33 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
-              <select
-                name="category"
+              <SearchableDropdown
+                label="Category"
+                options={masterData?.categories?.map(category => ({
+                  value: category.category_name,
+                  label: category.category_name
+                })) || []}
                 value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select Category</option>
-                {masterData?.categories.map((category) => (
-                  <option key={category.category_id} value={category.category_name}>
-                    {category.category_name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, category: value as string }))}
+                placeholder="Select Category"
+                searchPlaceholder="Search categories..."
+                className="w-full"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Brand
-              </label>
-              <select
-                name="brand"
+              <SearchableDropdown
+                label="Brand"
+                options={masterData?.brands?.map(brand => ({
+                  value: brand.brand_name,
+                  label: brand.brand_name
+                })) || []}
                 value={formData.brand}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select Brand</option>
-                {masterData?.brands.map((brand) => (
-                  <option key={brand.brand_id} value={brand.brand_name}>
-                    {brand.brand_name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, brand: value as string }))}
+                placeholder="Select Brand"
+                searchPlaceholder="Search brands..."
+                className="w-full"
+              />
             </div>
           </div>
 
@@ -465,22 +509,19 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Unit
-              </label>
-              <select
-                name="unit"
+              <SearchableDropdown
+                label="Unit"
+                options={masterData?.units?.map(unit => ({
+                  value: unit.unit_name,
+                  label: `${unit.unit_name} (${unit.unit_symbol})`,
+                  searchText: `${unit.unit_name} ${unit.unit_symbol}`
+                })) || []}
                 value={formData.unit}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select Unit</option>
-                {masterData?.units.map((unit) => (
-                  <option key={unit.unit_id} value={unit.unit_name}>
-                    {unit.unit_name} ({unit.unit_symbol})
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData(prev => ({ ...prev, unit: value as string }))}
+                placeholder="Select Unit"
+                searchPlaceholder="Search units..."
+                className="w-full"
+              />
             </div>
 
             <div>
@@ -500,28 +541,37 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Supplier
-            </label>
-            <select
-              name="supplier"
-              value={formData.supplier}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select Supplier</option>
-              {/* Show item-specific suppliers if available, otherwise show all suppliers */}
-              {(masterData?.itemSuppliers && masterData.itemSuppliers.length > 0 ? 
+            <SearchableDropdown
+              label="Supplier"
+              options={(masterData?.itemSuppliers && masterData.itemSuppliers.length > 0 ? 
                 masterData.itemSuppliers : 
                 masterData?.suppliers || []
-              ).map((supplier) => (
-                <option key={supplier.supplier_id} value={supplier.supplier_name}>
-                  {supplier.supplier_name}
-                  {masterData?.itemSuppliers && 'is_preferred' in supplier && supplier.is_preferred && ' (Preferred)'}
-                  {masterData?.itemSuppliers && 'cost_per_unit' in supplier && supplier.cost_per_unit && ` - $${supplier.cost_per_unit}`}
-                </option>
-              ))}
-            </select>
+              ).map((supplier) => ({
+                value: supplier.supplier_name,
+                label: `${supplier.supplier_name}${masterData?.itemSuppliers && 'is_preferred' in supplier && supplier.is_preferred ? ' (Preferred)' : ''}${masterData?.itemSuppliers && 'cost_per_unit' in supplier && supplier.cost_per_unit ? ` - $${supplier.cost_per_unit}` : ''}`,
+                searchText: supplier.supplier_name
+              }))}
+              value={formData.supplier}
+              onChange={(value) => {
+                const supplierName = value as string;
+                setFormData(prev => ({ ...prev, supplier: supplierName }));
+                
+                // Auto-populate cost per unit when supplier is selected from item-specific suppliers
+                if (masterData?.itemSuppliers) {
+                  const selectedSupplier = masterData.itemSuppliers.find(s => s.supplier_name === supplierName);
+                  if (selectedSupplier && selectedSupplier.cost_per_unit) {
+                    setFormData(prev => ({
+                      ...prev,
+                      supplier: supplierName,
+                      cost_per_unit: selectedSupplier.cost_per_unit.toString()
+                    }));
+                  }
+                }
+              }}
+              placeholder="Select Supplier"
+              searchPlaceholder="Search suppliers..."
+              className="w-full"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -553,22 +603,19 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Warehouse
-            </label>
-            <select
-              name="warehouse_id"
+            <SearchableDropdown
+              label="Warehouse"
+              options={masterData?.warehouses?.map(warehouse => ({
+                value: warehouse.warehouse_id.toString(),
+                label: warehouse.warehouse_name,
+                searchText: warehouse.warehouse_name
+              })) || []}
               value={formData.warehouse_id}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select Warehouse</option>
-              {masterData?.warehouses?.map((warehouse) => (
-                <option key={warehouse.warehouse_id} value={warehouse.warehouse_id}>
-                  {warehouse.warehouse_name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFormData(prev => ({ ...prev, warehouse_id: value as string }))}
+              placeholder="Select Warehouse"
+              searchPlaceholder="Search warehouses..."
+              className="w-full"
+            />
           </div>
           </div>
 
@@ -617,19 +664,19 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Status
-            </label>
-            <select
-              name="status"
+            <SearchableDropdown
+              label="Status"
+              options={[
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'INACTIVE', label: 'Inactive' },
+                { value: 'DISCONTINUED', label: 'Discontinued' }
+              ]}
               value={formData.status}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="DISCONTINUED">Discontinued</option>
-            </select>
+              onChange={(value) => setFormData(prev => ({ ...prev, status: value as string }))}
+              placeholder="Select Status"
+              searchPlaceholder="Search status..."
+              className="w-full"
+            />
           </div>
 
           <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200">

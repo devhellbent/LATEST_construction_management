@@ -148,6 +148,7 @@ MaterialIssue.belongsTo(User, { foreignKey: 'created_by', as: 'created_by_user' 
 MaterialIssue.belongsTo(User, { foreignKey: 'updated_by', as: 'updated_by_user' });
 MaterialIssue.belongsTo(ProjectComponent, { foreignKey: 'component_id', as: 'component' });
 MaterialIssue.belongsTo(Subcontractor, { foreignKey: 'subcontractor_id', as: 'subcontractor' });
+MaterialIssue.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
 
 // InventoryHistory associations
 InventoryHistory.belongsTo(Material, { foreignKey: 'material_id', as: 'material' });

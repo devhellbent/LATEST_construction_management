@@ -148,7 +148,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-        <div className="relative sidebar-container w-72 bg-white/95 backdrop-blur-md h-full shadow-2xl">
+        <div className="relative sidebar-container w-72 bg-white/95 backdrop-blur-md h-full shadow-2xl flex flex-col">
           <div className="flex h-20 items-center justify-between px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
@@ -166,7 +166,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="sidebar-nav">
+          <div className="sidebar-nav flex-1 overflow-y-auto">
             <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -227,12 +227,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             })}
             </nav>
           </div>
+          <div className="px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs">
+            <p>Made with <span className="text-danger-500">❤️</span> at</p>
+            <p className="font-semibold text-slate-700">Hellbent Software & Educational Services LLP</p>
+          </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-        <div className="sidebar-container bg-white/95 backdrop-blur-md border-r border-slate-200/50 shadow-lg">
+        <div className="sidebar-container bg-white/95 backdrop-blur-md border-r border-slate-200/50 shadow-lg flex flex-col h-full">
           <div className="flex h-20 items-center px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
@@ -244,7 +248,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
           </div>
-          <div className="sidebar-nav">
+          <div className="sidebar-nav flex-1 overflow-y-auto">
             <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -302,6 +306,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               );
             })}
             </nav>
+          </div>
+          <div className="px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs">
+            <p>Made with <span className="text-danger-500">❤️</span> at</p>
+            <p className="font-semibold text-slate-700">Hellbent Software & Educational Services LLP</p>
           </div>
         </div>
       </div>

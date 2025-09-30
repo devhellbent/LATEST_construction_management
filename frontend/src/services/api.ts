@@ -148,6 +148,8 @@ export const projectsAPI = {
     api.get(`/projects/${id}/stats`),
   getProjectComponents: (projectId: number) =>
     api.get(`/projects/${projectId}/components`),
+  getProjectSubcontractors: (projectId: number) =>
+    api.get(`/subcontractors/project/${projectId}`),
 };
 
 // Tasks API

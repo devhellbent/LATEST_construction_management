@@ -7,6 +7,7 @@ import {
   User
 } from 'lucide-react';
 import { purchaseOrdersAPI, projectsAPI, suppliersAPI, mrrAPI, materialManagementAPI, subcontractorsAPI } from '../services/api';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 interface Project {
   project_id: number;
@@ -147,10 +148,10 @@ const CreatePurchaseOrder: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (mrrId) {
+    if (mrrId && projects.length > 0) {
       fetchMRRData();
     }
-  }, [mrrId]);
+  }, [mrrId, projects]);
 
   const fetchInitialData = async () => {
     try {
@@ -237,6 +238,13 @@ const CreatePurchaseOrder: React.FC = () => {
       }
 
       // Pre-fill form with MRR data after components and subcontractors are loaded
+      console.log('Prefilling form with MRR data:', {
+        mrr_id: mrrId,
+        project_id: mrrData.project_id?.toString() || '',
+        component_id: mrrData.component_id?.toString() || '',
+        subcontractor_id: mrrData.subcontractor_id?.toString() || ''
+      });
+      
       setFormData(prev => ({
         ...prev,
         mrr_id: mrrId,
@@ -527,28 +535,33 @@ const CreatePurchaseOrder: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 MRR (Optional)
               </label>
-              <select
-                name="mrr_id"
+              {mrrId ? (
+                <input
+                  type="text"
+                  value={mrrs.find(m => m.mrr_id.toString() === formData.mrr_id)?.mrr_number || formData.mrr_id}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-900"
+                  readOnly
+                />
+              ) : (
+                <SearchableDropdown
+                options={mrrs.filter(mrr => mrr.status === 'APPROVED').map((mrr) => ({
+                  value: mrr.mrr_id.toString(),
+                  label: `${mrr.mrr_number} - ${mrr.project?.name || 'Unknown Project'}`,
+                  searchText: `${mrr.mrr_number} ${mrr.project?.name || 'Unknown Project'}`
+                }))}
                 value={formData.mrr_id}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  handleMrrSelect(e.target.value);
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, mrr_id: value.toString() }));
+                  handleMrrSelect(value.toString());
                 }}
-                disabled={!!mrrId}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                  mrrId ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-              >
-                <option value="">Select MRR (Optional)</option>
-                {mrrs.filter(mrr => mrr.status === 'APPROVED').map((mrr) => (
-                  <option key={mrr.mrr_id} value={mrr.mrr_id}>
-                    {mrr.mrr_number} - {mrr.project.name}
-                  </option>
-                ))}
-              </select>
+                  placeholder="Select MRR (Optional)"
+                  searchPlaceholder="Search MRRs..."
+                  className="w-full"
+                />
+              )}
               {mrrId && (
                 <p className="mt-1 text-sm text-gray-500">
-                  MRR is pre-filled from the link and cannot be changed
+                  Prefilled from MRR link
                 </p>
               )}
             </div>
@@ -557,27 +570,32 @@ const CreatePurchaseOrder: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Project
               </label>
-              <select
-                name="project_id"
+              {mrr ? (
+                <input
+                  type="text"
+                  value={projects.find(p => p.project_id.toString() === formData.project_id)?.name || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-900"
+                  readOnly
+                />
+              ) : (
+                <SearchableDropdown
+                options={projects.map((project) => ({
+                  value: project.project_id.toString(),
+                  label: project.name,
+                  searchText: project.name
+                }))}
                 value={formData.project_id}
-                onChange={(e) => {
-                  handleInputChange(e);
-                  if (e.target.value) {
-                    loadComponents(parseInt(e.target.value));
-                    // Clear subcontractor when project changes
-                    setFormData(prev => ({ ...prev, subcontractor_id: '' }));
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, project_id: value.toString(), subcontractor_id: '' }));
+                  if (value) {
+                    loadComponents(parseInt(value.toString()));
                   }
                 }}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
-                disabled={!!mrr}
-              >
-                <option value="">Select Project (Optional)</option>
-                {projects.map((project) => (
-                  <option key={project.project_id} value={project.project_id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                  placeholder="Select Project (Optional)"
+                  searchPlaceholder="Search projects..."
+                  className="w-full"
+                />
+              )}
               {mrr && (
                 <p className="mt-1 text-sm text-gray-500">Prefilled from MRR</p>
               )}
@@ -587,21 +605,29 @@ const CreatePurchaseOrder: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Project Component
               </label>
-              <select
-                name="component_id"
+              {mrr && formData.component_id ? (
+                <input
+                  type="text"
+                  value={components.find(c => c.component_id.toString() === formData.component_id)?.component_name || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-900"
+                  readOnly
+                />
+              ) : (
+                <SearchableDropdown
+                options={components.map((component) => ({
+                  value: component.component_id.toString(),
+                  label: `${component.component_name}${component.component_type ? ` (${component.component_type})` : ''}`,
+                  searchText: `${component.component_name} ${component.component_type || ''}`
+                }))}
                 value={formData.component_id}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
-                disabled={!formData.project_id || !!mrr}
-              >
-                <option value="">Select Component (Optional)</option>
-                {components.map((component) => (
-                  <option key={component.component_id} value={component.component_id}>
-                    {component.component_name} {component.component_type && `(${component.component_type})`}
-                  </option>
-                ))}
-              </select>
-              {!formData.project_id && (
+                onChange={(value) => setFormData(prev => ({ ...prev, component_id: value.toString() }))}
+                  placeholder="Select Component (Optional)"
+                  searchPlaceholder="Search components..."
+                  className="w-full"
+                  disabled={!formData.project_id || !!mrr}
+                />
+              )}
+              {!formData.project_id && !mrr && (
                 <p className="mt-1 text-sm text-gray-500">Please select a project first</p>
               )}
               {mrr && (
@@ -613,23 +639,31 @@ const CreatePurchaseOrder: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Subcontractor
               </label>
-              <select
-                name="subcontractor_id"
-                value={formData.subcontractor_id}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${mrr ? 'bg-gray-100' : ''}`}
-                disabled={!!mrr || !formData.project_id}
-              >
-                <option value="">Select Subcontractor (Optional)</option>
-                {subcontractors
+              {mrr && formData.subcontractor_id ? (
+                <input
+                  type="text"
+                  value={subcontractors.find(s => s.subcontractor_id.toString() === formData.subcontractor_id)?.company_name || ''}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-900"
+                  readOnly
+                />
+              ) : (
+                <SearchableDropdown
+                options={subcontractors
                   .filter(sub => sub.project_id === parseInt(formData.project_id))
-                  .map((subcontractor) => (
-                  <option key={subcontractor.subcontractor_id} value={subcontractor.subcontractor_id}>
-                    {subcontractor.company_name} {subcontractor.work_type && `(${subcontractor.work_type})`}
-                  </option>
-                ))}
-              </select>
-              {!formData.project_id && (
+                  .map((subcontractor) => ({
+                    value: subcontractor.subcontractor_id.toString(),
+                    label: `${subcontractor.company_name}${subcontractor.work_type ? ` (${subcontractor.work_type})` : ''}`,
+                    searchText: `${subcontractor.company_name} ${subcontractor.work_type || ''}`
+                  }))}
+                value={formData.subcontractor_id}
+                onChange={(value) => setFormData(prev => ({ ...prev, subcontractor_id: value.toString() }))}
+                  placeholder="Select Subcontractor (Optional)"
+                  searchPlaceholder="Search subcontractors..."
+                  className="w-full"
+                  disabled={!!mrr || !formData.project_id}
+                />
+              )}
+              {!formData.project_id && !mrr && (
                 <p className="mt-1 text-sm text-gray-500">Please select a project first</p>
               )}
               {mrr && (
@@ -641,20 +675,19 @@ const CreatePurchaseOrder: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Supplier <span className="text-red-500">*</span>
               </label>
-              <select
-                name="supplier_id"
+              <SearchableDropdown
+                options={suppliers.map((supplier) => ({
+                  value: supplier.supplier_id.toString(),
+                  label: `${supplier.supplier_name} - ${supplier.contact_person}`,
+                  searchText: `${supplier.supplier_name} ${supplier.contact_person}`
+                }))}
                 value={formData.supplier_id}
-                onChange={handleInputChange}
+                onChange={(value) => setFormData(prev => ({ ...prev, supplier_id: value.toString() }))}
+                placeholder="Select Supplier"
+                searchPlaceholder="Search suppliers..."
+                className="w-full"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select Supplier</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.supplier_id} value={supplier.supplier_id}>
-                    {supplier.supplier_name} - {supplier.contact_person}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>
@@ -750,19 +783,19 @@ const CreatePurchaseOrder: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Item <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={item.item_id}
-                      onChange={(e) => handleItemSelect(index, parseInt(e.target.value))}
+                    <SearchableDropdown
+                      options={itemsWithUnits.map((it) => ({
+                        value: it.item_id.toString(),
+                        label: `${it.item_name} (${it.item_code}) - ${it.unit_symbol}`,
+                        searchText: `${it.item_name} ${it.item_code} ${it.unit_symbol}`
+                      }))}
+                      value={item.item_id.toString()}
+                      onChange={(value) => handleItemSelect(index, parseInt(value.toString()))}
+                      placeholder="Select Item"
+                      searchPlaceholder="Search items..."
+                      className="w-full"
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value={0}>Select Item</option>
-                      {itemsWithUnits.map((it) => (
-                        <option key={it.item_id} value={it.item_id}>
-                          {it.item_name} ({it.item_code}) - {it.unit_symbol}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div>

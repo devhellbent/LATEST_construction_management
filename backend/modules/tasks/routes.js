@@ -132,8 +132,10 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const canCreateTask = req.user.role.name === 'Admin' || 
-                         req.user.role.name === 'Project Manager' || 
+    // Some auth middlewares attach role as string, others as object; support both
+    const userRole = typeof req.user.role === 'string' ? req.user.role : req.user.role?.name;
+    const canCreateTask = userRole === 'Admin' || 
+                         userRole === 'Project Manager' || 
                          project.owner_user_id === req.user.user_id;
 
     if (!canCreateTask) {
@@ -187,8 +189,9 @@ router.put('/:id', authenticateToken, [
     }
 
     // Check permissions
-    const canUpdate = req.user.role.name === 'Admin' || 
-                     req.user.role.name === 'Project Manager' || 
+    const userRoleForUpdate = typeof req.user.role === 'string' ? req.user.role : req.user.role?.name;
+    const canUpdate = userRoleForUpdate === 'Admin' || 
+                     userRoleForUpdate === 'Project Manager' || 
                      task.project.owner_user_id === req.user.user_id ||
                      task.assigned_user_id === req.user.user_id;
 
@@ -220,8 +223,9 @@ router.delete('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manage
     }
 
     // Check permissions
-    const canDelete = req.user.role.name === 'Admin' || 
-                     req.user.role.name === 'Project Manager' ||
+    const userRoleForDelete = typeof req.user.role === 'string' ? req.user.role : req.user.role?.name;
+    const canDelete = userRoleForDelete === 'Admin' || 
+                     userRoleForDelete === 'Project Manager' ||
                      task.project.owner_user_id === req.user.user_id;
 
     if (!canDelete) {

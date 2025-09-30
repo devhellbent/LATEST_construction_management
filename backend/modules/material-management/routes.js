@@ -6,7 +6,7 @@ const {
   Material, Project, ItemCategory, Brand, Unit, Supplier, ItemMaster, ItemSupplier,
   MaterialIssue, MaterialReturn, MaterialConsumption, InventoryHistory,
   MaterialRequirementRequest, MrrItem, PurchaseOrder, PurchaseOrderItem, 
-  MaterialReceipt, MaterialReceiptItem, SupplierLedger, User, Warehouse
+  MaterialReceipt, MaterialReceiptItem, SupplierLedger, User, Warehouse, Subcontractor
 } = require('../../models');
 const { authenticateToken, authorizeRoles } = require('../../middleware/auth');
 const InventoryService = require('../../services/inventoryService');
@@ -319,11 +319,20 @@ router.get('/issues', authenticateToken, async (req, res) => {
     const { count, rows: issues } = await MaterialIssue.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['material_id', 'name', 'type', 'unit'],
+          include: [
+            { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name', 'address'] }
+          ]
+        },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
         { model: User, as: 'issued_by', foreignKey: 'issued_by_user_id', attributes: ['user_id', 'name'] },
         { model: User, as: 'received_by', foreignKey: 'received_by_user_id', attributes: ['user_id', 'name'] },
-        { model: MaterialRequirementRequest, as: 'mrr', attributes: ['mrr_id', 'mrr_number'] }
+        { model: MaterialRequirementRequest, as: 'mrr', attributes: ['mrr_id', 'mrr_number'] },
+        { model: Subcontractor, as: 'subcontractor', attributes: ['subcontractor_id', 'company_name', 'work_type'] },
+        { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name', 'address'] }
       ],
       limit,
       offset,
@@ -356,6 +365,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
   body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
   body('is_for_mrr').optional().isBoolean(),
   body('mrr_id').optional().isInt(),
+  body('warehouse_id').optional().isInt().withMessage('Warehouse ID must be an integer'),
   body('issue_purpose').optional().trim()
 ], async (req, res) => {
   try {
@@ -367,7 +377,7 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
     const { 
       project_id, material_id, quantity_issued, issue_date, location, 
       issued_by_user_id, received_by_user_id, is_for_mrr, mrr_id, issue_purpose,
-      component_id, subcontractor_id
+      component_id, subcontractor_id, warehouse_id
     } = req.body;
 
     // Validate MRR requirement
@@ -396,14 +406,27 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
     }
 
     // Verify material exists and check stock
-    const material = await Material.findByPk(material_id);
-    if (!material) {
-      return res.status(404).json({ message: 'Material not found' });
+    let material;
+    if (warehouse_id) {
+      // Check stock in specific warehouse
+      material = await Material.findOne({
+        where: { material_id, warehouse_id }
+      });
+      if (!material) {
+        return res.status(404).json({ message: 'Material not found in specified warehouse' });
+      }
+    } else {
+      // Check overall stock
+      material = await Material.findByPk(material_id);
+      if (!material) {
+        return res.status(404).json({ message: 'Material not found' });
+      }
     }
     
     if (material.stock_qty < quantity_issued) {
+      const warehouseInfo = warehouse_id ? ' in specified warehouse' : '';
       return res.status(400).json({ 
-        message: `Insufficient stock for ${material.name}. Available: ${material.stock_qty}, Requested: ${quantity_issued}` 
+        message: `Insufficient stock for ${material.name}${warehouseInfo}. Available: ${material.stock_qty}, Requested: ${quantity_issued}` 
       });
     }
 
@@ -429,7 +452,8 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
       status: 'PENDING',
       mrr_id: is_for_mrr ? mrr_id : null,
       component_id: component_id || null,
-      subcontractor_id: subcontractor_id || null
+      subcontractor_id: subcontractor_id || null,
+      warehouse_id: warehouse_id || null
     });
 
     // Record inventory transaction
@@ -442,7 +466,8 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
       reference_number: `ISSUE-${materialIssue.issue_id}`,
       description: `Material issued: ${issue_purpose || 'No description'}`,
       location,
-      performed_by_user_id: req.user.user_id
+      performed_by_user_id: req.user.user_id,
+      warehouse_id
     });
 
     // Emit socket event
@@ -666,7 +691,8 @@ router.post('/returns', authenticateToken, authorizeRoles('Admin', 'Project Mana
       reference_number: `RETURN-${materialReturn.return_id}`,
       description: `Material returned: ${return_reason || 'No description'}`,
       location: location,
-      performed_by_user_id: req.user.user_id
+      performed_by_user_id: req.user.user_id,
+      warehouse_id: warehouse_id
     });
 
     // Emit socket event
@@ -721,7 +747,8 @@ router.put('/returns/:id', authenticateToken, authorizeRoles('Admin', 'Project M
         reference_number: `RETURN-UPDATE-${materialReturn.return_id}`,
         description: 'Material return quantity updated',
         location: 'Store',
-        performed_by_user_id: req.user.user_id
+        performed_by_user_id: req.user.user_id,
+        warehouse_id: materialReturn.warehouse_id
       });
     }
 

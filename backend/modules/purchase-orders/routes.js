@@ -204,6 +204,13 @@ router.get('/', authenticateToken, [
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id, {
+      attributes: [
+        'po_id', 'po_number', 'mrr_id', 'project_id', 'supplier_id', 'po_date', 
+        'expected_delivery_date', 'actual_delivery_date', 'status', 'subtotal', 
+        'tax_amount', 'total_amount', 'payment_terms', 'delivery_terms', 
+        'created_by_user_id', 'approved_by_user_id', 'approved_at', 'notes', 
+        'component_id', 'subcontractor_id', 'created_at', 'updated_at'
+      ],
       include: [
         { 
           model: Project, 
@@ -256,6 +263,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
         { model: PurchaseOrderItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code', 'description', 'specifications'] },
           { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }
+        ], attributes: [
+          'po_item_id', 'item_id', 'quantity_ordered', 'unit_id', 'unit_price', 'total_price', 
+          'quantity_received', 'specifications', 'notes', 'cgst_rate', 'sgst_rate', 'igst_rate', 
+          'cgst_amount', 'sgst_amount', 'igst_amount', 'size'
         ]}
       ]
     });
@@ -647,6 +658,7 @@ router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin'), asy
 
 // Update Purchase Order
 router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+  body('mrr_id').optional().isInt().withMessage('MRR ID must be an integer'),
   body('project_id').custom((value) => {
     if (value === null || value === undefined || value === '') {
       return true; // Allow null/empty values
@@ -656,11 +668,22 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager')
     }
     return true;
   }),
+  body('component_id').optional().isInt().withMessage('Component ID must be an integer'),
+  body('subcontractor_id').optional().isInt().withMessage('Subcontractor ID must be an integer'),
   body('supplier_id').optional().isInt().withMessage('Supplier ID must be an integer'),
   body('expected_delivery_date').optional().isISO8601().withMessage('Expected delivery date must be a valid date'),
   body('payment_terms').optional().trim(),
   body('delivery_terms').optional().trim(),
-  body('notes').optional().trim()
+  body('notes').optional().trim(),
+  body('items').optional().isArray().withMessage('Items must be an array'),
+  body('items.*.item_id').optional().isInt().withMessage('Item ID must be an integer'),
+  body('items.*.quantity_ordered').optional().isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
+  body('items.*.unit_price').optional().isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
+  body('items.*.specifications').optional().trim(),
+  body('items.*.cgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('CGST rate must be between 0 and 100'),
+  body('items.*.sgst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('SGST rate must be between 0 and 100'),
+  body('items.*.igst_rate').optional().isFloat({ min: 0, max: 100 }).withMessage('IGST rate must be between 0 and 100'),
+  body('items.*.size').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -677,13 +700,81 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager')
       return res.status(400).json({ message: 'Only draft Purchase Orders can be updated' });
     }
 
-    // Handle optional project_id - convert empty string to null
-    const updateData = { ...req.body };
+    // Handle optional fields - convert empty strings to null
+    const { items, ...updateData } = req.body;
+    if (updateData.mrr_id === '' || updateData.mrr_id === undefined) {
+      updateData.mrr_id = null;
+    }
     if (updateData.project_id === '' || updateData.project_id === undefined) {
       updateData.project_id = null;
     }
+    if (updateData.component_id === '' || updateData.component_id === undefined) {
+      updateData.component_id = null;
+    }
+    if (updateData.subcontractor_id === '' || updateData.subcontractor_id === undefined) {
+      updateData.subcontractor_id = null;
+    }
 
     await purchaseOrder.update(updateData);
+
+    // Handle items update if provided
+    if (items && Array.isArray(items)) {
+      // Delete existing items
+      await PurchaseOrderItem.destroy({
+        where: { po_id: purchaseOrder.po_id }
+      });
+
+      // Create new items
+      if (items.length > 0) {
+        const itemsData = items.map(item => {
+          const total_price = item.unit_price * item.quantity_ordered;
+          const cgstRate = item.cgst_rate || 0;
+          const sgstRate = item.sgst_rate || 0;
+          const igstRate = item.igst_rate || 0;
+          
+          return {
+            po_id: purchaseOrder.po_id,
+            item_id: item.item_id,
+            quantity_ordered: item.quantity_ordered,
+            unit_id: item.unit_id || 1, // Default unit if not provided
+            unit_price: item.unit_price,
+            total_price: total_price,
+            specifications: item.specifications || null,
+            cgst_rate: cgstRate,
+            sgst_rate: sgstRate,
+            igst_rate: igstRate,
+            cgst_amount: (total_price * cgstRate) / 100,
+            sgst_amount: (total_price * sgstRate) / 100,
+            igst_amount: (total_price * igstRate) / 100,
+            size: item.size || null
+          };
+        });
+
+        await PurchaseOrderItem.bulkCreate(itemsData);
+
+        // Update PO totals
+        const subtotal = await PurchaseOrderItem.sum('total_price', {
+          where: { po_id: purchaseOrder.po_id }
+        });
+        const totalCgstAmount = await PurchaseOrderItem.sum('cgst_amount', {
+          where: { po_id: purchaseOrder.po_id }
+        });
+        const totalSgstAmount = await PurchaseOrderItem.sum('sgst_amount', {
+          where: { po_id: purchaseOrder.po_id }
+        });
+        const totalIgstAmount = await PurchaseOrderItem.sum('igst_amount', {
+          where: { po_id: purchaseOrder.po_id }
+        });
+        const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
+        const totalAmount = subtotal + taxAmount;
+
+        await purchaseOrder.update({
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: totalAmount
+        });
+      }
+    }
 
     res.json({
       message: 'Purchase Order updated successfully',

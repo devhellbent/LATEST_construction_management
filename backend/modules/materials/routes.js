@@ -363,6 +363,24 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       delete cleanedData.item_code;
     }
 
+    // Check for duplicate material in the same warehouse
+    if (cleanedData.warehouse_id && cleanedData.name) {
+      const existingMaterial = await Material.findOne({
+        where: {
+          warehouse_id: cleanedData.warehouse_id,
+          name: cleanedData.name,
+          status: ['ACTIVE', 'INACTIVE'] // Check both active and inactive materials
+        }
+      });
+
+      if (existingMaterial) {
+        return res.status(400).json({ 
+          message: `A material with the name "${cleanedData.name}" already exists in this warehouse. Please choose a different name or select a different warehouse.`,
+          field: 'name'
+        });
+      }
+    }
+
     const material = await Material.create(cleanedData);
 
     res.status(201).json({
