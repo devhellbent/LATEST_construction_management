@@ -160,11 +160,11 @@ const Projects: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-responsive">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">Projects</h1>
-          <p className="text-lg text-slate-600 mt-2">Manage and track your construction projects</p>
+          <h1 className="text-responsive-3xl font-bold text-slate-900">Projects</h1>
+          <p className="text-responsive-base text-slate-600 mt-2">Manage and track your construction projects</p>
         </div>
         {isAdminOrManager() && (
           <button 
@@ -178,8 +178,8 @@ const Projects: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="card-mobile">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <div>
             <label className="label">Search Projects</label>
             <input
@@ -210,97 +210,97 @@ const Projects: React.FC = () => {
       
       {/* Projects Grid */}
       {projects.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {projects.map((project) => (
-            <div key={project.project_id} className="card-interactive p-6 group">
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-lg font-bold text-slate-900 line-clamp-2 group-hover:text-primary-600 transition-colors">{project.name}</h3>
-                <span className={`status-badge ${getStatusColor(project.status)}`}>
+            <div key={project.project_id} className="card-mobile group">
+              <div className="flex justify-between items-start mb-3 sm:mb-4">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 line-clamp-2 group-hover:text-primary-600 transition-colors pr-2">{project.name}</h3>
+                <span className={`status-badge ${getStatusColor(project.status)} text-xs`}>
                   {project.status.replace('_', ' ')}
                 </span>
               </div>
 
               {project.description && (
-                <p className="text-slate-600 text-sm mb-4 line-clamp-3">{project.description}</p>
+                <p className="text-slate-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-3">{project.description}</p>
               )}
 
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center text-sm text-slate-600">
-                  <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                    <User className="h-4 w-4 text-slate-500" />
+              <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
+                <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                   </div>
                   <div>
                     <span className="font-medium">{project.owner.name}</span>
                     <div className="flex items-center text-xs text-slate-500 mt-1">
                       <Mail className="h-3 w-3 mr-1" />
-                      {project.owner.email}
+                      <span className="truncate">{project.owner.email}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center text-sm text-slate-600">
-                    <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                      <Calendar className="h-4 w-4 text-slate-500" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                    <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                     </div>
                     <div>
                       <div className="text-xs text-slate-500">Start Date</div>
-                      <div className="font-medium">{formatDate(project.start_date)}</div>
+                      <div className="font-medium text-xs sm:text-sm">{formatDate(project.start_date)}</div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center text-sm text-slate-600">
-                    <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                      <Clock className="h-4 w-4 text-slate-500" />
+                  <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                    <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                     </div>
                     <div>
                       <div className="text-xs text-slate-500">End Date</div>
-                      <div className="font-medium">{formatDate(project.end_date)}</div>
+                      <div className="font-medium text-xs sm:text-sm">{formatDate(project.end_date)}</div>
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex items-center text-sm text-slate-600">
-                  <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                    <DollarSign className="h-4 w-4 text-slate-500" />
+                <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                   </div>
                   <div>
                     <div className="text-xs text-slate-500">Budget</div>
-                    <div className="font-medium text-lg">{formatCurrency(project.budget)}</div>
+                    <div className="font-medium text-sm sm:text-lg">{formatCurrency(project.budget)}</div>
                     {project.planned_budget && (
                       <div className="text-xs text-slate-500">Planned: {formatCurrency(project.planned_budget)}</div>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center text-sm text-slate-600">
-                  <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                    <AlertCircle className="h-4 w-4 text-slate-500" />
+                <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                    <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                   </div>
                   <div>
                     <div className="text-xs text-slate-500">Project ID</div>
-                    <div className="font-medium">#{project.project_id}</div>
+                    <div className="font-medium text-xs sm:text-sm">#{project.project_id}</div>
                   </div>
                 </div>
                 
-                <div className="flex items-center text-sm text-slate-600">
-                  <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-3">
-                    <Calendar className="h-4 w-4 text-slate-500" />
+                <div className="flex items-center text-xs sm:text-sm text-slate-600">
+                  <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                   </div>
                   <div>
                     <div className="text-xs text-slate-500">Created</div>
-                    <div className="font-medium">{formatDate(project.created_at)}</div>
+                    <div className="font-medium text-xs sm:text-sm">{formatDate(project.created_at)}</div>
                   </div>
                 </div>
               </div>
 
               {/* View Details Button */}
-              <div className="mt-4 pt-4 border-t border-slate-200">
+              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-slate-200">
                 <button
                   onClick={() => handleViewDetails(project.project_id)}
-                  className="w-full btn btn-outline-primary flex items-center justify-center group"
+                  className="w-full btn btn-outline-primary flex items-center justify-center group text-xs sm:text-sm"
                 >
-                  <Eye className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 group-hover:scale-110 transition-transform" />
                   View Details
                 </button>
               </div>
@@ -308,13 +308,13 @@ const Projects: React.FC = () => {
           ))}
         </div>
       ) : (
-        <div className="card p-12">
+        <div className="card-mobile">
           <div className="text-center">
-            <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <FolderOpen className="h-10 w-10 text-slate-400" />
+            <div className="h-16 w-16 sm:h-20 sm:w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <FolderOpen className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">No Projects Found</h3>
-            <p className="text-slate-600 mb-6 max-w-md mx-auto">
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No Projects Found</h3>
+            <p className="text-slate-600 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">
               {searchTerm || statusFilter 
                 ? 'No projects match your current filters. Try adjusting your search criteria.' 
                 : 'Get started by creating your first construction project to begin tracking progress and managing resources.'

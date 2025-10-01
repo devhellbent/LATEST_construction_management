@@ -309,7 +309,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // Create material
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('item_id').optional().isInt().withMessage('Item ID must be an integer'),
   body('item_code').optional().trim().custom((value) => {
@@ -418,7 +418,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
 });
 
 // Update material
-router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('name').optional().trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('size').optional().trim(),
   body('type').optional().trim(),
@@ -481,7 +481,7 @@ router.delete('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manage
 // });
 
 // Update stock quantity
-router.patch('/:id/stock', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team'), [
+router.patch('/:id/stock', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
   body('quantity').isInt({ min: 0 }).withMessage('Quantity must be a non-negative integer'),
   body('operation').isIn(['add', 'set']).withMessage('Operation must be either "add" or "set"')
 ], async (req, res) => {

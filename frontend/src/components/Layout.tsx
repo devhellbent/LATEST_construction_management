@@ -148,15 +148,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-        <div className="relative sidebar-container w-72 bg-white/95 backdrop-blur-md h-full shadow-2xl flex flex-col">
-          <div className="flex h-20 items-center justify-between px-6 flex-shrink-0 border-b border-slate-200/50">
+        <div className="relative sidebar-container w-80 sm:w-72 bg-white/95 backdrop-blur-md h-full shadow-2xl flex flex-col overflow-hidden">
+          <div className="flex h-16 sm:h-20 items-center justify-between px-4 sm:px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
-                <span className="text-white font-bold text-lg">LM</span>
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
+                <span className="text-white font-bold text-sm sm:text-lg">LM</span>
               </div>
-              <div className="ml-3">
-                <span className="text-xl font-bold text-slate-900">LMInfra</span>
-                <p className="text-xs text-slate-500">Construction Management</p>
+              <div className="ml-2 sm:ml-3">
+                <span className="text-lg sm:text-xl font-bold text-slate-900">LMInfra</span>
+                <p className="text-xs text-slate-500 hidden sm:block">Construction Management</p>
               </div>
             </div>
             <button
@@ -166,8 +166,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <X className="h-5 w-5" />
             </button>
           </div>
-          <div className="sidebar-nav flex-1 overflow-y-auto">
-            <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
+          <div className="sidebar-nav flex-1 overflow-y-auto min-h-0">
+            <nav className="px-2 sm:px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
               const hasSubItems = item.subItems && item.subItems.length > 0;
@@ -227,16 +227,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             })}
             </nav>
           </div>
-          <div className="px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs">
-            <p>Made with <span className="text-danger-500">❤️</span> at</p>
-            <p className="font-semibold text-slate-700">Hellbent Software & Educational Services LLP</p>
+          <div className="px-2 sm:px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs flex-shrink-0">
+            <div>
+              <p>Made with <span className="text-danger-500">❤️</span> at</p>
+              <p className="font-semibold text-slate-700 hidden sm:block">Hellbent Software & Educational Services LLP</p>
+              <p className="font-semibold text-slate-700 sm:hidden">Hellbent Software</p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-        <div className="sidebar-container bg-white/95 backdrop-blur-md border-r border-slate-200/50 shadow-lg flex flex-col h-full">
+        <div className="sidebar-container bg-white/95 backdrop-blur-md border-r border-slate-200/50 shadow-lg flex flex-col h-full overflow-hidden">
           <div className="flex h-20 items-center px-6 flex-shrink-0 border-b border-slate-200/50">
             <div className="flex items-center">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 shadow-lg">
@@ -248,7 +251,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
           </div>
-          <div className="sidebar-nav flex-1 overflow-y-auto">
+          <div className="sidebar-nav flex-1 overflow-y-auto min-h-0">
             <nav className="px-4 py-4 space-y-1 sidebar-scrollable">
             {navigation.map((item) => {
               const Icon = item.icon;
@@ -307,9 +310,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             })}
             </nav>
           </div>
-          <div className="px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs">
-            <p>Made with <span className="text-danger-500">❤️</span> at</p>
-            <p className="font-semibold text-slate-700">Hellbent Software & Educational Services LLP</p>
+          <div className="px-4 py-4 border-t border-slate-200/50 text-center text-slate-500 text-xs flex-shrink-0">
+            <div>
+              <p>Made with <span className="text-danger-500">❤️</span> at</p>
+              <p className="font-semibold text-slate-700">Hellbent Software & Educational Services LLP</p>
+            </div>
           </div>
         </div>
       </div>
@@ -317,7 +322,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Main content */}
       <div className="lg:pl-72">
         {/* Top header */}
-        <div className="sticky top-0 z-40 flex h-20 shrink-0 items-center gap-x-4 border-b border-slate-200/50 bg-white/80 backdrop-blur-md px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 sm:h-20 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-slate-200/50 bg-white/80 backdrop-blur-md px-3 sm:px-4 shadow-sm lg:px-8">
           <button
             type="button"
             className="-m-2.5 p-2.5 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors lg:hidden"
@@ -327,40 +332,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </button>
 
           {/* Search */}
-          <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+          <div className="flex flex-1 gap-x-2 sm:gap-x-4 self-stretch lg:gap-x-6">
             <div className="relative flex flex-1 items-center max-w-md">
-              <Search className="absolute left-4 h-5 w-5 text-slate-400" />
+              <Search className="absolute left-3 sm:left-4 h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search projects, materials, tasks..."
-                className="search-input pl-12 pr-4"
+                placeholder="Search..."
+                className="search-input pl-10 sm:pl-12 pr-3 sm:pr-4"
               />
             </div>
           </div>
 
           {/* Right side */}
-          <div className="flex items-center gap-x-4 lg:gap-x-6">
+          <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6">
             {/* Connection status */}
-            <div className="flex items-center px-3 py-2 bg-slate-50 rounded-lg">
+            <div className="hidden sm:flex items-center px-2 sm:px-3 py-1.5 sm:py-2 bg-slate-50 rounded-lg">
               <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-success-500' : 'bg-danger-500'} animate-pulse`} />
-              <span className="ml-2 text-sm text-slate-600 font-medium">
+              <span className="ml-2 text-xs sm:text-sm text-slate-600 font-medium">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-danger-500 text-xs text-white flex items-center justify-center font-semibold shadow-lg">
+            <button className="relative p-1.5 sm:p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-danger-500 text-xs text-white flex items-center justify-center font-semibold shadow-lg">
                 3
               </span>
             </button>
 
             {/* Profile dropdown */}
-            <div className="flex items-center gap-x-3 pl-3 border-l border-slate-200">
-              <div className="flex items-center gap-x-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
-                  <User className="h-5 w-5 text-white" />
+            <div className="flex items-center gap-x-2 sm:gap-x-3 pl-2 sm:pl-3 border-l border-slate-200">
+              <div className="flex items-center gap-x-2 sm:gap-x-3">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="hidden lg:block">
                   <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
@@ -370,7 +375,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div className="relative">
                 <button
                   onClick={logout}
-                  className="text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-lg transition-colors font-medium"
+                  className="text-xs sm:text-sm text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors font-medium"
                 >
                   Logout
                 </button>
@@ -380,8 +385,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="py-8">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <main className="py-4 sm:py-6 lg:py-8 min-h-screen">
+          <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-8">
             <div className="animate-fade-in">
               {children}
             </div>

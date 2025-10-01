@@ -104,12 +104,12 @@ const Tasks: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+    <div className="space-responsive">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-responsive-3xl font-bold text-slate-900">Tasks</h1>
         <button 
           onClick={handleCreateTask}
-          className="btn btn-primary flex items-center"
+          className="btn btn-primary flex items-center w-full sm:w-auto"
         >
           <Plus className="h-5 w-5 mr-2" />
           New Task
@@ -117,17 +117,19 @@ const Tasks: React.FC = () => {
       </div>
 
       {/* Project Filter */}
-      <div className="card p-6">
-        <div className="flex items-center space-x-4">
-          <Filter className="h-5 w-5 text-gray-500" />
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+      <div className="card-mobile">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
+          </div>
+          <div className="flex-1 w-full">
+            <label className="label text-sm sm:text-base">
               Filter by Project
             </label>
             <ProjectSelector
               selectedProjectId={selectedProjectId}
               onProjectChange={handleProjectChange}
-              className="max-w-md"
+              className="w-full sm:max-w-md"
               placeholder="Select a project to filter tasks..."
             />
           </div>
@@ -135,17 +137,19 @@ const Tasks: React.FC = () => {
       </div>
       
       {/* Tasks Content */}
-      <div className="card p-6">
+      <div className="card-mobile">
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading tasks...</p>
+          <div className="text-center py-8 sm:py-12">
+            <div className="loading-spinner h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-4"></div>
+            <p className="text-slate-600 font-medium text-sm sm:text-base">Loading tasks...</p>
           </div>
         ) : error ? (
-          <div className="text-center py-12">
-            <CheckSquare className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Tasks</h3>
-            <p className="text-gray-600 mb-4">{error}</p>
+          <div className="text-center py-8 sm:py-12">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 bg-danger-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <CheckSquare className="h-8 w-8 sm:h-10 sm:w-10 text-danger-500" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">Error Loading Tasks</h3>
+            <p className="text-slate-600 mb-4 sm:mb-6 max-w-md mx-auto text-sm sm:text-base">{error}</p>
             <button 
               onClick={fetchTasks}
               className="btn btn-secondary"
@@ -154,15 +158,17 @@ const Tasks: React.FC = () => {
             </button>
           </div>
         ) : tasks.length === 0 ? (
-          <div className="text-center py-12">
-            <CheckSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <div className="text-center py-8 sm:py-12">
+            <div className="h-16 w-16 sm:h-20 sm:w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <CheckSquare className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">
               {selectedProjectId ? 'No Tasks Found' : 'No Tasks Available'}
             </h3>
-            <p className="text-gray-600">
+            <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
               {selectedProjectId 
-                ? 'This project doesn\'t have any tasks yet.' 
-                : 'No tasks have been created yet.'
+                ? 'This project doesn\'t have any tasks yet. Create a new task to get started.' 
+                : 'No tasks have been created yet. Start by creating your first task.'
               }
             </p>
           </div>

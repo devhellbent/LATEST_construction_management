@@ -319,42 +319,42 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="modal-overlay">
+      <div className="modal-content animate-scale-in">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900">
               {editData ? 'Edit Material Issue' : 'New Material Issue'}
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-slate-600">
               {editData ? `Issue ID: ${editData.issue_id}` : 'Create a new material issue'}
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500">Creating on {new Date().toLocaleDateString('en-GB')}</span>
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <span className="text-xs sm:text-sm text-slate-500 hidden sm:block">Creating on {new Date().toLocaleDateString('en-GB')}</span>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-slate-400 hover:text-slate-600"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-danger-50 border border-danger-200 rounded-lg p-3 sm:p-4">
               <div className="flex items-center">
-                <div className="text-red-700">{error}</div>
+                <div className="text-danger-700 text-sm sm:text-base">{error}</div>
               </div>
             </div>
           )}
 
           {/* Main Form Section */}
-          <div className="card p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card-mobile">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {/* MRR Selection */}
               <div>
                 <label className="label">MRR Reference</label>
@@ -583,39 +583,39 @@ const MaterialIssueForm: React.FC<MaterialIssueFormProps> = ({ isOpen, onClose, 
 
 
           {/* Issue Purpose Section */}
-          <div className="card p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Issue Purpose</h3>
+          <div className="card-mobile">
+            <h3 className="text-base sm:text-lg font-medium text-slate-900 mb-3 sm:mb-4">Issue Purpose</h3>
             <div className="relative">
               <textarea
                 value={formData.issue_purpose}
                 onChange={(e) => handleInputChange('issue_purpose', e.target.value)}
                 placeholder="Mention purpose or remarks if any"
-                rows={4}
+                rows={3}
                 maxLength={500}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                className="input resize-none"
               />
-              <div className="absolute bottom-2 right-2 text-sm text-gray-500">
+              <div className="absolute bottom-2 right-2 text-xs sm:text-sm text-slate-500">
                 {formData.issue_purpose.length}/500
               </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 pt-4 sm:pt-6 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="btn btn-secondary w-full sm:w-auto"
             >
               Cancel
             </button>
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-xs sm:text-sm text-slate-500 hidden sm:block">
               {editData ? 'Update material issue details' : 'Create new material issue'}
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary px-6 py-2"
+              className="btn btn-primary w-full sm:w-auto"
             >
               {loading ? (editData ? 'Updating...' : 'Creating...') : (editData ? 'Update Material Issue' : 'Issue Material')}
             </button>

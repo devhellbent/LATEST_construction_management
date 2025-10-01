@@ -397,70 +397,70 @@ const InventoryManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-responsive">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-slate-900">Inventory Management</h1>
-          <p className="text-lg text-slate-600 mt-2">Monitor stock levels, track movements, and manage inventory</p>
+          <h1 className="text-responsive-3xl font-bold text-slate-900">Inventory Management</h1>
+          <p className="text-responsive-base text-slate-600 mt-2">Monitor stock levels, track movements, and manage inventory</p>
         </div>
-        <div className="flex space-x-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowNewMaterialModal(true)}
-            className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+            className="btn btn-primary btn-lg flex items-center shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
           >
-            <Plus className="h-5 w-5 mr-2" />
-            Add Material
+            <Plus className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+            <span className="text-xs sm:text-sm">Add Material</span>
           </button>
           <button 
             onClick={handleEditMaterialsByWarehouse}
-            className="btn btn-outline flex items-center"
+            className="btn btn-outline flex items-center w-full sm:w-auto"
           >
-            <Edit className="h-5 w-5 mr-2" />
-            Edit by Warehouse
+            <Edit className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+            <span className="text-xs sm:text-sm">Edit by Warehouse</span>
           </button>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="card p-6">
+      <div className="card-mobile">
         <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-8">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
+              className={`py-3 px-1 border-b-2 font-semibold text-xs sm:text-sm transition-colors ${
                 activeTab === 'overview'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <Package className="h-4 w-4" />
+                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Inventory Overview</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
+              className={`py-3 px-1 border-b-2 font-semibold text-xs sm:text-sm transition-colors ${
                 activeTab === 'history'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <History className="h-4 w-4" />
+                <History className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>History</span>
               </div>
             </button>
             <button
               onClick={() => setActiveTab('low-stock')}
-              className={`py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
+              className={`py-3 px-1 border-b-2 font-semibold text-xs sm:text-sm transition-colors ${
                 activeTab === 'low-stock'
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
               }`}
             >
               <div className="flex items-center space-x-2">
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span>Low Stock</span>
               </div>
             </button>
@@ -469,17 +469,17 @@ const InventoryManagement: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="card p-6">
-        <div className="flex items-center justify-between mb-6">
+      <div className="card-mobile">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">Filters</h3>
-            <p className="text-slate-600 text-sm">Filter inventory items by various criteria</p>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Filters</h3>
+            <p className="text-slate-600 text-xs sm:text-sm">Filter inventory items by various criteria</p>
           </div>
-          <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
-            <Filter className="h-5 w-5 text-primary-600" />
+          <div className="h-8 w-8 sm:h-10 sm:w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div>
             <label className="label">Search Material</label>
             <div className="relative">
@@ -543,42 +543,42 @@ const InventoryManagement: React.FC = () => {
 
       {/* Inventory Overview Tab */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card-mobile">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Inventory Items</h2>
-                <p className="text-slate-600 mt-1">Current stock levels and material information</p>
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-900">Inventory Items</h2>
+                <p className="text-slate-600 mt-1 text-xs sm:text-sm">Current stock levels and material information</p>
               </div>
-              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary-600" />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
               </div>
             </div>
             {inventoryItems.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Package className="h-10 w-10 text-slate-400" />
+              <div className="text-center py-8 sm:py-12">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <Package className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No Inventory Items Found</h3>
-                <p className="text-slate-600 max-w-md mx-auto">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No Inventory Items Found</h3>
+                <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
                   No inventory items match your current filters. Try adjusting your search criteria or add new materials.
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="table-container">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Material</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Size</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Current Stock</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Min Level</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Project</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Warehouse</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Last Updated</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                      <th className="text-xs sm:text-sm">Material</th>
+                      <th className="text-xs sm:text-sm hidden sm:table-cell">Category</th>
+                      <th className="text-xs sm:text-sm hidden lg:table-cell">Size</th>
+                      <th className="text-xs sm:text-sm">Current Stock</th>
+                      <th className="text-xs sm:text-sm hidden md:table-cell">Min Level</th>
+                      <th className="text-xs sm:text-sm">Status</th>
+                      <th className="text-xs sm:text-sm hidden lg:table-cell">Project</th>
+                      <th className="text-xs sm:text-sm hidden xl:table-cell">Warehouse</th>
+                      <th className="text-xs sm:text-sm hidden xl:table-cell">Last Updated</th>
+                      <th className="text-xs sm:text-sm">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -586,49 +586,54 @@ const InventoryManagement: React.FC = () => {
                       const stockStatus = getStockStatus(item.stock_qty, item.minimum_stock_level, item.maximum_stock_level);
                       return (
                         <tr key={item.material_id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="text-xs sm:text-sm">
                             <div>
                               <button
                                 onClick={() => handleMaterialClick(item.material_id)}
-                                className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
+                                className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
                               >
                                 {item.name}
                               </button>
-                              <div className="text-sm text-slate-500">{item.item?.item_code || 'N/A'}</div>
+                              <div className="text-xs text-slate-500">{item.item?.item_code || 'N/A'}</div>
+                              <div className="sm:hidden text-xs text-slate-500 mt-1">
+                                {item.category} • {item.stock_qty} {item.unit}
+                              </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.category}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.size || 'N/A'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.stock_qty} {item.unit}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.minimum_stock_level} {item.unit}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`status-badge ${
+                          <td className="text-xs sm:text-sm text-slate-900 hidden sm:table-cell">{item.category}</td>
+                          <td className="text-xs sm:text-sm text-slate-900 hidden lg:table-cell">{item.size || 'N/A'}</td>
+                          <td className="text-xs sm:text-sm font-semibold text-slate-900">
+                            <span className="hidden sm:inline">{item.stock_qty} {item.unit}</span>
+                          </td>
+                          <td className="text-xs sm:text-sm text-slate-900 hidden md:table-cell">{item.minimum_stock_level} {item.unit}</td>
+                          <td>
+                            <span className={`status-badge text-xs ${
                               stockStatus.status === 'LOW' ? 'status-danger' : 
                               stockStatus.status === 'HIGH' ? 'status-warning' : 'status-success'
                             }`}>
                               {stockStatus.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.project?.name || 'General'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{item.warehouse?.warehouse_name || 'N/A'}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                          <td className="text-xs sm:text-sm text-slate-900 hidden lg:table-cell">{item.project?.name || 'General'}</td>
+                          <td className="text-xs sm:text-sm text-slate-900 hidden xl:table-cell">{item.warehouse?.warehouse_name || 'N/A'}</td>
+                          <td className="text-xs sm:text-sm text-slate-500 hidden xl:table-cell">
                             {new Date(item.updated_at).toLocaleDateString()}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                            <div className="flex space-x-2">
+                          <td>
+                            <div className="flex space-x-1 sm:space-x-2">
                               <button
                                 onClick={() => handleViewHistory(item)}
                                 className="text-green-600 hover:text-green-800 transition-colors"
                                 title="View History"
                               >
-                                <History className="h-4 w-4" />
+                                <History className="h-3 w-3 sm:h-4 sm:w-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteMaterial(item.material_id)}
                                 className="text-red-600 hover:text-red-800 transition-colors"
                                 title="Delete Material"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                               </button>
                             </div>
                           </td>
@@ -645,59 +650,59 @@ const InventoryManagement: React.FC = () => {
 
       {/* History Tab */}
       {activeTab === 'history' && (
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card-mobile">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Inventory History</h2>
-                <p className="text-slate-600 mt-1">Track all inventory movements and transactions</p>
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-900">Inventory History</h2>
+                <p className="text-slate-600 mt-1 text-xs sm:text-sm">Track all inventory movements and transactions</p>
               </div>
-              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                <History className="h-6 w-6 text-primary-600" />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <History className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
               </div>
             </div>
             {inventoryHistory.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <History className="h-10 w-10 text-slate-400" />
+              <div className="text-center py-8 sm:py-12">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <History className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No Inventory History</h3>
-                <p className="text-slate-600 max-w-md mx-auto">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No Inventory History</h3>
+                <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
                   No inventory movements have been recorded yet. History will appear here once transactions are made.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {inventoryHistory.map((history) => (
-                  <div key={history.history_id} className="card p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center space-x-4">
-                        <div className="h-12 w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <div key={history.history_id} className="card-mobile">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div className="flex items-start space-x-3 sm:space-x-4">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                           {getTransactionIcon(history.transaction_type)}
                         </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-slate-900">{history.material?.name || 'Unknown Material'}</h4>
-                          <div className="flex items-center space-x-4 mt-2 text-sm text-slate-600">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-bold text-slate-900 text-sm sm:text-base">{history.material?.name || 'Unknown Material'}</h4>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 text-xs sm:text-sm text-slate-600 space-y-1 sm:space-y-0">
                             <span className={`font-semibold ${getTransactionTypeColor(history.transaction_type)}`}>
                               {history.transaction_type}
                             </span>
-                            <span>Quantity: {history.quantity_change > 0 ? '+' : ''}{history.quantity_change}</span>
+                            <span>Qty: {history.quantity_change > 0 ? '+' : ''}{history.quantity_change}</span>
                             <span>Before: {history.quantity_before}</span>
                             <span>After: {history.quantity_after}</span>
                             <span>Date: {new Date(history.transaction_date).toLocaleDateString()}</span>
                           </div>
-                          <div className="mt-2 text-sm text-slate-500">
-                            <span>Reference: {history.reference_number}</span>
+                          <div className="mt-2 text-xs sm:text-sm text-slate-500">
+                            <span>Ref: {history.reference_number}</span>
                             {history.description && (
-                              <span className="ml-4">Description: {history.description}</span>
+                              <span className="ml-2 sm:ml-4">Desc: {history.description}</span>
                             )}
                           </div>
-                          <div className="mt-1 text-sm text-slate-500">
+                          <div className="mt-1 text-xs sm:text-sm text-slate-500">
                             <span>By: {history.performedBy?.name || 'System'}</span>
                             {history.location && (
-                              <span className="ml-4 flex items-center">
+                              <span className="ml-2 sm:ml-4 flex items-center">
                                 <MapPin className="h-3 w-3 mr-1" />
-                                Location: {history.location}
+                                {history.location}
                               </span>
                             )}
                           </div>
@@ -714,48 +719,48 @@ const InventoryManagement: React.FC = () => {
 
       {/* Low Stock Tab */}
       {activeTab === 'low-stock' && (
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card-mobile">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Low Stock Materials</h2>
-                <p className="text-slate-600 mt-1">Materials that need restocking based on minimum stock levels</p>
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-900">Low Stock Materials</h2>
+                <p className="text-slate-600 mt-1 text-xs sm:text-sm">Materials that need restocking based on minimum stock levels</p>
               </div>
-              <div className="h-12 w-12 bg-warning-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-warning-600" />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 bg-warning-100 rounded-xl flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-warning-600" />
               </div>
             </div>
             
             {lowStockMaterials.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="h-20 w-20 bg-success-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle className="h-10 w-10 text-success-500" />
+              <div className="text-center py-8 sm:py-12">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 bg-success-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <CheckCircle className="h-8 w-8 sm:h-10 sm:w-10 text-success-500" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">All Materials Adequately Stocked</h3>
-                <p className="text-slate-600 max-w-md mx-auto">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">All Materials Adequately Stocked</h3>
+                <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
                   Great news! All materials are currently above their minimum stock levels. No restocking is needed at this time.
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {lowStockMaterials.map((material) => {
                   const stockStatus = getStockStatusForRestock(material);
                   return (
-                    <div key={material.material_id} className={`card p-6 ${stockStatus.bgColor} border-2`}>
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-4">
-                          <div className="h-12 w-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <AlertTriangle className="h-6 w-6 text-white" />
+                    <div key={material.material_id} className={`card-mobile ${stockStatus.bgColor} border-2`}>
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div className="flex items-start space-x-3 sm:space-x-4">
+                          <div className="h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                            <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-slate-900">{material.name}</h4>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-slate-600">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-slate-900 text-sm sm:text-base">{material.name}</h4>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 text-xs sm:text-sm text-slate-600 space-y-1 sm:space-y-0">
                               <span>Current: {material.stock_qty} {material.unit || material.item?.unit?.unit_symbol}</span>
                               <span>Minimum: {material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
-                              <span>Reorder Point: {material.reorder_point || material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
+                              <span>Reorder: {material.reorder_point || material.minimum_stock_level} {material.unit || material.item?.unit?.unit_symbol}</span>
                             </div>
-                            <div className="mt-2 flex items-center space-x-4">
-                              <span className={`status-badge ${
+                            <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                              <span className={`status-badge text-xs ${
                                 stockStatus.status === 'critical' ? 'status-danger' : 'status-warning'
                               }`}>
                                 {stockStatus.status.toUpperCase()}
@@ -769,13 +774,13 @@ const InventoryManagement: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="w-full sm:w-auto">
                           <button
                             onClick={() => createPOForRestock(material)}
-                            className="btn btn-success flex items-center"
+                            className="btn btn-success flex items-center w-full sm:w-auto"
                           >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            PO for Restock
+                            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                            <span className="text-xs sm:text-sm">PO for Restock</span>
                           </button>
                         </div>
                       </div>

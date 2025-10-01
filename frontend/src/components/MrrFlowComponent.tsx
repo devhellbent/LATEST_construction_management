@@ -310,74 +310,74 @@ const MrrFlowComponent: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Material Requirement Requests</h1>
-            <p className="text-gray-600 mt-2">Manage material requirement requests and track their approval workflow</p>
-          </div>
-          <button
-            onClick={() => setShowCreateForm(true)}
-            className="btn btn-primary"
-          >
-            Create New MRR
-          </button>
+    <div className="space-responsive">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-responsive-3xl font-bold text-slate-900">Material Requirement Requests</h1>
+          <p className="text-responsive-base text-slate-600 mt-2">Manage material requirement requests and track their approval workflow</p>
         </div>
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="btn btn-primary w-full sm:w-auto"
+        >
+          Create New MRR
+        </button>
       </div>
 
       {/* MRR List */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">MRR List</h2>
+      <div className="card-mobile">
+        <h2 className="text-base sm:text-xl font-semibold text-slate-900 mb-4">MRR List</h2>
         
         {mrrs.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No material requirement requests found</p>
+          <div className="text-center py-8 sm:py-12">
+            <p className="text-slate-500 text-sm sm:text-base">No material requirement requests found</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-6">
             {mrrs.map((mrr) => (
-              <div key={mrr.mrr_id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-4 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+              <div key={mrr.mrr_id} className="card-interactive p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 w-full">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-slate-900">
                         {mrr.mrr_number}
                       </h3>
-                      <span className={`status-badge ${getStatusColor(mrr.status)}`}>
-                        {mrr.status}
-                      </span>
-                      <span className={`status-badge ${getPriorityColor(mrr.priority)}`}>
-                        {mrr.priority}
-                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <span className={`status-badge ${getStatusColor(mrr.status)} text-xs`}>
+                          {mrr.status}
+                        </span>
+                        <span className={`status-badge ${getPriorityColor(mrr.priority)} text-xs`}>
+                          {mrr.priority}
+                        </span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
                       <div>
                         <span className="font-medium">Required Date:</span>
-                        <p>{new Date(mrr.required_date).toLocaleDateString()}</p>
+                        <p className="text-slate-900">{new Date(mrr.required_date).toLocaleDateString()}</p>
                       </div>
                       <div>
                         <span className="font-medium">Total Items:</span>
-                        <p>{mrr.items?.length || 0}</p>
+                        <p className="text-slate-900">{mrr.items?.length || 0}</p>
                       </div>
                       <div>
                         <span className="font-medium">Estimated Cost:</span>
-                        <p className="font-semibold text-gray-900">₹{mrr.total_estimated_cost?.toLocaleString() || 0}</p>
+                        <p className="font-semibold text-slate-900">₹{mrr.total_estimated_cost?.toLocaleString() || 0}</p>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="ml-4 flex flex-wrap gap-2">
+                  <div className="w-full sm:w-auto flex flex-wrap gap-2">
                     <button
                       onClick={() => { setDetailsTarget(mrr); setShowDetailsModal(true); }}
-                      className="btn btn-secondary text-sm"
+                      className="btn btn-secondary text-xs sm:text-sm w-full sm:w-auto"
                     >
                       View Details
                     </button>
                     {mrr.status === 'APPROVED' && (
                       <button
                         onClick={() => handleCreatePO(mrr.mrr_id)}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-xs sm:text-sm w-full sm:w-auto"
                       >
                         Create PO
                       </button>
@@ -385,7 +385,7 @@ const MrrFlowComponent: React.FC = () => {
                     {mrr.status === 'DRAFT' && (
                       <button
                         onClick={() => handleSubmitMrr(mrr.mrr_id)}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-xs sm:text-sm w-full sm:w-auto"
                       >
                         Submit
                       </button>
@@ -394,13 +394,13 @@ const MrrFlowComponent: React.FC = () => {
                       <>
                         <button
                           onClick={() => handleApproveMrr(mrr.mrr_id, 'approve')}
-                          className="btn btn-success text-sm"
+                          className="btn btn-success text-xs sm:text-sm w-full sm:w-auto"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleApproveMrr(mrr.mrr_id, 'reject')}
-                          className="btn btn-danger text-sm"
+                          className="btn btn-danger text-xs sm:text-sm w-full sm:w-auto"
                         >
                           Reject
                         </button>
@@ -409,7 +409,7 @@ const MrrFlowComponent: React.FC = () => {
                     {['DRAFT','SUBMITTED','APPROVED','PROCESSING','COMPLETED'].includes(mrr.status) && (
                       <button
                         onClick={() => { setInventoryCheckTarget(mrr); setShowInventoryCheck(true); }}
-                        className="btn btn-primary text-sm"
+                        className="btn btn-primary text-xs sm:text-sm w-full sm:w-auto"
                       >
                         Check Inventory
                       </button>
@@ -423,7 +423,7 @@ const MrrFlowComponent: React.FC = () => {
                           setNewStatus(mrr.status);
                           setShowStatusModal(true); 
                         }}
-                        className="btn btn-ghost btn-sm p-2"
+                        className="btn btn-ghost btn-sm p-2 w-full sm:w-auto"
                         title="Change Status"
                         aria-label="Change Status"
                       >
@@ -440,23 +440,23 @@ const MrrFlowComponent: React.FC = () => {
 
       {/* Create MRR Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 shadow-lg rounded-md bg-white">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-semibold text-gray-900">Create Material Requirement Request</h3>
+        <div className="modal-overlay">
+          <div className="modal-content w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200">
+              <h3 className="text-lg sm:text-2xl font-semibold text-slate-900">Create Material Requirement Request</h3>
               <button
                 onClick={() => setShowCreateForm(false)}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg p-2 transition-colors"
               >
-                ✕
+                <span className="text-xl">✕</span>
               </button>
             </div>
             
-            <form onSubmit={(e) => { e.preventDefault(); handleCreateMrr(); }} className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateMrr(); }} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Basic Information */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 sm:p-6 rounded-lg">
+                <h4 className="text-base sm:text-lg font-semibold text-slate-800 mb-4">Basic Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="label">Project <span className="text-red-500">*</span></label>
                     <select
@@ -555,13 +555,13 @@ const MrrFlowComponent: React.FC = () => {
               </div>
 
               {/* Items Section */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-lg font-semibold text-gray-800">Items</h4>
+              <div className="bg-slate-50 p-4 sm:p-6 rounded-lg">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                  <h4 className="text-base sm:text-lg font-semibold text-slate-800">Items</h4>
                   <button
                     type="button"
                     onClick={addItem}
-                    className="btn btn-success text-sm"
+                    className="btn btn-success text-xs sm:text-sm w-full sm:w-auto"
                   >
                     Add Item
                   </button>
@@ -569,24 +569,24 @@ const MrrFlowComponent: React.FC = () => {
                 
                 {formData.items.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500">No items added yet. Click "Add Item" to get started.</p>
+                    <p className="text-slate-500 text-sm sm:text-base">No items added yet. Click "Add Item" to get started.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {formData.items.map((item, index) => (
-                      <div key={index} className="bg-white p-4 border border-gray-200 rounded-lg">
-                        <div className="flex justify-between items-center mb-3">
-                          <h5 className="font-medium text-gray-900">Item {index + 1}</h5>
+                      <div key={index} className="bg-white p-4 sm:p-6 border border-slate-200 rounded-lg">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                          <h5 className="font-medium text-slate-900 text-sm sm:text-base">Item {index + 1}</h5>
                           <button
                             type="button"
                             onClick={() => removeItem(index)}
-                            className="btn btn-danger text-sm"
+                            className="btn btn-danger text-xs sm:text-sm w-full sm:w-auto"
                           >
                             Remove Item
                           </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="label">Item <span className="text-red-500">*</span></label>
                             <select
@@ -675,18 +675,18 @@ const MrrFlowComponent: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => setShowCreateForm(false)}
-                  className="btn btn-secondary"
+                  className="btn btn-secondary w-full sm:w-auto"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn btn-primary disabled:opacity-50"
+                  className="btn btn-primary disabled:opacity-50 w-full sm:w-auto"
                 >
                   {loading ? 'Creating...' : 'Create MRR'}
                 </button>

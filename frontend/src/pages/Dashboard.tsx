@@ -86,22 +86,22 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-responsive">
       {/* Header */}
       <div className="text-center lg:text-left">
-        <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-        <p className="text-lg text-slate-600">
+        <h1 className="text-responsive-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
+        <p className="text-responsive-base text-slate-600">
           {getGreeting()}, <span className="font-semibold text-primary-600">{user?.name}</span>. Here's your project overview.
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="card-elevated p-6 group hover:shadow-glow transition-all duration-300">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="card-mobile group hover:shadow-glow transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Ongoing Projects</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">{ongoingProjects}</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wide">Ongoing Projects</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{ongoingProjects}</p>
               <div className="mt-3">
                 <div className="flex items-center space-x-2">
                   <div className="progress-bar flex-1">
@@ -110,22 +110,22 @@ const Dashboard: React.FC = () => {
                       style={{ width: '60%' }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">60%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">60%</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">in progress</p>
               </div>
             </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-              <Users className="h-7 w-7 text-white" />
+            <div className="h-10 w-10 sm:h-14 sm:w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <Users className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card-elevated p-6 group hover:shadow-glow-success transition-all duration-300">
+        <div className="card-mobile group hover:shadow-glow-success transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Completed Projects</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">{completedProjects}</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wide">Completed Projects</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{completedProjects}</p>
               <div className="mt-3">
                 <div className="flex items-center space-x-2">
                   <div className="progress-bar flex-1">
@@ -134,22 +134,22 @@ const Dashboard: React.FC = () => {
                       style={{ width: '100%' }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">100%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">100%</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">completed</p>
               </div>
             </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-              <CheckCircle className="h-7 w-7 text-white" />
+            <div className="h-10 w-10 sm:h-14 sm:w-14 bg-gradient-to-br from-success-500 to-success-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <CheckCircle className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card-elevated p-6 group hover:shadow-glow-warning transition-all duration-300">
+        <div className="card-mobile group hover:shadow-glow-warning transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Delayed Projects</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">{delayedProjects}</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wide">Delayed Projects</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{delayedProjects}</p>
               <div className="mt-3">
                 <div className="flex items-center space-x-2">
                   <div className="progress-bar flex-1">
@@ -158,22 +158,22 @@ const Dashboard: React.FC = () => {
                       style={{ width: '40%' }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">40%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">40%</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">delayed</p>
               </div>
             </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-              <Clock className="h-7 w-7 text-white" />
+            <div className="h-10 w-10 sm:h-14 sm:w-14 bg-gradient-to-br from-warning-500 to-warning-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <Clock className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
           </div>
         </div>
 
-        <div className="card-elevated p-6 group hover:shadow-glow transition-all duration-300">
+        <div className="card-mobile group hover:shadow-glow transition-all duration-300">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Open Tasks</p>
-              <p className="text-3xl font-bold text-slate-900 mt-1">{openTasks}</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-600 uppercase tracking-wide">Open Tasks</p>
+              <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{openTasks}</p>
               <div className="mt-3">
                 <div className="flex items-center space-x-2">
                   <div className="progress-bar flex-1">
@@ -182,38 +182,38 @@ const Dashboard: React.FC = () => {
                       style={{ width: '70%' }}
                     ></div>
                   </div>
-                  <span className="text-sm font-medium text-slate-600">70%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">70%</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">assigned</p>
               </div>
             </div>
-            <div className="h-14 w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
-              <FileText className="h-7 w-7 text-white" />
+            <div className="h-10 w-10 sm:h-14 sm:w-14 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <FileText className="h-5 w-5 sm:h-7 sm:w-7 text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Material Utilization */}
-        <div className="card-elevated p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900">Material Utilization</h3>
-            <div className="h-8 w-8 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Package className="h-4 w-4 text-primary-600" />
+        <div className="card-mobile">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Material Utilization</h3>
+            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-primary-100 rounded-lg flex items-center justify-center">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4 text-primary-600" />
             </div>
           </div>
           <div className="flex items-center justify-center">
             <div className="relative">
-              <ResponsiveContainer width={200} height={200}>
+              <ResponsiveContainer width={150} height={150} className="sm:w-[200px] sm:h-[200px]">
                 <PieChart>
                   <Pie
                     data={materialUtilizationData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
+                    innerRadius={45}
+                    outerRadius={60}
                     dataKey="value"
                   >
                     {materialUtilizationData.map((entry, index) => (
@@ -224,42 +224,42 @@ const Dashboard: React.FC = () => {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">65%</div>
-                  <div className="text-sm text-gray-600">Utilized</div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900">65%</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Utilized</div>
                 </div>
               </div>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
+          <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
             {materialUtilizationData.map((item, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center">
                   <div 
-                    className="w-3 h-3 rounded-full mr-2" 
+                    className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full mr-2" 
                     style={{ backgroundColor: item.color }}
                   ></div>
-                  <span className="text-sm text-gray-600">{item.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-600">{item.name}</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{item.value}%</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-900">{item.value}%</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Task Completion Status */}
-        <div className="card-elevated p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900">Task Completion Status</h3>
-            <div className="h-8 w-8 bg-success-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="h-4 w-4 text-success-600" />
+        <div className="card-mobile">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Task Completion Status</h3>
+            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-success-100 rounded-lg flex items-center justify-center">
+              <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success-600" />
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {taskCompletionData.map((project, index) => (
-              <div key={index} className="space-y-2">
+              <div key={index} className="space-y-1.5 sm:space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-900">{project.name}</span>
-                  <span className="text-sm text-gray-600">{project.completion}%</span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-900 truncate pr-2">{project.name}</span>
+                  <span className="text-xs sm:text-sm text-gray-600">{project.completion}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -276,23 +276,23 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Recent Notifications */}
-        <div className="card-elevated p-6 border-2 border-dashed border-warning-300 bg-warning-50/30">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-slate-900">Recent Notifications</h3>
-            <div className="h-8 w-8 bg-warning-100 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="h-4 w-4 text-warning-600" />
+        <div className="card-mobile border-2 border-dashed border-warning-300 bg-warning-50/30">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Recent Notifications</h3>
+            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-warning-100 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-warning-600" />
             </div>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {notifications.map((notification, index) => {
               const Icon = notification.icon;
               return (
-                <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-white/50 transition-colors">
-                  <div className={`h-10 w-10 rounded-full bg-white shadow-sm flex items-center justify-center border-2 border-slate-200`}>
-                    <Icon className={`h-5 w-5 ${notification.color}`} />
+                <div key={index} className="flex items-start space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg hover:bg-white/50 transition-colors">
+                  <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-white shadow-sm flex items-center justify-center border-2 border-slate-200`}>
+                    <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${notification.color}`} />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-slate-900">{notification.title}</p>
+                    <p className="text-xs sm:text-sm font-semibold text-slate-900">{notification.title}</p>
                     <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
                   </div>
                 </div>

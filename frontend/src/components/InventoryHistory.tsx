@@ -151,37 +151,37 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <div className="modal-overlay">
+      <div className="modal-content w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 border-b border-gray-200 gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
               Inventory History
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               {materialName ? `Material: ${materialName}` : `Project ID: ${projectId}`}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 self-end sm:self-auto"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
         {/* Filters */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="p-4 sm:p-6 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="w-full sm:w-auto">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                 Transaction Type
               </label>
               <select
                 value={filters.transaction_type}
                 onChange={(e) => handleFilterChange('transaction_type', e.target.value)}
-                className="input"
+                className="input w-full sm:w-auto"
               >
                 <option value="">All Types</option>
                 <option value="ISSUE">Issue</option>
@@ -196,91 +196,95 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
 
         {/* Error Message */}
         {error && (
-          <div className="mx-6 mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-700">{error}</p>
+          <div className="mx-4 sm:mx-6 mt-4 bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+            <p className="text-red-700 text-xs sm:text-sm">{error}</p>
           </div>
         )}
 
         {/* History Table */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div className="flex items-center justify-center p-6 sm:p-8">
+              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary-600"></div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className="table-container">
+              <table className="table">
+                <thead>
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Date & Time
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Type
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Reference
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Quantity Change
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Stock Before
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Stock After
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Performed By
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="text-xs sm:text-sm">
                       Description
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {history.map((item) => (
                     <tr key={item.history_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="text-xs sm:text-sm text-gray-900">
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                          {new Date(item.transaction_date).toLocaleString()}
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">{new Date(item.transaction_date).toLocaleString()}</span>
+                          <span className="sm:hidden">{new Date(item.transaction_date).toLocaleDateString()}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(item.transaction_type)}`}>
+                      <td>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(item.transaction_type)}`}>
                           {getTransactionIcon(item.transaction_type)}
-                          <span className="ml-1">{item.transaction_type}</span>
+                          <span className="ml-1 hidden sm:inline">{item.transaction_type}</span>
+                          <span className="ml-1 sm:hidden">{item.transaction_type.slice(0, 3)}</span>
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.reference_number}
+                      <td className="text-xs sm:text-sm text-gray-900">
+                        <span className="hidden sm:inline">{item.reference_number}</span>
+                        <span className="sm:hidden truncate max-w-[80px]">{item.reference_number}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="text-xs sm:text-sm">
                         <span className={`font-medium ${item.quantity_change > 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {formatQuantityChange(item.quantity_change)} {item.material?.unit || ''}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="text-xs sm:text-sm text-gray-900">
                         {item.quantity_before} {item.material?.unit || ''}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="text-xs sm:text-sm text-gray-900">
                         {item.quantity_after} {item.material?.unit || ''}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="text-xs sm:text-sm text-gray-900">
                         <div className="flex items-center">
-                          <User className="h-4 w-4 text-gray-400 mr-2" />
-                          {item.performedBy?.name || 'Unknown'}
+                          <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">{item.performedBy?.name || 'Unknown'}</span>
+                          <span className="sm:hidden truncate max-w-[60px]">{item.performedBy?.name?.split(' ')[0] || 'Unknown'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        <div className="max-w-xs truncate">
+                      <td className="text-xs sm:text-sm text-gray-900">
+                        <div className="max-w-[120px] sm:max-w-xs truncate">
                           {item.description}
                         </div>
                         {item.location && (
                           <div className="flex items-center mt-1 text-xs text-gray-500">
                             <MapPin className="h-3 w-3 mr-1" />
-                            {item.location}
+                            <span className="truncate max-w-[100px] sm:max-w-none">{item.location}</span>
                           </div>
                         )}
                       </td>
@@ -290,9 +294,9 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
               </table>
 
               {history.length === 0 && !loading && (
-                <div className="text-center py-8">
-                  <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No inventory history found</p>
+                <div className="text-center py-6 sm:py-8">
+                  <History className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-gray-500 text-sm sm:text-base">No inventory history found</p>
                 </div>
               )}
             </div>
@@ -300,8 +304,8 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-gray-700">
+            <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+              <div className="text-xs sm:text-sm text-gray-700">
                 Showing{' '}
                 <span className="font-medium">
                   {(pagination.currentPage - 1) * pagination.itemsPerPage + 1}
@@ -318,14 +322,14 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
                 <button
                   onClick={() => handlePageChange(pagination.currentPage - 1)}
                   disabled={pagination.currentPage === 1}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => handlePageChange(pagination.currentPage + 1)}
                   disabled={pagination.currentPage === pagination.totalPages}
-                  className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

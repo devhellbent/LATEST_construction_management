@@ -71,9 +71,9 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   if (loading) {
     return (
       <div className={`relative ${className}`}>
-        <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 flex items-center justify-between">
-          <span className="text-gray-500">Loading projects...</span>
-          <ChevronDown className="h-4 w-4 text-gray-400" />
+        <div className="w-full px-3 sm:px-4 py-2 border border-slate-300 rounded-lg bg-slate-50 flex items-center justify-between">
+          <span className="text-slate-500 text-sm sm:text-base">Loading projects...</span>
+          <ChevronDown className="h-4 w-4 text-slate-400" />
         </div>
       </div>
     );
@@ -82,11 +82,11 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
   if (error) {
     return (
       <div className={`relative ${className}`}>
-        <div className="w-full px-4 py-2 border border-red-300 rounded-lg bg-red-50 flex items-center justify-between">
-          <span className="text-red-500 text-sm">{error}</span>
+        <div className="w-full px-3 sm:px-4 py-2 border border-danger-300 rounded-lg bg-danger-50 flex items-center justify-between">
+          <span className="text-danger-500 text-xs sm:text-sm">{error}</span>
           <button
             onClick={fetchProjects}
-            className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded hover:bg-red-100 transition-colors"
+            className="text-danger-600 hover:text-danger-800 text-xs sm:text-sm font-medium px-2 py-1 rounded hover:bg-danger-100 transition-colors"
           >
             Retry
           </button>
@@ -100,15 +100,15 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white flex items-center justify-between hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full px-3 sm:px-4 py-2 border border-slate-300 rounded-lg bg-white flex items-center justify-between hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
       >
         <div className="flex items-center">
-          <Building2 className="h-4 w-4 text-gray-500 mr-2" />
-          <span className={selectedProject ? 'text-gray-900' : 'text-gray-500'}>
+          <Building2 className="h-4 w-4 text-slate-500 mr-2" />
+          <span className={`text-sm sm:text-base ${selectedProject ? 'text-slate-900' : 'text-slate-500'}`}>
             {selectedProject ? selectedProject.name : placeholder}
           </span>
         </div>
-        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -117,17 +117,17 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-auto">
             <div className="p-2">
               <button
                 onClick={handleClearSelection}
-                className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 rounded"
+                className="w-full text-left px-3 py-2 text-xs sm:text-sm text-slate-500 hover:bg-slate-100 rounded"
               >
                 All Projects
               </button>
             </div>
             {projects.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-gray-500 text-center">
+              <div className="px-4 py-3 text-xs sm:text-sm text-slate-500 text-center">
                 No projects available
               </div>
             ) : (
@@ -135,20 +135,20 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
                 <button
                   key={project.project_id}
                   onClick={() => handleProjectSelect(project.project_id)}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded mx-2 my-1 ${
+                  className={`w-full text-left px-3 py-2 text-xs sm:text-sm hover:bg-slate-100 rounded mx-2 my-1 ${
                     selectedProjectId === project.project_id
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-gray-900'
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-slate-900'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{project.name}</span>
-                    <span className={`text-xs px-2 py-1 rounded ${
+                    <span className="truncate pr-2">{project.name}</span>
+                    <span className={`text-xs px-2 py-1 rounded flex-shrink-0 ${
                       project.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-success-100 text-success-700'
                         : project.status === 'COMPLETED'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'bg-primary-100 text-primary-700'
+                        : 'bg-slate-100 text-slate-700'
                     }`}>
                       {project.status}
                     </span>

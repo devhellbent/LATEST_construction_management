@@ -327,12 +327,12 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
   return (
     <div className="modal-overlay">
       <div className="modal-content animate-scale-in">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">
+            <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
               {material ? 'Edit Material' : 'Add New Material'}
             </h2>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
               {material ? 'Update material information' : 'Add a new material to your inventory'}
             </p>
           </div>
@@ -340,13 +340,13 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <X className="h-6 w-6" />
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {error && (
-            <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-xl flex items-center">
+            <div className="bg-danger-50 border border-danger-200 text-danger-700 px-3 sm:px-4 py-2 sm:py-3 rounded-xl flex items-center text-sm sm:text-base">
               <span className="mr-2">⚠</span>
               {error}
             </div>
@@ -391,7 +391,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label label-required">
                 Material Name
@@ -433,7 +433,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <SearchableDropdown
                 label="Category"
@@ -465,7 +465,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Color
@@ -475,7 +475,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 name="color"
                 value={formData.color}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
 
@@ -489,7 +489,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 value={formData.size}
                 onChange={handleInputChange}
                 placeholder="e.g., 10mm, Large, 2x4"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
 
@@ -502,12 +502,12 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 name="type"
                 value={formData.type}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <SearchableDropdown
                 label="Unit"
@@ -535,7 +535,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 onChange={handleInputChange}
                 step="0.01"
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
           </div>
@@ -574,7 +574,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Stock Quantity
@@ -585,21 +585,22 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 value={formData.stock_qty}
                 onChange={handleInputChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              name="location"
-              value={formData.location}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                className="input"
+              />
+            </div>
           </div>
 
           <div>
@@ -617,9 +618,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
               className="w-full"
             />
           </div>
-          </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Minimum Stock Level
@@ -630,7 +630,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 value={formData.minimum_stock_level}
                 onChange={handleInputChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
 
@@ -644,7 +644,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 value={formData.maximum_stock_level}
                 onChange={handleInputChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
 
@@ -658,7 +658,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
                 value={formData.reorder_point}
                 onChange={handleInputChange}
                 min="0"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input"
               />
             </div>
           </div>
@@ -679,18 +679,18 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             />
           </div>
 
-          <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 pt-4 sm:pt-6 border-t border-slate-200">
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary"
+              className="btn btn-secondary w-full sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200"
+              className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
             >
               {loading ? (
                 <>

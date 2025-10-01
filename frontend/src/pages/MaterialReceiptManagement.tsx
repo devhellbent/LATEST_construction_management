@@ -346,109 +346,111 @@ const MaterialReceiptManagement: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-responsive">
       <div className="text-center lg:text-left">
-        <h1 className="text-4xl font-bold text-slate-900">Material Receipt Management</h1>
-        <p className="text-lg text-slate-600 mt-2">Record material receipts from suppliers based on purchase orders</p>
+        <h1 className="text-responsive-3xl font-bold text-slate-900">Material Receipt Management</h1>
+        <p className="text-responsive-base text-slate-600 mt-2">Record material receipts from suppliers based on purchase orders</p>
       </div>
 
       {!showReceiptForm ? (
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="card-mobile">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Pending Purchase Orders</h2>
-                <p className="text-slate-600 mt-1">Select a purchase order to record material receipt</p>
+                <h2 className="text-base sm:text-2xl font-bold text-slate-900">Pending Purchase Orders</h2>
+                <p className="text-slate-600 mt-1 text-xs sm:text-sm">Select a purchase order to record material receipt</p>
               </div>
-              <div className="h-12 w-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                <Package className="h-6 w-6 text-primary-600" />
+              <div className="h-10 w-10 sm:h-12 sm:w-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
               </div>
             </div>
             
             {pendingPos.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="h-20 w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Package className="h-10 w-10 text-slate-400" />
+              <div className="text-center py-8 sm:py-12">
+                <div className="h-16 w-16 sm:h-20 sm:w-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                  <Package className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">No Pending Purchase Orders</h3>
-                <p className="text-slate-600 max-w-md mx-auto">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No Pending Purchase Orders</h3>
+                <p className="text-slate-600 max-w-md mx-auto text-sm sm:text-base">
                   No purchase orders are available for material receipt recording at this time.
                 </p>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {pendingPos.map((po) => (
-                  <div key={po.po_id} className="card-interactive p-6 group">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-4">
-                          <h3 className="text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
+                  <div key={po.po_id} className="card-interactive p-4 sm:p-6 group">
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                      <div className="flex-1 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-4">
+                          <h3 className="text-base sm:text-xl font-bold text-slate-900 group-hover:text-primary-600 transition-colors">
                             {po.po_reference_id}
                           </h3>
-                          <span className="status-badge status-secondary">
-                            PO ID: {po.po_id}
-                          </span>
-                          <span className={`status-badge ${
-                            po.status === 'PLACED' ? 'status-active' : 'status-success'
-                          }`}>
-                            {po.status}
-                          </span>
-                          {existingReceipts.find(receipt => receipt.po_id === po.po_id) && (
-                            <span className={`status-badge ${
-                              (() => {
-                                const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
-                                if (status === 'PENDING') return 'status-warning';
-                                if (status === 'RECEIVED') return 'status-active';
-                                return 'status-success';
-                              })()
-                            }`}>
-                              {(() => {
-                                const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
-                                if (status === 'PENDING') return 'PENDING VERIFICATION';
-                                if (status === 'RECEIVED') return 'RECEIVED - PENDING VERIFICATION';
-                                return 'VERIFIED';
-                              })()}
+                          <div className="flex flex-wrap gap-2">
+                            <span className="status-badge status-secondary text-xs">
+                              PO ID: {po.po_id}
                             </span>
-                          )}
+                            <span className={`status-badge ${
+                              po.status === 'PLACED' ? 'status-active' : 'status-success'
+                            } text-xs`}>
+                              {po.status}
+                            </span>
+                            {existingReceipts.find(receipt => receipt.po_id === po.po_id) && (
+                              <span className={`status-badge ${
+                                (() => {
+                                  const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                                  if (status === 'PENDING') return 'status-warning';
+                                  if (status === 'RECEIVED') return 'status-active';
+                                  return 'status-success';
+                                })()
+                              } text-xs`}>
+                                {(() => {
+                                  const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
+                                  if (status === 'PENDING') return 'PENDING VERIFICATION';
+                                  if (status === 'RECEIVED') return 'RECEIVED - PENDING VERIFICATION';
+                                  return 'VERIFIED';
+                                })()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                           <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                              <User className="h-4 w-4 text-slate-500" />
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                              <User className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">Supplier</p>
-                              <p className="text-sm text-slate-600">{po.supplier?.supplier_name || po.supplier_name || 'N/A'}</p>
+                              <p className="text-xs sm:text-sm font-semibold text-slate-900">Supplier</p>
+                              <p className="text-xs sm:text-sm text-slate-600">{po.supplier?.supplier_name || po.supplier_name || 'N/A'}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                              <MapPin className="h-4 w-4 text-slate-500" />
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">Project</p>
-                              <p className="text-sm text-slate-600">{po.project?.name || po.project_name || 'N/A'}</p>
+                              <p className="text-xs sm:text-sm font-semibold text-slate-900">Project</p>
+                              <p className="text-xs sm:text-sm text-slate-600">{po.project?.name || po.project_name || 'N/A'}</p>
                             </div>
                           </div>
                           
                           <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center">
-                              <Calendar className="h-4 w-4 text-slate-500" />
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                             </div>
                             <div>
-                              <p className="text-sm font-semibold text-slate-900">Expected Delivery</p>
-                              <p className="text-sm text-slate-600">{new Date(po.expected_delivery_date).toLocaleDateString()}</p>
+                              <p className="text-xs sm:text-sm font-semibold text-slate-900">Expected Delivery</p>
+                              <p className="text-xs sm:text-sm text-slate-600">{new Date(po.expected_delivery_date).toLocaleDateString()}</p>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {po.items.map((item) => (
-                            <div key={item.po_item_id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                              <h4 className="font-bold text-slate-900 mb-2">{item.item?.item_name || item.item_name || 'Unknown Item'}</h4>
-                              <div className="space-y-1 text-sm text-slate-600">
+                            <div key={item.po_item_id} className="bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-200">
+                              <h4 className="font-bold text-slate-900 mb-2 text-sm sm:text-base">{item.item?.item_name || item.item_name || 'Unknown Item'}</h4>
+                              <div className="space-y-1 text-xs sm:text-sm text-slate-600">
                                 <p><span className="font-medium">Ordered:</span> {item.quantity_ordered} {item.unit?.unit_name || item.unit_name}</p>
                                 <p><span className="font-medium">Price:</span> ₹{item.unit_price}/{item.unit?.unit_name || item.unit_name}</p>
                                 <p className="font-bold text-slate-900">Total: ₹{item.total_amount}</p>
@@ -458,11 +460,11 @@ const MaterialReceiptManagement: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="ml-6">
+                      <div className="w-full sm:w-auto sm:ml-6">
                         <button
                           onClick={() => handleSelectPo(po)}
                           disabled={existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status === 'APPROVED'}
-                          className={`btn btn-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
+                          className={`btn btn-lg shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto ${
                             (() => {
                               const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
                               if (status === 'APPROVED') return 'btn-secondary cursor-not-allowed';
@@ -476,26 +478,26 @@ const MaterialReceiptManagement: React.FC = () => {
                             const status = existingReceipts.find(receipt => receipt.po_id === po.po_id)?.status;
                             if (status === 'APPROVED') return (
                               <>
-                                <CheckCircle className="h-4 w-4 mr-2" />
-                                Verified
+                                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Verified</span>
                               </>
                             );
                             if (status === 'PENDING' || status === 'RECEIVED') return (
                               <>
-                                <AlertCircle className="h-4 w-4 mr-2" />
-                                Verify Receipt
+                                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Verify Receipt</span>
                               </>
                             );
                             if (existingReceipts.find(receipt => receipt.po_id === po.po_id)) return (
                               <>
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Update Receipt
+                                <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Update Receipt</span>
                               </>
                             );
                             return (
                               <>
-                                <FileText className="h-4 w-4 mr-2" />
-                                Record Receipt
+                                <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                <span className="text-xs sm:text-sm">Record Receipt</span>
                               </>
                             );
                           })()}
@@ -509,10 +511,10 @@ const MaterialReceiptManagement: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="card p-8">
-          <div className="flex items-center justify-between mb-8">
+        <div className="card-mobile">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 sm:mb-8 gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2 className="text-lg sm:text-2xl font-bold text-slate-900">
                 {(() => {
                   const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
                   if (existingReceipt?.status === 'PENDING') {
@@ -524,7 +526,7 @@ const MaterialReceiptManagement: React.FC = () => {
                   }
                 })()} - {selectedPo?.po_reference_id}
               </h2>
-              <p className="text-slate-600 mt-1">
+              <p className="text-slate-600 mt-1 text-xs sm:text-sm">
                 {(() => {
                   const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
                   if (existingReceipt?.status === 'PENDING') {
@@ -539,14 +541,14 @@ const MaterialReceiptManagement: React.FC = () => {
             </div>
             <button
               onClick={() => setShowReceiptForm(false)}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors self-end sm:self-auto"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleCreateReceipt(); }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div>
                 <label className="label label-required">
                   Received By
@@ -661,17 +663,17 @@ const MaterialReceiptManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="mb-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-6">Items Received</h3>
-              <div className="space-y-6">
+            <div className="mb-6 sm:mb-8">
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-4 sm:mb-6">Items Received</h3>
+              <div className="space-y-4 sm:space-y-6">
                 {formData.items.map((item) => {
                   const poItem = selectedPo?.items.find(i => i.po_item_id === item.po_item_id);
                   return (
-                    <div key={item.po_item_id} className="card p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-center">
+                    <div key={item.po_item_id} className="card-mobile">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 items-start">
                         <div>
-                          <h4 className="font-bold text-slate-900 mb-2">{poItem?.item?.item_name || poItem?.item_name || 'Unknown Item'}</h4>
-                          <div className="space-y-1 text-sm text-slate-600">
+                          <h4 className="font-bold text-slate-900 mb-2 text-sm sm:text-base">{poItem?.item?.item_name || poItem?.item_name || 'Unknown Item'}</h4>
+                          <div className="space-y-1 text-xs sm:text-sm text-slate-600">
                             <p><span className="font-medium">Ordered:</span> {poItem?.quantity_ordered} {poItem?.unit?.unit_name || poItem?.unit_name}</p>
                             <p><span className="font-medium">Vendor:</span> {selectedPo?.supplier?.supplier_name || selectedPo?.supplier_name || 'N/A'}</p>
                             <p><span className="font-medium">Item Code:</span> {poItem?.item?.item_code || poItem?.item_code || 'N/A'}</p>
@@ -761,7 +763,7 @@ const MaterialReceiptManagement: React.FC = () => {
                           />
                         </div>
                         
-                        <div className="md:col-span-3">
+                        <div className="sm:col-span-2 lg:col-span-3">
                           <label className="label">
                             Notes
                           </label>
@@ -777,8 +779,8 @@ const MaterialReceiptManagement: React.FC = () => {
                       
                       {/* GST Fields */}
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">GST Details</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">GST Details</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="label">
                               CGST Rate (%)
@@ -825,7 +827,7 @@ const MaterialReceiptManagement: React.FC = () => {
                           </div>
                         </div>
                         
-                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           <div>
                             <label className="label">
                               CGST Amount
@@ -869,7 +871,7 @@ const MaterialReceiptManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <label className="label">
                 General Notes
               </label>
@@ -877,12 +879,12 @@ const MaterialReceiptManagement: React.FC = () => {
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 className="input"
-                rows={4}
+                rows={3}
                 placeholder="Additional notes about the receipt..."
               />
             </div>
 
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <label className="label">
                 Delivery Notes
               </label>
@@ -890,23 +892,23 @@ const MaterialReceiptManagement: React.FC = () => {
                 value={formData.delivery_notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, delivery_notes: e.target.value }))}
                 className="input"
-                rows={4}
+                rows={3}
                 placeholder="Notes about delivery conditions..."
               />
             </div>
 
-            <div className="flex justify-end space-x-4 pt-6 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => setShowReceiptForm(false)}
-                className="btn btn-secondary"
+                className="btn btn-secondary w-full sm:w-auto"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className={`btn btn-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
+                className={`btn btn-lg shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto ${
                   (() => {
                     const existingReceipt = existingReceipts.find(receipt => receipt.po_id === selectedPo?.po_id);
                     if (existingReceipt?.status === 'PENDING' || existingReceipt?.status === 'RECEIVED') {
@@ -921,8 +923,8 @@ const MaterialReceiptManagement: React.FC = () => {
               >
                 {loading ? (
                   <>
-                    <div className="loading-spinner h-4 w-4 mr-2"></div>
-                    Processing...
+                    <div className="loading-spinner h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2"></div>
+                    <span className="text-xs sm:text-sm">Processing...</span>
                   </>
                 ) : (
                   (() => {
@@ -930,22 +932,22 @@ const MaterialReceiptManagement: React.FC = () => {
                     if (existingReceipt?.status === 'PENDING' || existingReceipt?.status === 'RECEIVED') {
                       return (
                         <>
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Verify Receipt
+                          <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Verify Receipt</span>
                         </>
                       );
                     } else if (existingReceipt) {
                       return (
                         <>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Update Receipt
+                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Update Receipt</span>
                         </>
                       );
                     } else {
                       return (
                         <>
-                          <FileText className="h-4 w-4 mr-2" />
-                          Record Receipt
+                          <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                          <span className="text-xs sm:text-sm">Create Receipt</span>
                         </>
                       );
                     }

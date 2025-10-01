@@ -441,7 +441,7 @@ router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project 
 });
 
 // Approve/Reject MRR
-router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
+router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin'), [
   body('action').isIn(['approve', 'reject']).withMessage('Action must be either approve or reject'),
   body('rejection_reason').optional().trim()
 ], async (req, res) => {
