@@ -7,8 +7,7 @@ import {
   FileText,
   TrendingUp,
   AlertTriangle,
-  Package,
-  DollarSign
+  Package
 } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { projectsAPI, tasksAPI, issuesAPI, materialsAPI, expensesAPI } from '../services/api';

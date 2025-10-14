@@ -12,7 +12,6 @@ import {
   Plus, 
   X,
   Calendar,
-  DollarSign,
   FileText,
   RefreshCw,
   ShoppingCart,

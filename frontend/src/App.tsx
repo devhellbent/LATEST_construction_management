@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
@@ -21,10 +22,10 @@ import Issues from './pages/Issues';
 import Reports from './pages/Reports';
 import Documents from './pages/Documents';
 import Expenses from './pages/Expenses';
-import Users from './pages/Users';
 import Profile from './pages/Profile';
 import Commercial from './pages/Commercial';
 import CommercialPettyCash from './pages/CommercialPettyCash';
+import SubcontractorLedger from './pages/SubcontractorLedger';
 // New Material Management Pages
 import MaterialManagementDashboard from './pages/MaterialManagementDashboard';
 import MrrFlowComponent from './components/MrrFlowComponent';
@@ -41,6 +42,10 @@ import CreatePurchaseOrder from './pages/CreatePurchaseOrder';
 import EditPurchaseOrder from './pages/EditPurchaseOrder';
 import PurchaseOrderDetails from './pages/PurchaseOrderDetails';
 import PurchaseOrderReceipts from './pages/PurchaseOrderReceipts';
+// Admin Pages
+import AdminSuppliers from './pages/admin/AdminSuppliers';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminItems from './pages/admin/AdminItems';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,11 +94,11 @@ function App() {
                             <Route path="/reports" element={<Reports />} />
                             <Route path="/documents" element={<Documents />} />
                             <Route path="/expenses" element={<Expenses />} />
-                            <Route path="/users" element={<Users />} />
                             <Route path="/profile" element={<Profile />} />
                             {/* Commercial Routes */}
                             <Route path="/commercial" element={<Commercial />} />
                             <Route path="/commercial/petty-cash" element={<CommercialPettyCash />} />
+                            <Route path="/commercial/subcontractor-ledger" element={<SubcontractorLedger />} />
                             {/* New Material Management Routes */}
                             <Route path="/material-management" element={<MaterialManagementDashboard />} />
                             <Route path="/material-management/mrr" element={<MrrFlowComponent />} />
@@ -111,6 +116,22 @@ function App() {
                             <Route path="/purchase-orders/:id" element={<PurchaseOrderDetails />} />
                             <Route path="/purchase-orders/:id/edit" element={<EditPurchaseOrder />} />
                             <Route path="/purchase-orders/:id/receipts" element={<PurchaseOrderReceipts />} />
+                            {/* Admin Routes */}
+                            <Route path="/admin/suppliers" element={
+                              <AdminRoute>
+                                <AdminSuppliers />
+                              </AdminRoute>
+                            } />
+                            <Route path="/admin/users" element={
+                              <AdminRoute>
+                                <AdminUsers />
+                              </AdminRoute>
+                            } />
+                            <Route path="/admin/items" element={
+                              <AdminRoute>
+                                <AdminItems />
+                              </AdminRoute>
+                            } />
                           </Routes>
                         </Layout>
                       </ProtectedRoute>

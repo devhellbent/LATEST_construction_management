@@ -137,6 +137,57 @@ export const usersAPI = {
     api.patch(`/users/${id}/toggle-status`),
 };
 
+// Admin API
+export const adminAPI = {
+  // Suppliers
+  getSuppliers: (params?: any) =>
+    api.get('/admin/suppliers', { params }),
+  getSupplier: (id: number) =>
+    api.get(`/admin/suppliers/${id}`),
+  createSupplier: (supplierData: any) =>
+    api.post('/admin/suppliers', supplierData),
+  updateSupplier: (id: number, supplierData: any) =>
+    api.put(`/admin/suppliers/${id}`, supplierData),
+  deleteSupplier: (id: number) =>
+    api.delete(`/admin/suppliers/${id}`),
+
+  // Users
+  getUsers: (params?: any) =>
+    api.get('/admin/users', { params }),
+  getUser: (id: number) =>
+    api.get(`/admin/users/${id}`),
+  createUser: (userData: any) =>
+    api.post('/admin/users', userData),
+  updateUser: (id: number, userData: any) =>
+    api.put(`/admin/users/${id}`, userData),
+  deleteUser: (id: number) =>
+    api.delete(`/admin/users/${id}`),
+
+  // Items
+  getItems: (params?: any) =>
+    api.get('/admin/items', { params }),
+  getItem: (id: number) =>
+    api.get(`/admin/items/${id}`),
+  createItem: (itemData: any) =>
+    api.post('/admin/items', itemData),
+  updateItem: (id: number, itemData: any) =>
+    api.put(`/admin/items/${id}`, itemData),
+  deleteItem: (id: number) =>
+    api.delete(`/admin/items/${id}`),
+
+  // Master Data
+  getCategories: () =>
+    api.get('/admin/categories'),
+  getBrands: () =>
+    api.get('/admin/brands'),
+  getUnits: () =>
+    api.get('/admin/units'),
+  getRoles: () =>
+    api.get('/admin/roles'),
+  getWarehouses: () =>
+    api.get('/admin/warehouses'),
+};
+
 // Projects API
 export const projectsAPI = {
   getProjects: (params?: any) =>
@@ -594,6 +645,28 @@ export const subcontractorsAPI = {
     api.put(`/subcontractors/${id}`, data),
   deleteSubcontractor: (id: number) =>
     api.delete(`/subcontractors/${id}`),
+};
+
+// Subcontractor Ledger API
+export const subcontractorLedgerAPI = {
+  getLedgerEntries: (params?: any) =>
+    api.get('/subcontractor-ledger', { params }),
+  getLedgerSummary: (params?: any) =>
+    api.get('/subcontractor-ledger/summary', { params }),
+  getSubcontractorLedger: (subcontractorId: number, params?: any) =>
+    api.get(`/subcontractor-ledger/subcontractor/${subcontractorId}`, { params }),
+  getProjectLedger: (projectId: number, params?: any) =>
+    api.get(`/subcontractor-ledger/project/${projectId}`, { params }),
+  createLedgerEntry: (data: any) =>
+    api.post('/subcontractor-ledger', data),
+  updateLedgerEntry: (id: number, data: any) =>
+    api.put(`/subcontractor-ledger/${id}`, data),
+  deleteLedgerEntry: (id: number) =>
+    api.delete(`/subcontractor-ledger/${id}`),
+  approveLedgerEntry: (id: number) =>
+    api.patch(`/subcontractor-ledger/${id}/approve`),
+  markPaidLedgerEntry: (id: number) =>
+    api.patch(`/subcontractor-ledger/${id}/mark-paid`),
 };
 
 export const commercialAPI = {

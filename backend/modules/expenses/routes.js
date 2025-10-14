@@ -39,7 +39,10 @@ router.get('/', [
       where: whereClause,
       include: [
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
-        { model: User, as: 'approvedBy', attributes: ['user_id', 'name'] }
+        { model: User, as: 'approvedBy', attributes: ['user_id', 'name'] },
+        { model: User, as: 'user', attributes: ['user_id', 'name'] },
+        { model: User, as: 'createdBy', attributes: ['user_id', 'name'] },
+        { model: User, as: 'updatedBy', attributes: ['user_id', 'name'] }
       ],
       limit,
       offset,
@@ -61,10 +64,35 @@ router.get('/', [
   }
 });
 
+// Get latest expenses
+router.get('/latest', [
+  query('limit').optional().isInt({ min: 1, max: 10 }).withMessage('Limit must be between 1 and 10')
+], async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+
+    const expenses = await PettyCashExpense.findAll({
+      include: [
+        { model: Project, as: 'project', attributes: ['project_id', 'name'] },
+        { model: User, as: 'approvedBy', attributes: ['user_id', 'name'] },
+        { model: User, as: 'user', attributes: ['user_id', 'name'] }
+      ],
+      limit,
+      order: [['created_at', 'DESC']]
+    });
+
+    res.json({ expenses });
+  } catch (error) {
+    console.error('Get latest expenses error:', error);
+    res.status(500).json({ message: 'Failed to fetch latest expenses' });
+  }
+});
+
 // Create expense
-router.post('/', [
+router.post('/', authenticateToken, [
   body('project_id').isInt().withMessage('Project ID is required'),
-  body('category').trim().isLength({ min: 2 }).withMessage('Category must be at least 2 characters'),
+  body('category').isIn(['Kirana', 'Machinery_Rent', 'Labour_Expense', 'Other']).withMessage('Invalid category'),
+  body('category_other_text').optional().trim().isLength({ max: 255 }).withMessage('Category other text too long'),
   body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
   body('date').isISO8601().withMessage('Invalid date'),
   body('description').optional().trim()
@@ -80,7 +108,19 @@ router.post('/', [
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const expense = await PettyCashExpense.create(req.body);
+    // Validate category_other_text is provided when category is 'Other'
+    if (req.body.category === 'Other' && !req.body.category_other_text) {
+      return res.status(400).json({ message: 'Category other text is required when category is Other' });
+    }
+
+    const expenseData = {
+      ...req.body,
+      user_id: req.user.user_id,
+      created_by: req.user.user_id,
+      updated_by: req.user.user_id
+    };
+
+    const expense = await PettyCashExpense.create(expenseData);
 
     res.status(201).json({
       message: 'Expense created successfully',
@@ -93,8 +133,9 @@ router.post('/', [
 });
 
 // Update expense
-router.put('/:id', [
-  body('category').optional().trim().isLength({ min: 2 }).withMessage('Category must be at least 2 characters'),
+router.put('/:id', authenticateToken, [
+  body('category').optional().isIn(['Kirana', 'Machinery_Rent', 'Labour_Expense', 'Other']).withMessage('Invalid category'),
+  body('category_other_text').optional().trim().isLength({ max: 255 }).withMessage('Category other text too long'),
   body('amount').optional().isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
   body('date').optional().isISO8601().withMessage('Invalid date'),
   body('description').optional().trim()
@@ -110,7 +151,17 @@ router.put('/:id', [
       return res.status(404).json({ message: 'Expense not found' });
     }
 
-    await expense.update(req.body);
+    // Validate category_other_text is provided when category is 'Other'
+    if (req.body.category === 'Other' && !req.body.category_other_text) {
+      return res.status(400).json({ message: 'Category other text is required when category is Other' });
+    }
+
+    const updateData = {
+      ...req.body,
+      updated_by: req.user.user_id
+    };
+
+    await expense.update(updateData);
 
     res.json({
       message: 'Expense updated successfully',

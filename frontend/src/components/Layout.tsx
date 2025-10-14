@@ -9,7 +9,7 @@ import {
   AlertTriangle, 
   FileText, 
   Upload, 
-  DollarSign, 
+  IndianRupee, 
   Settings,
   Menu,
   X,
@@ -21,7 +21,6 @@ import {
   ArrowRightLeft,
   ShoppingCart,
   RotateCcw,
-  IndianRupee,
   RefreshCw,
   ChevronDown,
   ChevronRight,
@@ -32,7 +31,11 @@ import {
   Workflow,
   Plus,
   History,
-  Package2
+  Package2,
+  Shield,
+  UserPlus,
+  PackageCheck,
+  Building
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -45,12 +48,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [commercialExpanded, setCommercialExpanded] = useState(false);
   const [materialManagementExpanded, setMaterialManagementExpanded] = useState(false);
+  const [adminExpanded, setAdminExpanded] = useState(false);
   const { user, logout } = useAuth();
   const { isConnected } = useSocket();
   const location = useLocation();
 
   const commercialSubItems = [
     { name: 'Petty Cash', href: '/commercial/petty-cash', icon: IndianRupee },
+    { name: 'Subcontractor Ledger', href: '/commercial/subcontractor-ledger', icon: Building2 },
   ];
 
   const materialManagementSubItems = [
@@ -63,6 +68,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Material Receipts', href: '/material-management/receipts', icon: Truck },
     { name: 'Supplier Ledger', href: '/material-management/supplier-ledger', icon: CreditCard },
     { name: 'Workflow Tracking', href: '/material-management/workflow', icon: Workflow },
+  ];
+
+  const adminSubItems = [
+    { name: 'Suppliers', href: '/admin/suppliers', icon: Building },
+    { name: 'Users', href: '/admin/users', icon: UserPlus },
+    { name: 'Items', href: '/admin/items', icon: PackageCheck },
   ];
 
   const navigation = [
@@ -91,16 +102,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Issues', href: '/issues', icon: AlertTriangle },
     { name: 'Reports', href: '/reports', icon: FileText },
     { name: 'Documents', href: '/documents', icon: Upload },
-    { name: 'Expenses', href: '/expenses', icon: DollarSign },
+    { name: 'Expenses', href: '/expenses', icon: IndianRupee },
   ];
 
-  // Add Users menu item for owners and project managers
+  // Check if user is admin
+  const isAdmin = () => {
+    if (!user?.role) return false;
+    
+    // Handle old string format
+    if (typeof user.role === 'string') {
+      return user.role === 'OWNER' || user.role === 'ADMIN';
+    }
+    
+    // Handle new object format
+    if (typeof user.role === 'object') {
+      return user.role.name === 'Admin';
+    }
+    
+    return false;
+  };
+
+  // Check if user is admin or manager
   const isAdminOrManager = () => {
     if (!user?.role) return false;
     
     // Handle old string format
     if (typeof user.role === 'string') {
-      return user.role === 'OWNER' || user.role === 'PROJECT_MANAGER';
+      return user.role === 'OWNER' || user.role === 'PROJECT_MANAGER' || user.role === 'ADMIN';
     }
     
     // Handle new object format
@@ -111,9 +139,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return false;
   };
 
-  if (isAdminOrManager()) {
-    navigation.push({ name: 'Users', href: '/users', icon: Users });
+  // Add Admin section for admin users only
+  if (isAdmin()) {
+    navigation.push({ 
+      name: 'Admin', 
+      href: '/admin', 
+      icon: Shield, 
+      subItems: adminSubItems,
+      expanded: adminExpanded,
+      onToggle: () => setAdminExpanded(!adminExpanded)
+    });
   }
+
 
   const getRoleName = () => {
     if (!user?.role) return 'User';

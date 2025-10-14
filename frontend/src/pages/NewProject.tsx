@@ -471,7 +471,7 @@ const NewProject: React.FC = () => {
                   label: `${user.name} (${user.email})`,
                   searchText: `${user.name} ${user.email}`
                 })) : []}
-                value={formData.owner_user_id}
+                value={formData.owner_user_id.toString()}
                 onChange={(value) => setFormData(prev => ({ ...prev, owner_user_id: parseInt(value.toString()) }))}
                 placeholder="Select a project owner"
                 searchPlaceholder="Search users..."

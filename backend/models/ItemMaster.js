@@ -68,7 +68,37 @@ const ItemMaster = sequelize.define('ItemMaster', {
   tableName: 'item_master',
   timestamps: true,
   createdAt: 'created_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  hooks: {
+    beforeValidate: async (item) => {
+      if (!item.item_code) {
+        // Generate item code based on category and sequential number
+        const category = await sequelize.models.ItemCategory.findByPk(item.category_id);
+        const categoryPrefix = category ? category.category_name.substring(0, 3).toUpperCase() : 'ITM';
+        
+        // Get the last item for this category to determine next number
+        const lastItem = await ItemMaster.findOne({
+          where: {
+            item_code: {
+              [sequelize.Sequelize.Op.like]: `${categoryPrefix}%`
+            }
+          },
+          order: [['item_code', 'DESC']]
+        });
+        
+        let nextNumber = 1;
+        if (lastItem && lastItem.item_code) {
+          const lastNumber = parseInt(lastItem.item_code.replace(categoryPrefix, ''));
+          if (!isNaN(lastNumber)) {
+            nextNumber = lastNumber + 1;
+          }
+        }
+        
+        // Format: CAT001, CAT002, etc.
+        item.item_code = `${categoryPrefix}${nextNumber.toString().padStart(3, '0')}`;
+      }
+    }
+  }
 });
 
 module.exports = ItemMaster;

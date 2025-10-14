@@ -32,6 +32,7 @@ const MaterialReceiptItem = require('./MaterialReceiptItem');
 const SupplierLedger = require('./SupplierLedger');
 const Warehouse = require('./Warehouse');
 const Subcontractor = require('./Subcontractor');
+const SubcontractorLedger = require('./SubcontractorLedger');
 
 // Role associations
 Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
@@ -45,7 +46,10 @@ User.hasMany(Task, { foreignKey: 'assigned_user_id', as: 'assignedTasks' });
 User.hasMany(Issue, { foreignKey: 'raised_by_user_id', as: 'raisedIssues' });
 User.hasMany(Issue, { foreignKey: 'assigned_to_user_id', as: 'assignedIssues' });
 User.hasMany(Report, { foreignKey: 'generated_by_user_id', as: 'generatedReports' });
+User.hasMany(PettyCashExpense, { foreignKey: 'user_id', as: 'pettyCashExpenses' });
 User.hasMany(PettyCashExpense, { foreignKey: 'approved_by_user_id', as: 'approvedExpenses' });
+User.hasMany(PettyCashExpense, { foreignKey: 'created_by', as: 'createdExpenses' });
+User.hasMany(PettyCashExpense, { foreignKey: 'updated_by', as: 'updatedExpenses' });
 User.hasMany(Document, { foreignKey: 'uploaded_by_user_id', as: 'uploadedDocuments' });
 User.hasMany(Payment, { foreignKey: 'paid_to_user_id', as: 'receivedPayments' });
 User.hasMany(Payment, { foreignKey: 'paid_by_user_id', as: 'madePayments' });
@@ -119,7 +123,10 @@ Report.belongsTo(User, { foreignKey: 'generated_by_user_id', as: 'generatedBy' }
 
 // PettyCashExpense associations
 PettyCashExpense.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+PettyCashExpense.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 PettyCashExpense.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
+PettyCashExpense.belongsTo(User, { foreignKey: 'created_by', as: 'createdBy' });
+PettyCashExpense.belongsTo(User, { foreignKey: 'updated_by', as: 'updatedBy' });
 
 // Document associations
 Document.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
@@ -268,6 +275,19 @@ Subcontractor.hasMany(MaterialRequirementRequest, { foreignKey: 'subcontractor_i
 Subcontractor.hasMany(MaterialIssue, { foreignKey: 'subcontractor_id', as: 'materialIssues' });
 Subcontractor.hasMany(MaterialReturn, { foreignKey: 'subcontractor_id', as: 'materialReturns' });
 Subcontractor.hasMany(PurchaseOrder, { foreignKey: 'subcontractor_id', as: 'purchaseOrders' });
+Subcontractor.hasMany(SubcontractorLedger, { foreignKey: 'subcontractor_id', as: 'ledgerEntries' });
+
+// SubcontractorLedger associations
+SubcontractorLedger.belongsTo(Subcontractor, { foreignKey: 'subcontractor_id', as: 'subcontractor' });
+SubcontractorLedger.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+SubcontractorLedger.belongsTo(User, { foreignKey: 'created_by', as: 'createdBy' });
+SubcontractorLedger.belongsTo(User, { foreignKey: 'updated_by', as: 'updatedBy' });
+SubcontractorLedger.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approvedBy' });
+
+// User associations for SubcontractorLedger
+User.hasMany(SubcontractorLedger, { foreignKey: 'created_by', as: 'createdSubcontractorLedgers' });
+User.hasMany(SubcontractorLedger, { foreignKey: 'updated_by', as: 'updatedSubcontractorLedgers' });
+User.hasMany(SubcontractorLedger, { foreignKey: 'approved_by_user_id', as: 'approvedSubcontractorLedgers' });
 
 module.exports = {
   User,
@@ -305,5 +325,6 @@ module.exports = {
   MaterialReceiptItem,
   SupplierLedger,
   Warehouse,
-  Subcontractor
+  Subcontractor,
+  SubcontractorLedger
 };

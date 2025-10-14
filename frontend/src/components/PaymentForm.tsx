@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Building, DollarSign, Calendar, FileText, Phone } from 'lucide-react';
+import { X, User, Building, IndianRupee, Calendar, FileText, Phone } from 'lucide-react';
 import { paymentsAPI, projectsAPI, usersAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -339,7 +339,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ isOpen, onClose, onSuccess, p
                 Amount *
               </label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="number"
                   name="amount"

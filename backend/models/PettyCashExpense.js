@@ -15,8 +15,20 @@ const PettyCashExpense = sequelize.define('PettyCashExpense', {
       key: 'project_id'
     }
   },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
   category: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.ENUM('Kirana', 'Machinery_Rent', 'Labour_Expense', 'Other'),
+    allowNull: false
+  },
+  category_other_text: {
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   amount: {
@@ -44,9 +56,38 @@ const PettyCashExpense = sequelize.define('PettyCashExpense', {
       model: 'users',
       key: 'user_id'
     }
+  },
+  created_by: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  updated_by: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'user_id'
+    }
+  },
+  created_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'petty_cash_expenses'
+  tableName: 'petty_cash_expenses',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
 });
 
 module.exports = PettyCashExpense;

@@ -29,6 +29,13 @@ const Commercial: React.FC = () => {
       icon: IndianRupee,
       description: 'Manage petty cash expenses',
       color: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+    },
+    {
+      name: 'Subcontractor Ledger',
+      href: '/commercial/subcontractor-ledger',
+      icon: Building2,
+      description: 'Manage subcontractor payments',
+      color: 'bg-blue-50 text-blue-700 border-blue-200'
     }
   ];
 
@@ -83,7 +90,7 @@ const Commercial: React.FC = () => {
       </div>
 
       {/* Commercial Sections */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {commercialSections.map((section) => {
           const Icon = section.icon;
           const isActive = location.pathname === section.href;

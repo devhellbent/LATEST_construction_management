@@ -11,8 +11,7 @@ import {
   Clock,
   Truck,
   FileText,
-  Calendar,
-  DollarSign
+  Calendar
 } from 'lucide-react';
 import { purchaseOrdersAPI, projectsAPI, suppliersAPI } from '../services/api';
 

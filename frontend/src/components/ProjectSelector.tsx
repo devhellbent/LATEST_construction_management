@@ -114,10 +114,10 @@ const ProjectSelector: React.FC<ProjectSelectorProps> = ({
       {isOpen && (
         <>
           <div
-            className="fixed inset-0 z-10"
+            className="fixed inset-0 z-[9998]"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-20 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-[9999] w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl max-h-60 overflow-auto">
             <div className="p-2">
               <button
                 onClick={handleClearSelection}

@@ -81,18 +81,30 @@ router.post('/login', [
         }
       ]
     });
+    
+    console.log('Login attempt for email:', email);
+    console.log('User found:', !!user);
+    
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    console.log('User found:', user.name, user.email, 'Active:', user.is_active);
+
     // Check if user is active
     if (!user.is_active) {
+      console.log('User account is deactivated');
       return res.status(401).json({ message: 'Account is deactivated' });
     }
 
     // Validate password
+    console.log('Validating password...');
     const isValidPassword = await user.validatePassword(password);
+    console.log('Password validation result:', isValidPassword);
+    
     if (!isValidPassword) {
+      console.log('Invalid password');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

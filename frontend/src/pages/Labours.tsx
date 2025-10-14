@@ -184,7 +184,7 @@ const Labours: React.FC = () => {
       </div>
 
       {/* Project Filter */}
-      <div className="card p-6">
+      <div className="card p-6 relative z-10">
         <div className="flex items-center space-x-4">
           <Filter className="h-5 w-5 text-gray-500" />
           <div className="flex-1">

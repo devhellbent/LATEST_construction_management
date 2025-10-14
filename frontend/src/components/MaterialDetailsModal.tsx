@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, Package, MapPin, Calendar, User, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Edit, Package, MapPin, Calendar, User, IndianRupee, AlertTriangle, CheckCircle } from 'lucide-react';
 import { materialsAPI } from '../services/api';
 import MaterialForm from './MaterialForm';
 

@@ -150,6 +150,16 @@ const MrrFlowComponent: React.FC = () => {
       return;
     }
 
+    // Validate mandatory fields
+    if (!formData.component_id) {
+      alert('Please select a Project Component');
+      return;
+    }
+    if (!formData.subcontractor_id) {
+      alert('Please select a Subcontractor');
+      return;
+    }
+
     // Validate items
     for (let i = 0; i < formData.items.length; i++) {
       const item = formData.items[i];
@@ -271,6 +281,15 @@ const MrrFlowComponent: React.FC = () => {
   const updateItem = (index: number, field: string, value: any) => {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Auto-populate unit when item is selected
+    if (field === 'item_id' && value && value !== 0) {
+      const selectedItem = items.find(item => item.item_id === value);
+      if (selectedItem && selectedItem.unit_id) {
+        newItems[index].unit_id = selectedItem.unit_id;
+      }
+    }
+    
     setFormData({ ...formData, items: newItems });
   };
 
@@ -500,12 +519,13 @@ const MrrFlowComponent: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="label">Project Component</label>
+                    <label className="label">Project Component <span className="text-red-500">*</span></label>
                     <select
                       value={formData.component_id}
                       onChange={(e) => setFormData({ ...formData, component_id: e.target.value })}
                       className="input"
                       disabled={!formData.project_id}
+                      required
                     >
                       <option value="">Select Component</option>
                       {components.map((component) => (
@@ -520,12 +540,13 @@ const MrrFlowComponent: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="label">Subcontractor</label>
+                    <label className="label">Subcontractor <span className="text-red-500">*</span></label>
                     <select
                       value={formData.subcontractor_id}
                       onChange={(e) => setFormData({ ...formData, subcontractor_id: e.target.value })}
                       className="input"
                       disabled={!formData.project_id}
+                      required
                     >
                       <option value="">Select Subcontractor</option>
                       {subcontractors

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { projectsAPI, usersAPI, subcontractorsAPI } from '../services/api';
-import { Edit, Calendar, DollarSign, User, AlertCircle, CheckCircle, Clock, FileText, Users, TrendingUp, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Edit, Calendar, IndianRupee, User, AlertCircle, CheckCircle, Clock, FileText, Users, TrendingUp, Save, X, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -844,7 +844,7 @@ const ProjectDetail: React.FC = () => {
           <div className="bg-white rounded-lg shadow-sm border p-6">
             <div className="flex items-center">
               <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-green-600" />
+                <IndianRupee className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">MATERIAL COST</p>

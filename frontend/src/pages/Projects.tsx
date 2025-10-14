@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from 'react-query';
 import { projectsAPI } from '../services/api';
-import { FolderOpen, Plus, Calendar, DollarSign, User, AlertCircle, Clock, Mail, Eye } from 'lucide-react';
+import { FolderOpen, Plus, Calendar, IndianRupee, User, AlertCircle, Clock, Mail, Eye } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -262,7 +262,7 @@ const Projects: React.FC = () => {
                 
                 <div className="flex items-center text-xs sm:text-sm text-slate-600">
                   <div className="h-6 w-6 sm:h-8 sm:w-8 bg-slate-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
-                    <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
+                    <IndianRupee className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                   </div>
                   <div>
                     <div className="text-xs text-slate-500">Budget</div>

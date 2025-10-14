@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Phone, DollarSign, Briefcase } from 'lucide-react';
+import { X, Save, User, Phone, IndianRupee, Briefcase } from 'lucide-react';
 import { laboursAPI, projectsAPI } from '../services/api';
 
 interface LabourFormProps {
@@ -207,7 +207,7 @@ const LabourForm: React.FC<LabourFormProps> = ({
           {/* Wage Rate */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              <DollarSign className="h-4 w-4 inline mr-1" />
+              <IndianRupee className="h-4 w-4 inline mr-1" />
               Wage Rate (per day)
             </label>
             <input
