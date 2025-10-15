@@ -15,6 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { adminAPI } from '../../services/api';
+import Pagination from '../../components/Pagination';
 
 interface Item {
   item_id: number;
@@ -140,11 +141,11 @@ const AdminItems: React.FC = () => {
     }
   );
 
-  const items: Item[] = itemsData?.data?.items || [];
-  const categories: Category[] = categoriesData?.data?.categories || [];
-  const brands: Brand[] = brandsData?.data?.brands || [];
-  const units: Unit[] = unitsData?.data?.units || [];
-  const pagination: Pagination = itemsData?.data?.pagination || {
+  const items: Item[] = (itemsData as any)?.data?.items || (itemsData as any)?.items || [];
+  const categories: Category[] = (categoriesData as any)?.data?.categories || (categoriesData as any)?.categories || [];
+  const brands: Brand[] = (brandsData as any)?.data?.brands || (brandsData as any)?.brands || [];
+  const units: Unit[] = (unitsData as any)?.data?.units || (unitsData as any)?.units || [];
+  const pagination: Pagination = (itemsData as any)?.data?.pagination || (itemsData as any)?.pagination || {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
@@ -501,74 +502,13 @@ const AdminItems: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                disabled={currentPage === pagination.totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-slate-700">
-                  Showing{' '}
-                  <span className="font-medium">
-                    {(currentPage - 1) * pagination.itemsPerPage + 1}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-medium">
-                    {Math.min(currentPage * pagination.itemsPerPage, pagination.totalItems)}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-medium">{pagination.totalItems}</span>{' '}
-                  results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === currentPage
-                          ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                          : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                    disabled={currentPage === pagination.totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          itemsPerPage={pagination.itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add/Edit Modal */}

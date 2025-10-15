@@ -46,6 +46,11 @@ router.get('/suppliers', authenticateToken, authorizeRoles('Admin'), [
       order: [['created_at', 'DESC']]
     });
 
+    // Debug logging
+    console.log('Suppliers query - Page:', page, 'Limit:', limit, 'Offset:', offset);
+    console.log('Suppliers query - Count:', count, 'Rows:', suppliers.length);
+    console.log('Suppliers query - Where clause:', whereClause);
+
     res.json({
       suppliers,
       pagination: {

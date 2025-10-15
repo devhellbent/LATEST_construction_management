@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { toast } from 'react-hot-toast';
 import { 
@@ -14,9 +14,11 @@ import {
   CreditCard,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  X
 } from 'lucide-react';
 import { adminAPI } from '../../services/api';
+import Pagination from '../../components/Pagination';
 
 interface Supplier {
   supplier_id: number;
@@ -48,11 +50,25 @@ interface Pagination {
 
 const AdminSuppliers: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [viewingSupplier, setViewingSupplier] = useState<Supplier | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const queryClient = useQueryClient();
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      // Reset to page 1 when search term changes
+      if (searchTerm !== debouncedSearchTerm) {
+        setCurrentPage(1);
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, debouncedSearchTerm]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -75,9 +91,9 @@ const AdminSuppliers: React.FC = () => {
 
   // Fetch suppliers
   const { data: suppliersData, isLoading, error } = useQuery(
-    ['admin-suppliers', { search: searchTerm, page: currentPage }],
+    ['admin-suppliers', { search: debouncedSearchTerm, page: currentPage }],
     () => adminAPI.getSuppliers({ 
-      search: searchTerm || undefined, 
+      search: debouncedSearchTerm || undefined, 
       page: currentPage,
       limit: 20 
     }),
@@ -88,13 +104,21 @@ const AdminSuppliers: React.FC = () => {
     }
   );
 
-  const suppliers: Supplier[] = suppliersData?.data?.suppliers || [];
-  const pagination: Pagination = suppliersData?.data?.pagination || {
+  const suppliers: Supplier[] = (suppliersData as any)?.data?.suppliers || (suppliersData as any)?.suppliers || [];
+  const pagination: Pagination = (suppliersData as any)?.data?.pagination || (suppliersData as any)?.pagination || {
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
     itemsPerPage: 20
   };
+
+  // Debug logging
+  console.log('Suppliers Data:', suppliersData);
+  console.log('Suppliers:', suppliers);
+  console.log('Pagination:', pagination);
+  console.log('Current Page:', currentPage);
+  console.log('Search Term:', searchTerm);
+  console.log('Debounced Search Term:', debouncedSearchTerm);
 
   // Create supplier mutation
   const createSupplierMutation = useMutation(
@@ -248,10 +272,7 @@ const AdminSuppliers: React.FC = () => {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-  };
+  // Remove handleSearch function as we now use debounced search
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
@@ -308,26 +329,43 @@ const AdminSuppliers: React.FC = () => {
 
       {/* Search */}
       <div className="card-mobile">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search suppliers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+          <input
+            type="text"
+            placeholder="Search suppliers by name, contact person, email, or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 pr-10 w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setDebouncedSearchTerm('');
+                setCurrentPage(1);
+              }}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+          {isLoading && !searchTerm && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
             </div>
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            Search
-          </button>
-        </form>
+          )}
+        </div>
+        {debouncedSearchTerm && (
+          <p className="text-sm text-slate-600 mt-2">
+            Searching for "{debouncedSearchTerm}"... {pagination.totalItems} results found
+          </p>
+        )}
+        {!debouncedSearchTerm && (
+          <p className="text-sm text-slate-600 mt-2">
+            Showing {suppliers.length} of {pagination.totalItems} suppliers (Page {currentPage} of {pagination.totalPages})
+          </p>
+        )}
       </div>
 
       {/* Suppliers Table */}
@@ -428,74 +466,13 @@ const AdminSuppliers: React.FC = () => {
         </div>
 
         {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-slate-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                disabled={currentPage === pagination.totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-md text-slate-700 bg-white hover:bg-slate-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-slate-700">
-                  Showing{' '}
-                  <span className="font-medium">
-                    {(currentPage - 1) * pagination.itemsPerPage + 1}
-                  </span>{' '}
-                  to{' '}
-                  <span className="font-medium">
-                    {Math.min(currentPage * pagination.itemsPerPage, pagination.totalItems)}
-                  </span>{' '}
-                  of{' '}
-                  <span className="font-medium">{pagination.totalItems}</span>{' '}
-                  results
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        page === currentPage
-                          ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                          : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
-                    disabled={currentPage === pagination.totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-slate-300 bg-white text-sm font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          itemsPerPage={pagination.itemsPerPage}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       {/* Add/Edit Modal */}
