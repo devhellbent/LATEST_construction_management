@@ -29,6 +29,7 @@ const materialReceiptRoutes = require('./modules/material-receipts/routes');
 const materialManagementRoutes = require('./modules/material-management/routes');
 const subcontractorRoutes = require('./modules/subcontractors/routes');
 const subcontractorLedgerRoutes = require('./modules/subcontractor-ledger/routes');
+const sizeRoutes = require('./modules/sizes/routes');
 
 const { authenticateToken } = require('./middleware/auth');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -127,6 +128,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/material-management', authenticateToken, materialManagementRoutes);
 app.use('/api/subcontractors', authenticateToken, subcontractorRoutes);
 app.use('/api/subcontractor-ledger', authenticateToken, subcontractorLedgerRoutes);
+app.use('/api/sizes', authenticateToken, sizeRoutes);
 
 // Socket.io setup
 setupSocketHandlers(io);

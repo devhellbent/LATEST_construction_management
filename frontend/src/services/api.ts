@@ -11,7 +11,11 @@ const getApiBaseUrl = () => {
   }
   
   // New production domain
-  if (hostname === 'www.lminfra.hellbent.in') {
+  if (hostname === 'www.lminfra.hellbent.in' || hostname === 'lminfra.hellbent.in') {
+    return 'https://api.cms.hellbent.in';
+  }
+  // ConstructEase apex domain support
+  if (hostname === 'constructease.hellbent.in') {
     return 'https://api.cms.hellbent.in';
   }
   
@@ -258,6 +262,14 @@ export const materialsAPI = {
     api.get('/materials/search-items', { params: { q: query } }),
   getItemSuppliers: (itemId: number) =>
     api.get(`/materials/item-suppliers/${itemId}`),
+};
+
+// Sizes API
+export const sizesAPI = {
+  getSizes: (params?: any) => api.get('/sizes', { params }),
+  createSize: (value: string, category?: string) => api.post('/sizes', { value, category }),
+  bulkImport: (values: string[]) => api.post('/sizes/bulk', { values }),
+  updateSize: (id: number, data: any) => api.patch(`/sizes/${id}`, data),
 };
 
 // Labours API

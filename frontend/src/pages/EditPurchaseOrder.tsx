@@ -6,7 +6,8 @@ import {
   Save,
   X
 } from 'lucide-react';
-import { purchaseOrdersAPI, projectsAPI, suppliersAPI, materialManagementAPI, mrrAPI } from '../services/api';
+import { purchaseOrdersAPI, projectsAPI, suppliersAPI, materialManagementAPI, mrrAPI, sizesAPI } from '../services/api';
+import SearchableDropdown from '../components/SearchableDropdown';
 
 interface Project {
   project_id: number;
@@ -119,6 +120,8 @@ const EditPurchaseOrder: React.FC = () => {
   const [mrrs, setMrrs] = useState<MRR[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sizeOptionsByIndex, setSizeOptionsByIndex] = useState<Record<number, { value: string; label: string }[]>>({});
+  const [sizeLoadingByIndex, setSizeLoadingByIndex] = useState<Record<number, boolean>>({});
   const [initialLoading, setInitialLoading] = useState(true);
 
   const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrder | null>(null);
@@ -852,15 +855,26 @@ const EditPurchaseOrder: React.FC = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Size
-                        </label>
-                        <input
-                          type="text"
+                        <SearchableDropdown
+                          label="Size"
+                          options={sizeOptionsByIndex[index] || []}
                           value={item.size || ''}
-                          onChange={(e) => updateItem(index, 'size', e.target.value)}
-                          placeholder="Item size..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          onChange={(value) => updateItem(index, 'size', value)}
+                          placeholder="Select Size"
+                          searchPlaceholder="Type to search sizes..."
+                          className="w-full"
+                          onSearch={async (q: string) => {
+                            setSizeLoadingByIndex(prev => ({ ...prev, [index]: true }));
+                            try {
+                              const res = await sizesAPI.getSizes({ q, limit: 20 });
+                              const sizes = (res.data?.sizes || []).map((s: any) => ({ value: s.value, label: s.value }));
+                              setSizeOptionsByIndex(prev => ({ ...prev, [index]: sizes }));
+                            } finally {
+                              setSizeLoadingByIndex(prev => ({ ...prev, [index]: false }));
+                            }
+                          }}
+                          loading={!!sizeLoadingByIndex[index]}
+                          emptyMessage="Type to search sizes"
                         />
                       </div>
                     </div>

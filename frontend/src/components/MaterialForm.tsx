@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { materialsAPI, materialManagementAPI } from '../services/api';
+import { materialsAPI, materialManagementAPI, sizesAPI } from '../services/api';
 import SearchableDropdown from './SearchableDropdown';
 
 interface Material {
@@ -82,6 +82,8 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
   const [itemSearchQuery, setItemSearchQuery] = useState('');
   const [showItemSearch, setShowItemSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [sizeOptions, setSizeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [sizeSearchLoading, setSizeSearchLoading] = useState(false);
 
   // Initialize form data when material prop changes
   useEffect(() => {
@@ -208,6 +210,26 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
     }
   };
 
+  // Live search sizes
+  const handleSizeSearch = async (query: string) => {
+    try {
+      setSizeSearchLoading(true);
+      const res = await sizesAPI.getSizes({ q: query, limit: 20 });
+      const sizes = (res.data?.sizes || []).map((s: any) => ({ value: s.value, label: s.value }));
+      setSizeOptions(sizes);
+    } catch (err) {
+      setSizeOptions([]);
+    } finally {
+      setSizeSearchLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      handleSizeSearch('');
+    }
+  }, [isOpen]);
+
   const handleItemSelect = async (item: any) => {
     try {
       // Fetch item details and suppliers in parallel
@@ -279,6 +301,13 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
     setError(null);
 
     try {
+      // Client-side validation for mandatory fields
+      if (!formData.unit || !formData.warehouse_id) {
+        setError('Please select both Unit and Warehouse before continuing.');
+        setLoading(false);
+        return;
+      }
+
       const submitData = {
         ...formData,
         item_id: formData.item_id ? parseInt(formData.item_id) : null,
@@ -480,16 +509,17 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Size
-              </label>
-              <input
-                type="text"
-                name="size"
+              <SearchableDropdown
+                label="Size"
+                options={sizeOptions}
                 value={formData.size}
-                onChange={handleInputChange}
-                placeholder="e.g., 10mm, Large, 2x4"
-                className="input"
+                onChange={(value) => setFormData(prev => ({ ...prev, size: value as string }))}
+                placeholder="Select Size"
+                searchPlaceholder="Type to search sizes..."
+                className="w-full"
+                onSearch={handleSizeSearch}
+                loading={sizeSearchLoading}
+                emptyMessage="Type to search sizes"
               />
             </div>
 
@@ -510,7 +540,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <SearchableDropdown
-                label="Unit"
+                label="Unit *"
                 options={masterData?.units?.map(unit => ({
                   value: unit.unit_name,
                   label: `${unit.unit_name} (${unit.unit_symbol})`,
@@ -605,7 +635,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
 
           <div>
             <SearchableDropdown
-              label="Warehouse"
+              label="Warehouse *"
               options={masterData?.warehouses?.map(warehouse => ({
                 value: warehouse.warehouse_id.toString(),
                 label: warehouse.warehouse_name,
@@ -689,16 +719,16 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !formData.unit || !formData.warehouse_id}
               className="btn btn-primary btn-lg shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
             >
               {loading ? (
                 <>
                   <div className="loading-spinner h-4 w-4 mr-2"></div>
-                  {material ? 'Updating...' : 'Creating...'}
+                  {material ? 'Updating...' : 'Adding...'}
                 </>
               ) : (
-                material ? 'Update Material' : 'Create Material'
+                material ? 'Update Material' : 'Add Material'
               )}
             </button>
           </div>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import SearchableDropdown from '../components/SearchableDropdown';
+import { sizesAPI } from '../services/api';
 import { 
   purchaseOrdersAPI, 
   materialReceiptsAPI,
@@ -751,15 +753,21 @@ const MaterialReceiptManagement: React.FC = () => {
                         </div>
                         
                         <div>
-                          <label className="label">
-                            Size
-                          </label>
-                          <input
-                            type="text"
+                          <SearchableDropdown
+                            label="Size"
+                            options={[]}
                             value={item.size || ''}
-                            onChange={(e) => updateItemReceipt(item.po_item_id, 'size', e.target.value)}
-                            className="input"
-                            placeholder="Item size"
+                            onChange={(value) => updateItemReceipt(item.po_item_id, 'size', value)}
+                            placeholder="Select Size"
+                            searchPlaceholder="Type to search sizes..."
+                            className="w-full"
+                            onSearch={async (q: string) => {
+                              try {
+                                const res = await sizesAPI.getSizes({ q, limit: 20 });
+                                // Caller component filters options prop; for simple UX, user types and selects from loaded cache elsewhere.
+                              } catch (e) {}
+                            }}
+                            emptyMessage="Type to search sizes"
                           />
                         </div>
                         

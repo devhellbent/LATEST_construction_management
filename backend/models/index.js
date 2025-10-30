@@ -33,6 +33,7 @@ const SupplierLedger = require('./SupplierLedger');
 const Warehouse = require('./Warehouse');
 const Subcontractor = require('./Subcontractor');
 const SubcontractorLedger = require('./SubcontractorLedger');
+const Size = require('./Size');
 
 // Role associations
 Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
@@ -326,5 +327,6 @@ module.exports = {
   SupplierLedger,
   Warehouse,
   Subcontractor,
-  SubcontractorLedger
+  SubcontractorLedger,
+  Size
 };
