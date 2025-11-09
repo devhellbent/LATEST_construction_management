@@ -266,7 +266,7 @@ router.post('/payment', authenticateToken, authorizeRoles('Admin', 'Project Mana
           where: { 
             supplier_id, 
             transaction_type: 'PURCHASE',
-            payment_status: ['PENDING', 'PARTIAL']
+            payment_status: { [Op.in]: ['PENDING', 'PARTIAL'] }
           }
         }
       );

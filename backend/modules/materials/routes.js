@@ -358,6 +358,9 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       }
     });
 
+    // Remove material_id if present (it's auto-increment, should not be included in create)
+    delete cleanedData.material_id;
+
     // Handle item_code uniqueness - if it's null, remove the unique constraint issue
     if (cleanedData.item_code === null) {
       delete cleanedData.item_code;
@@ -369,7 +372,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
         where: {
           warehouse_id: cleanedData.warehouse_id,
           name: cleanedData.name,
-          status: ['ACTIVE', 'INACTIVE'] // Check both active and inactive materials
+          status: { [Op.in]: ['ACTIVE', 'INACTIVE'] } // Check both active and inactive materials
         }
       });
 
@@ -381,7 +384,33 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       }
     }
 
-    const material = await Material.create(cleanedData);
+    // Try to create material using Sequelize (works if AUTO_INCREMENT is enabled)
+    // If that fails, fall back to manual ID generation
+    let material;
+    try {
+      material = await Material.create(cleanedData, {
+        fields: Object.keys(cleanedData)
+      });
+    } catch (createError) {
+      // Fallback: Manual ID generation if AUTO_INCREMENT is not enabled
+      if (createError.message && createError.message.includes("doesn't have a default value")) {
+        const [maxResult] = await db.query('SELECT COALESCE(MAX(material_id), 0) + 1 AS next_id FROM materials');
+        const nextId = maxResult[0]?.next_id || 1;
+        
+        const fields = Object.keys(cleanedData);
+        const values = [nextId, ...fields.map(field => cleanedData[field])];
+        const placeholders = '?, ' + fields.map(() => '?').join(', ');
+        
+        await db.query(
+          `INSERT INTO materials (material_id, ${fields.join(', ')}, created_at, updated_at) VALUES (${placeholders}, NOW(), NOW())`,
+          { replacements: values }
+        );
+        
+        material = await Material.findByPk(nextId);
+      } else {
+        throw createError;
+      }
+    }
 
     res.status(201).json({
       message: 'Material created successfully',
