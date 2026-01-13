@@ -144,10 +144,28 @@ app.use('*', (req, res) => {
 // Database connection and server start
 const PORT = process.env.PORT || 4041;
 
+const connectWithRetry = async (maxRetries = 3, delay = 5000) => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await sequelize.authenticate();
+      console.log('Database connection established successfully.');
+      return true;
+    } catch (error) {
+      console.error(`Database connection attempt ${i + 1} failed:`, error.message);
+      if (i < maxRetries - 1) {
+        console.log(`Retrying in ${delay / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+};
+
 const startServer = async () => {
   try {
-    await sequelize.authenticate();
-    console.log('Database connection established successfully.');
+    // Connect to database with retry logic
+    await connectWithRetry();
     
     // Check if tables exist before syncing
     if (process.env.NODE_ENV === 'development') {
@@ -165,10 +183,15 @@ const startServer = async () => {
     
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      console.log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (error) {
     console.error('Unable to start server:', error);
+    console.error('\nTroubleshooting tips:');
+    console.error('1. Check if the database server is running and accessible');
+    console.error('2. Verify database credentials in .env file or config.json');
+    console.error('3. Check network connectivity and firewall settings');
+    console.error('4. Ensure the database host and port are correct');
     process.exit(1);
   }
 };

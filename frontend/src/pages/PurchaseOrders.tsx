@@ -111,7 +111,7 @@ const PurchaseOrders: React.FC = () => {
     try {
       const [projectsRes, suppliersRes] = await Promise.all([
         projectsAPI.getProjects(),
-        suppliersAPI.getSuppliers()
+        suppliersAPI.getSuppliers({ limit: 0 }) // Fetch all suppliers for dropdown
       ]);
 
       setProjects(projectsRes.data.projects || []);

@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
@@ -82,55 +83,55 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Routes>
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/projects" element={<Projects />} />
-                            <Route path="/projects/new" element={<NewProject />} />
-                            <Route path="/projects/:id" element={<ProjectDetail />} />
-                            <Route path="/project-members" element={<ProjectMembers />} />
-                            <Route path="/tasks" element={<Tasks />} />
-                            <Route path="/materials" element={<Materials />} />
-                            <Route path="/labours" element={<Labours />} />
-                            <Route path="/issues" element={<Issues />} />
-                            <Route path="/reports" element={<Reports />} />
-                            <Route path="/documents" element={<Documents />} />
-                            <Route path="/expenses" element={<Expenses />} />
-                            <Route path="/profile" element={<Profile />} />
+                            <Route path="/dashboard" element={<RoleBasedRoute><Dashboard /></RoleBasedRoute>} />
+                            <Route path="/projects" element={<RoleBasedRoute><Projects /></RoleBasedRoute>} />
+                            <Route path="/projects/new" element={<RoleBasedRoute><NewProject /></RoleBasedRoute>} />
+                            <Route path="/projects/:id" element={<RoleBasedRoute><ProjectDetail /></RoleBasedRoute>} />
+                            <Route path="/project-members" element={<RoleBasedRoute><ProjectMembers /></RoleBasedRoute>} />
+                            <Route path="/tasks" element={<RoleBasedRoute><Tasks /></RoleBasedRoute>} />
+                            <Route path="/materials" element={<RoleBasedRoute><Materials /></RoleBasedRoute>} />
+                            <Route path="/labours" element={<RoleBasedRoute><Labours /></RoleBasedRoute>} />
+                            <Route path="/issues" element={<RoleBasedRoute><Issues /></RoleBasedRoute>} />
+                            <Route path="/reports" element={<RoleBasedRoute><Reports /></RoleBasedRoute>} />
+                            <Route path="/documents" element={<RoleBasedRoute><Documents /></RoleBasedRoute>} />
+                            <Route path="/expenses" element={<RoleBasedRoute><Expenses /></RoleBasedRoute>} />
+                            <Route path="/profile" element={<RoleBasedRoute><Profile /></RoleBasedRoute>} />
                             {/* Commercial Routes */}
-                            <Route path="/commercial" element={<Commercial />} />
-                            <Route path="/commercial/petty-cash" element={<CommercialPettyCash />} />
-                            <Route path="/commercial/subcontractor-ledger" element={<SubcontractorLedger />} />
+                            <Route path="/commercial" element={<RoleBasedRoute><Commercial /></RoleBasedRoute>} />
+                            <Route path="/commercial/petty-cash" element={<RoleBasedRoute><CommercialPettyCash /></RoleBasedRoute>} />
+                            <Route path="/commercial/subcontractor-ledger" element={<RoleBasedRoute><SubcontractorLedger /></RoleBasedRoute>} />
                             {/* New Material Management Routes */}
-                            <Route path="/material-management" element={<MaterialManagementDashboard />} />
-                            <Route path="/material-management/mrr" element={<MrrFlowComponent />} />
-                            <Route path="/material-management/issue" element={<UnifiedMaterialIssue />} />
-                            <Route path="/material-management/return" element={<MaterialReturn />} />
-                            <Route path="/material-management/consumption" element={<MaterialConsumption />} />
-                            <Route path="/material-management/inventory" element={<InventoryManagement />} />
-                            <Route path="/material-management/receipts" element={<MaterialReceiptManagement />} />
-                            <Route path="/material-management/supplier-ledger" element={<SupplierLedgerManagement />} />
-                            <Route path="/material-management/workflow" element={<WorkflowStatusTracking />} />
+                            <Route path="/material-management" element={<RoleBasedRoute><MaterialManagementDashboard /></RoleBasedRoute>} />
+                            <Route path="/material-management/mrr" element={<RoleBasedRoute><MrrFlowComponent /></RoleBasedRoute>} />
+                            <Route path="/material-management/issue" element={<RoleBasedRoute><UnifiedMaterialIssue /></RoleBasedRoute>} />
+                            <Route path="/material-management/return" element={<RoleBasedRoute><MaterialReturn /></RoleBasedRoute>} />
+                            <Route path="/material-management/consumption" element={<RoleBasedRoute><MaterialConsumption /></RoleBasedRoute>} />
+                            <Route path="/material-management/inventory" element={<RoleBasedRoute><InventoryManagement /></RoleBasedRoute>} />
+                            <Route path="/material-management/receipts" element={<RoleBasedRoute><MaterialReceiptManagement /></RoleBasedRoute>} />
+                            <Route path="/material-management/supplier-ledger" element={<RoleBasedRoute><SupplierLedgerManagement /></RoleBasedRoute>} />
+                            <Route path="/material-management/workflow" element={<RoleBasedRoute><WorkflowStatusTracking /></RoleBasedRoute>} />
                             {/* Purchase Order Routes */}
-                            <Route path="/purchase-orders" element={<PurchaseOrders />} />
-                            <Route path="/purchase-orders/create" element={<CreatePurchaseOrder />} />
-                            <Route path="/create-purchase-order" element={<CreatePurchaseOrder />} />
-                            <Route path="/purchase-orders/:id" element={<PurchaseOrderDetails />} />
-                            <Route path="/purchase-orders/:id/edit" element={<EditPurchaseOrder />} />
-                            <Route path="/purchase-orders/:id/receipts" element={<PurchaseOrderReceipts />} />
+                            <Route path="/purchase-orders" element={<RoleBasedRoute><PurchaseOrders /></RoleBasedRoute>} />
+                            <Route path="/purchase-orders/create" element={<RoleBasedRoute><CreatePurchaseOrder /></RoleBasedRoute>} />
+                            <Route path="/create-purchase-order" element={<RoleBasedRoute><CreatePurchaseOrder /></RoleBasedRoute>} />
+                            <Route path="/purchase-orders/:id" element={<RoleBasedRoute><PurchaseOrderDetails /></RoleBasedRoute>} />
+                            <Route path="/purchase-orders/:id/edit" element={<RoleBasedRoute><EditPurchaseOrder /></RoleBasedRoute>} />
+                            <Route path="/purchase-orders/:id/receipts" element={<RoleBasedRoute><PurchaseOrderReceipts /></RoleBasedRoute>} />
                             {/* Admin Routes */}
                             <Route path="/admin/suppliers" element={
-                              <AdminRoute>
+                              <RoleBasedRoute>
                                 <AdminSuppliers />
-                              </AdminRoute>
+                              </RoleBasedRoute>
                             } />
                             <Route path="/admin/users" element={
-                              <AdminRoute>
+                              <RoleBasedRoute>
                                 <AdminUsers />
-                              </AdminRoute>
+                              </RoleBasedRoute>
                             } />
                             <Route path="/admin/items" element={
-                              <AdminRoute>
+                              <RoleBasedRoute>
                                 <AdminItems />
-                              </AdminRoute>
+                              </RoleBasedRoute>
                             } />
                           </Routes>
                         </Layout>

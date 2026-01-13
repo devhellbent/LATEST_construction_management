@@ -115,6 +115,7 @@ const EditPurchaseOrder: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [itemsWithUnits, setItemsWithUnits] = useState<ItemWithUnit[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [components, setComponents] = useState<Component[]>([]);
   const [subcontractors, setSubcontractors] = useState<Subcontractor[]>([]);
   const [mrrs, setMrrs] = useState<MRR[]>([]);
@@ -158,7 +159,7 @@ const EditPurchaseOrder: React.FC = () => {
       setInitialLoading(true);
       const [projectsRes, suppliersRes, masterDataRes, mrrsRes] = await Promise.all([
         projectsAPI.getProjects(),
-        suppliersAPI.getSuppliers(),
+        suppliersAPI.getSuppliers({ limit: 0 }), // Fetch all suppliers for dropdown
         materialManagementAPI.getMasterData(),
         mrrAPI.getMrrs()
       ]);
@@ -166,6 +167,7 @@ const EditPurchaseOrder: React.FC = () => {
       setProjects(projectsRes.data.projects || []);
       setSuppliers(suppliersRes.data.suppliers || []);
       setMrrs(mrrsRes.data.mrrs || []);
+      setUnits(masterDataRes.data.units || []);
 
       // Create items with units
       const itemsWithUnitsData = (masterDataRes.data.itemMaster || []).map((item: Item) => {
@@ -320,14 +322,16 @@ const EditPurchaseOrder: React.FC = () => {
   };
 
   const addItem = () => {
+    // Get default unit (first active unit) if available
+    const defaultUnit = units.length > 0 ? units[0] : null;
     const newItem: POItem = {
       item_id: 0,
       item_name: '',
       item_code: '',
-      unit_id: 0,
-      unit_name: '',
-      unit_symbol: '',
-      quantity_ordered: 0,
+      unit_id: defaultUnit?.unit_id || 0,
+      unit_name: defaultUnit?.unit_name || '',
+      unit_symbol: defaultUnit?.unit_symbol || '',
+      quantity_ordered: 1,
       unit_price: 0,
       total_price: 0,
       specifications: '',
@@ -782,10 +786,36 @@ const EditPurchaseOrder: React.FC = () => {
                           <option value={0}>Select Item</option>
                           {itemsWithUnits.map(itemOption => (
                             <option key={itemOption.item_id} value={itemOption.item_id}>
-                              {itemOption.item_name} ({itemOption.item_code}) - {itemOption.unit_symbol}
+                              {itemOption.item_name} ({itemOption.item_code})
                             </option>
                           ))}
                         </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit <span className="text-red-500">*</span>
+                        </label>
+                        <SearchableDropdown
+                          options={units.map((unit) => ({
+                            value: unit.unit_id.toString(),
+                            label: `${unit.unit_name} (${unit.unit_symbol})`,
+                            searchText: `${unit.unit_name} ${unit.unit_symbol}`
+                          }))}
+                          value={item.unit_id.toString()}
+                          onChange={(value) => {
+                            const selectedUnit = units.find(u => u.unit_id.toString() === value.toString());
+                            if (selectedUnit) {
+                              updateItem(index, 'unit_id', selectedUnit.unit_id);
+                              updateItem(index, 'unit_name', selectedUnit.unit_name);
+                              updateItem(index, 'unit_symbol', selectedUnit.unit_symbol);
+                            }
+                          }}
+                          placeholder="Select Unit"
+                          searchPlaceholder="Search units..."
+                          className="w-full"
+                          required
+                        />
                       </div>
 
                       <div>

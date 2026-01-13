@@ -9,7 +9,7 @@ const router = express.Router();
 // Get all suppliers
 router.get('/', authenticateToken, [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
-  query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
+  query('limit').optional().isInt({ min: 0, max: 10000 }).withMessage('Limit must be between 0 and 10000 (0 means all)'),
   query('search').optional().trim()
 ], async (req, res) => {
   try {
@@ -19,8 +19,10 @@ router.get('/', authenticateToken, [
     }
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
+    const limitParam = parseInt(req.query.limit);
+    // If limit is 0 or not provided, default to 20 for pagination, but if explicitly 0, fetch all
+    const limit = limitParam === 0 ? null : (limitParam || 20);
+    const offset = limit ? (page - 1) * limit : 0;
     const { search } = req.query;
 
     // Build where clause
@@ -33,20 +35,26 @@ router.get('/', authenticateToken, [
       ];
     }
 
-    const { count, rows: suppliers } = await Supplier.findAndCountAll({
+    const queryOptions = {
       where: whereClause,
-      limit,
-      offset,
       order: [['created_at', 'DESC']]
-    });
+    };
+
+    // Only apply limit and offset if limit is not null (i.e., not fetching all)
+    if (limit !== null) {
+      queryOptions.limit = limit;
+      queryOptions.offset = offset;
+    }
+
+    const { count, rows: suppliers } = await Supplier.findAndCountAll(queryOptions);
 
     res.json({
       suppliers,
       pagination: {
         currentPage: page,
-        totalPages: Math.ceil(count / limit),
+        totalPages: limit ? Math.ceil(count / limit) : 1,
         totalItems: count,
-        itemsPerPage: limit
+        itemsPerPage: limit || count
       }
     });
   } catch (error) {
@@ -74,7 +82,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
   body('supplier_name').trim().isLength({ min: 2 }).withMessage('Supplier name must be at least 2 characters'),
   body('contact_person').optional().trim(),
-  body('email').optional().isEmail().withMessage('Invalid email format'),
+  body('email').optional({ checkFalsy: true }).trim().isEmail().withMessage('Invalid email format'),
   body('phone').optional().trim(),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -93,6 +101,12 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
     }
 
     const supplierData = req.body;
+    
+    // Convert empty email string to null
+    if (supplierData.email === '') {
+      supplierData.email = null;
+    }
+    
     const supplier = await Supplier.create(supplierData);
 
     res.status(201).json({ 
@@ -109,7 +123,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
 router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
   body('supplier_name').optional().trim().isLength({ min: 2 }).withMessage('Supplier name must be at least 2 characters'),
   body('contact_person').optional().trim(),
-  body('email').optional().isEmail().withMessage('Invalid email format'),
+  body('email').optional({ checkFalsy: true }).trim().isEmail().withMessage('Invalid email format'),
   body('phone').optional().trim(),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -132,7 +146,13 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager')
       return res.status(404).json({ message: 'Supplier not found' });
     }
 
-    await supplier.update(req.body);
+    const updateData = { ...req.body };
+    // Convert empty email string to null
+    if (updateData.email === '') {
+      updateData.email = null;
+    }
+
+    await supplier.update(updateData);
 
     res.json({ 
       message: 'Supplier updated successfully',

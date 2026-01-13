@@ -322,12 +322,12 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('category').optional().trim(),
   body('brand').optional().trim(),
   body('color').optional().trim(),
-  body('size').optional().trim(),
+  body('size').trim().notEmpty().withMessage('Size is required'),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }).withMessage('Cost per unit must be a positive number'),
   body('supplier').optional().trim(),
-  body('stock_qty').optional().isInt({ min: 0 }).withMessage('Stock quantity must be a non-negative integer'),
+  body('stock_qty').isFloat({ min: 0 }).withMessage('Stock quantity is required and must be a non-negative number (decimals allowed)'),
   body('minimum_stock_level').optional().isInt({ min: 0 }).withMessage('Minimum stock level must be a non-negative integer'),
   body('maximum_stock_level').optional().isInt({ min: 0 }).withMessage('Maximum stock level must be a non-negative integer'),
   body('reorder_point').optional().isInt({ min: 0 }).withMessage('Reorder point must be a non-negative integer'),
@@ -366,19 +366,20 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       delete cleanedData.item_code;
     }
 
-    // Check for duplicate material in the same warehouse
-    if (cleanedData.warehouse_id && cleanedData.name) {
+    // Check for duplicate material in the same warehouse (name + size combination must be unique)
+    if (cleanedData.warehouse_id && cleanedData.name && cleanedData.size) {
       const existingMaterial = await Material.findOne({
         where: {
           warehouse_id: cleanedData.warehouse_id,
           name: cleanedData.name,
+          size: cleanedData.size,
           status: { [Op.in]: ['ACTIVE', 'INACTIVE'] } // Check both active and inactive materials
         }
       });
 
       if (existingMaterial) {
         return res.status(400).json({ 
-          message: `A material with the name "${cleanedData.name}" already exists in this warehouse. Please choose a different name or select a different warehouse.`,
+          message: `A material with the name "${cleanedData.name}" and size "${cleanedData.size}" already exists in this warehouse. Please choose a different name, size, or select a different warehouse.`,
           field: 'name'
         });
       }

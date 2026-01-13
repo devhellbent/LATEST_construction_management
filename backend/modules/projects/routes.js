@@ -291,10 +291,50 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), 
 
     const { components, subcontractors, ...projectData } = req.body;
     
-    const project = await Project.create({
-      ...projectData,
-      owner_user_id: req.user.user_id
-    }, { transaction });
+    // Remove project_id if present (it's auto-increment, should not be included in create)
+    delete projectData.project_id;
+    
+    // Clean empty strings to null
+    Object.keys(projectData).forEach(key => {
+      if (projectData[key] === '') {
+        projectData[key] = null;
+      }
+    });
+    
+    // Try to create project using Sequelize (works if AUTO_INCREMENT is enabled)
+    // If that fails, fall back to manual ID generation
+    let project;
+    try {
+      project = await Project.create({
+        ...projectData,
+        owner_user_id: req.user.user_id
+      }, { transaction });
+    } catch (createError) {
+      // Fallback: Manual ID generation if AUTO_INCREMENT is not enabled
+      if (createError.message && createError.message.includes("doesn't have a default value")) {
+        const [maxResult] = await sequelize.query('SELECT COALESCE(MAX(project_id), 0) + 1 AS next_id FROM projects', { transaction });
+        const nextId = maxResult[0]?.next_id || 1;
+        
+        // Build the insert query with all fields
+        const insertData = {
+          ...projectData,
+          owner_user_id: req.user.user_id
+        };
+        
+        const fields = Object.keys(insertData).filter(key => insertData[key] !== undefined);
+        const values = [nextId, ...fields.map(field => insertData[field])];
+        const placeholders = '?, ' + fields.map(() => '?').join(', ');
+        
+        await sequelize.query(
+          `INSERT INTO projects (project_id, ${fields.join(', ')}, created_at, updated_at) VALUES (${placeholders}, NOW(), NOW())`,
+          { replacements: values, transaction }
+        );
+        
+        project = await Project.findByPk(nextId, { transaction });
+      } else {
+        throw createError;
+      }
+    }
 
     // Create components if provided
     if (components && components.length > 0) {

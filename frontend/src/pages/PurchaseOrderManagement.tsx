@@ -78,7 +78,7 @@ const PurchaseOrderManagement: React.FC = () => {
           include_items: true,
           include_project: true
         }),
-        suppliersAPI.getSuppliers()
+        suppliersAPI.getSuppliers({ limit: 0 }) // Fetch all suppliers for dropdown
       ]);
 
       setApprovedMrrs(mrrsRes.data.mrrs || []);

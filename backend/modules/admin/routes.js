@@ -11,8 +11,8 @@ const router = express.Router();
 
 // ==================== SUPPLIER MANAGEMENT ====================
 
-// Get all suppliers with pagination and search
-router.get('/suppliers', authenticateToken, authorizeRoles('Admin'), [
+// Get all suppliers with pagination and search - Admin and Purchase Manager HO can access
+router.get('/suppliers', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO'), [
   query('page').optional().isInt({ min: 1 }).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be between 1 and 100'),
   query('search').optional().trim()
@@ -66,8 +66,8 @@ router.get('/suppliers', authenticateToken, authorizeRoles('Admin'), [
   }
 });
 
-// Get supplier by ID with balance
-router.get('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), async (req, res) => {
+// Get supplier by ID with balance - Admin and Purchase Manager HO can access
+router.get('/suppliers/:id', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO'), async (req, res) => {
   try {
     const supplier = await Supplier.findByPk(req.params.id);
     if (!supplier) {
@@ -94,11 +94,11 @@ router.get('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), async (
   }
 });
 
-// Create new supplier with initial balance
-router.post('/suppliers', authenticateToken, authorizeRoles('Admin'), [
+// Create new supplier with initial balance - Admin and Purchase Manager HO can create
+router.post('/suppliers', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO'), [
   body('supplier_name').trim().isLength({ min: 2 }).withMessage('Supplier name must be at least 2 characters'),
   body('contact_person').optional().trim(),
-  body('email').optional().isEmail().withMessage('Invalid email format'),
+  body('email').optional({ checkFalsy: true }).trim().isEmail().withMessage('Invalid email format'),
   body('phone').optional().trim(),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -119,6 +119,11 @@ router.post('/suppliers', authenticateToken, authorizeRoles('Admin'), [
     }
 
     const { initial_balance = 0, ...supplierData } = req.body;
+
+    // Convert empty email string to null
+    if (supplierData.email === '') {
+      supplierData.email = null;
+    }
 
     // Create supplier
     const supplier = await Supplier.create(supplierData);
@@ -152,11 +157,11 @@ router.post('/suppliers', authenticateToken, authorizeRoles('Admin'), [
   }
 });
 
-// Update supplier
-router.put('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), [
+// Update supplier - Admin and Purchase Manager HO can update
+router.put('/suppliers/:id', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO'), [
   body('supplier_name').optional().trim().isLength({ min: 2 }).withMessage('Supplier name must be at least 2 characters'),
   body('contact_person').optional().trim(),
-  body('email').optional().isEmail().withMessage('Invalid email format'),
+  body('email').optional({ checkFalsy: true }).trim().isEmail().withMessage('Invalid email format'),
   body('phone').optional().trim(),
   body('address').optional().trim(),
   body('city').optional().trim(),
@@ -180,7 +185,13 @@ router.put('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), [
       return res.status(404).json({ message: 'Supplier not found' });
     }
 
-    await supplier.update(req.body);
+    const updateData = { ...req.body };
+    // Convert empty email string to null
+    if (updateData.email === '') {
+      updateData.email = null;
+    }
+
+    await supplier.update(updateData);
 
     res.json({ 
       message: 'Supplier updated successfully',
@@ -192,7 +203,7 @@ router.put('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), [
   }
 });
 
-// Delete supplier
+// Delete supplier - Admin only can delete
 router.delete('/suppliers/:id', authenticateToken, authorizeRoles('Admin'), async (req, res) => {
   try {
     const supplier = await Supplier.findByPk(req.params.id);

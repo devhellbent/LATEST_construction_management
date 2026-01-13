@@ -28,7 +28,7 @@ const router = express.Router();
 // =====================================================
 
 // Check MRR inventory availability and auto-create missing materials
-router.post('/:id/check-inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Incharge', 'Inventory Manager'), async (req, res) => {
+router.post('/:id/check-inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Manager', 'Engineer HO'), async (req, res) => {
   try {
     const mrrId = req.params.id;
     
@@ -296,8 +296,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create MRR
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Create MRR - On-Site Engineers, Project Manager, Admin, Engineer HO can create
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'On-Site Engineers', 'Engineer HO'), [
   body('project_id').isInt().withMessage('Project ID must be an integer'),
   body('required_date').isISO8601().withMessage('Required date must be a valid date'),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
@@ -413,8 +413,8 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   }
 });
 
-// Submit MRR for approval
-router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), async (req, res) => {
+// Submit MRR for approval - On-Site Engineers, Project Manager, Admin, Engineer HO can submit
+router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'On-Site Engineers', 'Engineer HO'), async (req, res) => {
   try {
     const mrr = await MaterialRequirementRequest.findByPk(req.params.id);
     if (!mrr) {
@@ -440,8 +440,8 @@ router.patch('/:id/submit', authenticateToken, authorizeRoles('Admin', 'Project 
   }
 });
 
-// Approve/Reject MRR
-router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin'), [
+// Approve/Reject MRR - Project Manager, Admin, Engineer HO can approve/reject
+router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Engineer HO'), [
   body('action').isIn(['approve', 'reject']).withMessage('Action must be either approve or reject'),
   body('rejection_reason').optional().trim()
 ], async (req, res) => {
@@ -487,8 +487,8 @@ router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin'), [
   }
 });
 
-// Update MRR
-router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Update MRR - On-Site Engineers, Project Manager, Admin, Engineer HO can update
+router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'On-Site Engineers', 'Engineer HO'), [
   body('required_date').optional().isISO8601().withMessage('Required date must be a valid date'),
   body('priority').optional().isIn(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
   body('notes').optional().trim()

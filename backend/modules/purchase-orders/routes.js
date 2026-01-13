@@ -282,13 +282,15 @@ router.get('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create Purchase Order from MRR
-router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+// Create Purchase Order from MRR - Purchase Manager HO, Admin, Engineer HO can create
+router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), [
   body('supplier_id').isInt().withMessage('Supplier ID must be an integer'),
   body('expected_delivery_date').optional().isISO8601().withMessage('Expected delivery date must be a valid date'),
   body('payment_terms').optional().trim(),
   body('delivery_terms').optional().trim(),
   body('notes').optional().trim(),
+  body('component_id').optional().isInt().withMessage('Component ID must be an integer'),
+  body('subcontractor_id').optional().isInt().withMessage('Subcontractor ID must be an integer'),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.item_id').isInt().withMessage('Item ID must be an integer'),
   body('items.*.quantity_ordered').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -307,7 +309,7 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { supplier_id, expected_delivery_date, payment_terms, delivery_terms, notes, items } = req.body;
+    const { supplier_id, expected_delivery_date, payment_terms, delivery_terms, notes, component_id, subcontractor_id, items } = req.body;
     const mrrId = req.params.mrrId;
 
     // Check if MRR exists and is approved
@@ -327,21 +329,31 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
     let totalIgstAmount = 0;
     
     items.forEach(item => {
-      item.total_price = item.unit_price * item.quantity_ordered;
+      // Calculate total price if not provided
+      if (!item.total_price) {
+        item.total_price = item.unit_price * item.quantity_ordered;
+      }
       subtotal += item.total_price;
       
-      // Calculate GST amounts
+      // Calculate GST amounts if not provided, otherwise use provided values
       const cgstRate = item.cgst_rate || 0;
       const sgstRate = item.sgst_rate || 0;
       const igstRate = item.igst_rate || 0;
       
-      item.cgst_amount = (item.total_price * cgstRate) / 100;
-      item.sgst_amount = (item.total_price * sgstRate) / 100;
-      item.igst_amount = (item.total_price * igstRate) / 100;
+      // Use provided GST amounts or calculate them
+      if (item.cgst_amount === undefined || item.cgst_amount === null) {
+        item.cgst_amount = (item.total_price * cgstRate) / 100;
+      }
+      if (item.sgst_amount === undefined || item.sgst_amount === null) {
+        item.sgst_amount = (item.total_price * sgstRate) / 100;
+      }
+      if (item.igst_amount === undefined || item.igst_amount === null) {
+        item.igst_amount = (item.total_price * igstRate) / 100;
+      }
       
-      totalCgstAmount += item.cgst_amount;
-      totalSgstAmount += item.sgst_amount;
-      totalIgstAmount += item.igst_amount;
+      totalCgstAmount += item.cgst_amount || 0;
+      totalSgstAmount += item.sgst_amount || 0;
+      totalIgstAmount += item.igst_amount || 0;
     });
 
     const taxAmount = totalCgstAmount + totalSgstAmount + totalIgstAmount;
@@ -373,6 +385,8 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
       po_number: poNumber,
       mrr_id: mrrId,
       project_id: mrr.project_id,
+      component_id: component_id || mrr.component_id || null,
+      subcontractor_id: subcontractor_id || mrr.subcontractor_id || null,
       supplier_id,
       po_date: new Date(),
       expected_delivery_date,
@@ -434,8 +448,8 @@ router.post('/from-mrr/:mrrId', authenticateToken, authorizeRoles('Admin', 'Proj
   }
 });
 
-// Create standalone Purchase Order
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+// Create standalone Purchase Order - Purchase Manager HO, Admin, Engineer HO can create
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), [
   body('project_id').custom((value) => {
     if (value === null || value === undefined || value === '') {
       return true; // Allow null/empty values
@@ -611,7 +625,8 @@ router.patch('/:id/approve', authenticateToken, authorizeRoles('Admin'), async (
 });
 
 // Place Order (Send to Supplier via WhatsApp)
-router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin'), async (req, res) => {
+// Place Purchase Order - Accountant Head, Admin, Engineer HO can place order
+router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin', 'Accountant Head', 'Engineer HO'), async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id, {
       include: [
@@ -657,7 +672,8 @@ router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin'), asy
 });
 
 // Update Purchase Order
-router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+// Update Purchase Order - Purchase Manager HO, Admin, Engineer HO can update
+router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), [
   body('mrr_id').optional().isInt().withMessage('MRR ID must be an integer'),
   body('project_id').custom((value) => {
     if (value === null || value === undefined || value === '') {
@@ -787,7 +803,8 @@ router.put('/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager')
 });
 
 // Cancel Purchase Order
-router.patch('/:id/cancel', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+// Cancel Purchase Order - Purchase Manager HO, Accountant Head, Admin, Engineer HO can cancel
+router.patch('/:id/cancel', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Accountant Head', 'Engineer HO'), async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id);
     if (!purchaseOrder) {
@@ -815,7 +832,8 @@ router.patch('/:id/cancel', authenticateToken, authorizeRoles('Admin', 'Project 
 // =====================================================
 
 // Add item to Purchase Order
-router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+// Add items to Purchase Order - Purchase Manager HO, Admin, Engineer HO can add
+router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), [
   body('item_id').isInt().withMessage('Item ID must be an integer'),
   body('quantity_ordered').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('unit_id').isInt().withMessage('Unit ID must be an integer'),
@@ -901,7 +919,8 @@ router.post('/:id/items', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Update Purchase Order item
-router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager'), [
+// Update Purchase Order item - Purchase Manager HO, Admin, Engineer HO can update
+router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), [
   body('quantity_ordered').optional().isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
   body('unit_price').optional().isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('specifications').optional().trim(),
@@ -993,7 +1012,8 @@ router.put('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Pro
 });
 
 // Delete Purchase Order item
-router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Project Manager'), async (req, res) => {
+// Delete Purchase Order item - Purchase Manager HO, Admin, Engineer HO can delete
+router.delete('/:id/items/:itemId', authenticateToken, authorizeRoles('Admin', 'Purchase Manager HO', 'Engineer HO'), async (req, res) => {
   try {
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id);
     if (!purchaseOrder) {

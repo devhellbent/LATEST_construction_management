@@ -94,6 +94,7 @@ interface POItem {
   unit_price: number;
   total_price: number;
   specifications?: string;
+  notes?: string;
   cgst_rate?: number;
   sgst_rate?: number;
   igst_rate?: number;
@@ -160,7 +161,7 @@ const CreatePurchaseOrder: React.FC = () => {
       console.log('Fetching initial data...');
       const [projectsRes, suppliersRes, itemsRes, mrrsRes] = await Promise.all([
         projectsAPI.getProjects(),
-        suppliersAPI.getSuppliers(),
+        suppliersAPI.getSuppliers({ limit: 0 }), // Fetch all suppliers for dropdown
         materialManagementAPI.getMasterData(),
         mrrAPI.getMrrs()
       ]);
@@ -255,22 +256,35 @@ const CreatePurchaseOrder: React.FC = () => {
         subcontractor_id: mrrData.subcontractor_id?.toString() || ''
       }));
 
-      // Convert MRR items to PO items
-      const convertedItems: POItem[] = (mrrData.items || []).map((item: any) => ({
-        item_id: item.item?.item_id || 0,
-        item_name: item.item?.item_name || '',
-        item_code: item.item?.item_code || '',
-        unit_id: item.unit?.unit_id || 0,
-        unit_name: item.unit?.unit_name || '',
-        unit_symbol: item.unit?.unit_symbol || '',
-        quantity_ordered: item.quantity_requested || 0,
-        unit_price: 0,
-        total_price: 0,
-        specifications: item.specifications || ''
-      }));
+      // Convert MRR items to PO items - filter out invalid items
+      const convertedItems: POItem[] = (mrrData.items || [])
+        .filter((item: any) => {
+          // Only include items that have valid item_id, unit_id, and quantity
+          return item.item?.item_id && 
+                 item.unit?.unit_id && 
+                 item.quantity_requested && 
+                 item.quantity_requested > 0;
+        })
+        .map((item: any) => ({
+          item_id: item.item.item_id,
+          item_name: item.item.item_name || '',
+          item_code: item.item.item_code || '',
+          unit_id: item.unit.unit_id,
+          unit_name: item.unit.unit_name || '',
+          unit_symbol: item.unit.unit_symbol || '',
+          quantity_ordered: item.quantity_requested,
+          unit_price: 0, // User needs to enter price
+          total_price: 0,
+          specifications: item.specifications || ''
+        }));
+
+      if (convertedItems.length === 0) {
+        setError('No valid items found in MRR. Please check the MRR data.');
+        return;
+      }
 
       setPoItems(convertedItems);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching MRR data:', error);
       console.error('Error details:', error.response?.data);
       setError(`Failed to load MRR data: ${error.response?.data?.message || error.message}`);
@@ -297,13 +311,15 @@ const CreatePurchaseOrder: React.FC = () => {
   };
 
   const addItem = () => {
+    // Get default unit (first active unit) if available
+    const defaultUnit = units.length > 0 ? units[0] : null;
     const newItem: POItem = {
       item_id: 0,
       item_name: '',
       item_code: '',
-      unit_id: 0,
-      unit_name: '',
-      unit_symbol: '',
+      unit_id: defaultUnit?.unit_id || 0,
+      unit_name: defaultUnit?.unit_name || '',
+      unit_symbol: defaultUnit?.unit_symbol || '',
       quantity_ordered: 1,
       unit_price: 0,
       total_price: 0,
@@ -388,22 +404,35 @@ const CreatePurchaseOrder: React.FC = () => {
         subcontractor_id: mrrData.subcontractor_id?.toString() || ''
       }));
 
-      // Convert MRR items to PO items
-      const convertedItems: POItem[] = (mrrData.items || []).map((item: any) => ({
-        item_id: item.item?.item_id || 0,
-        item_name: item.item?.item_name || '',
-        item_code: item.item?.item_code || '',
-        unit_id: item.unit?.unit_id || 0,
-        unit_name: item.unit?.unit_name || '',
-        unit_symbol: item.unit?.unit_symbol || '',
-        quantity_ordered: item.quantity_requested || 0,
-        unit_price: 0,
-        total_price: 0,
-        specifications: item.specifications || ''
-      }));
+      // Convert MRR items to PO items - filter out invalid items
+      const convertedItems: POItem[] = (mrrData.items || [])
+        .filter((item: any) => {
+          // Only include items that have valid item_id, unit_id, and quantity
+          return item.item?.item_id && 
+                 item.unit?.unit_id && 
+                 item.quantity_requested && 
+                 item.quantity_requested > 0;
+        })
+        .map((item: any) => ({
+          item_id: item.item.item_id,
+          item_name: item.item.item_name || '',
+          item_code: item.item.item_code || '',
+          unit_id: item.unit.unit_id,
+          unit_name: item.unit.unit_name || '',
+          unit_symbol: item.unit.unit_symbol || '',
+          quantity_ordered: item.quantity_requested,
+          unit_price: 0, // User needs to enter price
+          total_price: 0,
+          specifications: item.specifications || ''
+        }));
+
+      if (convertedItems.length === 0) {
+        setError('No valid items found in MRR. Please check the MRR data.');
+        return;
+      }
 
       setPoItems(convertedItems);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching MRR data:', error);
       setError('Failed to load MRR data');
     }
@@ -439,31 +468,130 @@ const CreatePurchaseOrder: React.FC = () => {
 
       const { subtotal, taxAmount, totalAmount, totalCgstAmount, totalSgstAmount, totalIgstAmount } = calculateTotals();
 
-      const poData = {
-        ...formData,
-        mrr_id: formData.mrr_id ? parseInt(formData.mrr_id) : null,
-        project_id: formData.project_id ? parseInt(formData.project_id) : null,
-        component_id: formData.component_id ? parseInt(formData.component_id) : null,
-        supplier_id: parseInt(formData.supplier_id),
-        subtotal,
-        tax_amount: taxAmount,
-        total_amount: totalAmount,
-        items: poItems.map(item => ({
-          item_id: item.item_id,
-          quantity_ordered: item.quantity_ordered,
-          unit_id: item.unit_id,
-          unit_price: item.unit_price,
-          total_price: item.total_price,
-          specifications: item.specifications,
-          cgst_rate: item.cgst_rate || 0,
-          sgst_rate: item.sgst_rate || 0,
-          igst_rate: item.igst_rate || 0,
-          cgst_amount: item.cgst_amount || 0,
-          sgst_amount: item.sgst_amount || 0,
-          igst_amount: item.igst_amount || 0,
-          size: item.size
-        }))
+      // Validate items before sending
+      if (poItems.length === 0) {
+        setError('Please add at least one item to the purchase order');
+        setLoading(false);
+        return;
+      }
+
+      // Check each item for required fields
+      for (let i = 0; i < poItems.length; i++) {
+        const item = poItems[i];
+        if (!item.item_id || item.item_id === 0) {
+          setError(`Please select an item for row ${i + 1}`);
+          setLoading(false);
+          return;
+        }
+        if (!item.quantity_ordered || item.quantity_ordered <= 0) {
+          setError(`Please enter a valid quantity (greater than 0) for row ${i + 1}`);
+          setLoading(false);
+          return;
+        }
+        if (!item.unit_id || item.unit_id === 0) {
+          setError(`Please select a unit for row ${i + 1}`);
+          setLoading(false);
+          return;
+        }
+        if (item.unit_price === undefined || item.unit_price === null || isNaN(item.unit_price) || item.unit_price < 0) {
+          setError(`Please enter a valid unit price (0 or greater) for row ${i + 1}`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const validItems = poItems;
+
+      // Calculate GST amounts for each item
+      const itemsWithGst = validItems.map(item => {
+        const itemId = parseInt(item.item_id.toString());
+        const quantity = parseInt(item.quantity_ordered.toString());
+        const unitId = parseInt(item.unit_id.toString());
+        const unitPrice = parseFloat(item.unit_price.toString());
+        
+        // Validate all numeric values
+        if (isNaN(itemId) || isNaN(quantity) || isNaN(unitId) || isNaN(unitPrice)) {
+          throw new Error(`Invalid numeric value in item: item_id=${itemId}, quantity=${quantity}, unit_id=${unitId}, unit_price=${unitPrice}`);
+        }
+        
+        const totalPrice = unitPrice * quantity;
+        const cgstRate = item.cgst_rate ? parseFloat(item.cgst_rate.toString()) : 0;
+        const sgstRate = item.sgst_rate ? parseFloat(item.sgst_rate.toString()) : 0;
+        const igstRate = item.igst_rate ? parseFloat(item.igst_rate.toString()) : 0;
+        
+        const itemData: any = {
+          item_id: itemId,
+          quantity_ordered: quantity,
+          unit_id: unitId,
+          unit_price: unitPrice
+        };
+
+        // Add optional fields only if they have values
+        if (item.specifications && item.specifications.trim() !== '') {
+          itemData.specifications = item.specifications.trim();
+        }
+        if (item.notes && item.notes.trim() !== '') {
+          itemData.notes = item.notes.trim();
+        }
+        if (item.size && item.size.trim() !== '') {
+          itemData.size = item.size.trim();
+        }
+        
+        // Always include GST rates and amounts (backend expects them, can be 0)
+        itemData.cgst_rate = cgstRate;
+        itemData.sgst_rate = sgstRate;
+        itemData.igst_rate = igstRate;
+        itemData.cgst_amount = (totalPrice * cgstRate) / 100;
+        itemData.sgst_amount = (totalPrice * sgstRate) / 100;
+        itemData.igst_amount = (totalPrice * igstRate) / 100;
+        
+        return itemData;
+      });
+
+      // Validate supplier_id
+      const supplierId = parseInt(formData.supplier_id);
+      if (isNaN(supplierId) || supplierId <= 0) {
+        setError('Please select a valid supplier');
+        setLoading(false);
+        return;
+      }
+
+      // Format expected_delivery_date to ISO8601 format if provided
+      let formattedExpectedDate = undefined;
+      if (formData.expected_delivery_date && formData.expected_delivery_date.trim() !== '') {
+        const date = new Date(formData.expected_delivery_date);
+        if (!isNaN(date.getTime())) {
+          formattedExpectedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        }
+      }
+
+      const poData: any = {
+        supplier_id: supplierId,
+        items: itemsWithGst
       };
+
+      // Add optional fields only if they have values
+      if (formattedExpectedDate) {
+        poData.expected_delivery_date = formattedExpectedDate;
+      }
+      if (formData.payment_terms && formData.payment_terms.trim() !== '') {
+        poData.payment_terms = formData.payment_terms.trim();
+      }
+      if (formData.delivery_terms && formData.delivery_terms.trim() !== '') {
+        poData.delivery_terms = formData.delivery_terms.trim();
+      }
+      if (formData.notes && formData.notes.trim() !== '') {
+        poData.notes = formData.notes.trim();
+      }
+      if (formData.component_id && formData.component_id !== '' && !isNaN(parseInt(formData.component_id))) {
+        poData.component_id = parseInt(formData.component_id);
+      }
+      if (formData.subcontractor_id && formData.subcontractor_id !== '' && !isNaN(parseInt(formData.subcontractor_id))) {
+        poData.subcontractor_id = parseInt(formData.subcontractor_id);
+      }
+
+      // Log the data being sent for debugging
+      console.log('Sending PO data:', JSON.stringify(poData, null, 2));
 
       let response;
       if (mrrId) {
@@ -473,9 +601,19 @@ const CreatePurchaseOrder: React.FC = () => {
       }
 
       navigate(`/purchase-orders/${response.data.purchaseOrder.po_id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating purchase order:', error);
-      setError('Failed to create purchase order');
+      console.error('Error response:', error.response?.data);
+      // Extract error message from response
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = validationErrors.map((err: any) => `${err.param}: ${err.msg}`).join(', ');
+        setError(`Validation error: ${errorMessages}`);
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Failed to create purchase order. Please check all fields and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -788,13 +926,39 @@ const CreatePurchaseOrder: React.FC = () => {
                     <SearchableDropdown
                       options={itemsWithUnits.map((it) => ({
                         value: it.item_id.toString(),
-                        label: `${it.item_name} (${it.item_code}) - ${it.unit_symbol}`,
-                        searchText: `${it.item_name} ${it.item_code} ${it.unit_symbol}`
+                        label: `${it.item_name} (${it.item_code})`,
+                        searchText: `${it.item_name} ${it.item_code}`
                       }))}
                       value={item.item_id.toString()}
                       onChange={(value) => handleItemSelect(index, parseInt(value.toString()))}
                       placeholder="Select Item"
                       searchPlaceholder="Search items..."
+                      className="w-full"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit <span className="text-red-500">*</span>
+                    </label>
+                    <SearchableDropdown
+                      options={units.map((unit) => ({
+                        value: unit.unit_id.toString(),
+                        label: `${unit.unit_name} (${unit.unit_symbol})`,
+                        searchText: `${unit.unit_name} ${unit.unit_symbol}`
+                      }))}
+                      value={item.unit_id.toString()}
+                      onChange={(value) => {
+                        const selectedUnit = units.find(u => u.unit_id.toString() === value.toString());
+                        if (selectedUnit) {
+                          updateItem(index, 'unit_id', selectedUnit.unit_id);
+                          updateItem(index, 'unit_name', selectedUnit.unit_name);
+                          updateItem(index, 'unit_symbol', selectedUnit.unit_symbol);
+                        }
+                      }}
+                      placeholder="Select Unit"
+                      searchPlaceholder="Search units..."
                       className="w-full"
                       required
                     />

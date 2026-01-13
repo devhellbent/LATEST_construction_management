@@ -133,7 +133,8 @@ router.get('/inventory/:id', authenticateToken, async (req, res) => {
 });
 
 // Create new material
-router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Create Inventory Item - Store Manager, Admin, Engineer HO can create
+router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('name').trim().isLength({ min: 2 }).withMessage('Name must be at least 2 characters'),
   body('item_id').optional().isInt(),
   body('item_code').optional().trim(),
@@ -141,12 +142,12 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
   body('category').optional().trim(),
   body('brand').optional().trim(),
   body('color').optional().trim(),
-  body('size').optional().trim(),
+  body('size').trim().notEmpty().withMessage('Size is required'),
   body('type').optional().trim(),
   body('unit').optional().trim(),
   body('cost_per_unit').optional().isFloat({ min: 0 }),
   body('supplier').optional().trim(),
-  body('stock_qty').optional().isInt({ min: 0 }),
+  body('stock_qty').isFloat({ min: 0 }).withMessage('Stock quantity is required and must be a non-negative number (decimals allowed)'),
   body('minimum_stock_level').optional().isInt({ min: 0 }),
   body('maximum_stock_level').optional().isInt({ min: 0 }),
   body('reorder_point').optional().isInt({ min: 0 }),
@@ -184,19 +185,20 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
       delete cleanedData.item_code;
     }
 
-    // Check for duplicate material in the same warehouse
-    if (cleanedData.warehouse_id && cleanedData.name) {
+    // Check for duplicate material in the same warehouse (name + size combination must be unique)
+    if (cleanedData.warehouse_id && cleanedData.name && cleanedData.size) {
       const existingMaterial = await Material.findOne({
         where: {
           warehouse_id: cleanedData.warehouse_id,
           name: cleanedData.name,
+          size: cleanedData.size,
           status: { [Op.in]: ['ACTIVE', 'INACTIVE'] } // Check both active and inactive materials
         }
       });
 
       if (existingMaterial) {
         return res.status(400).json({ 
-          message: `A material with the name "${cleanedData.name}" already exists in this warehouse. Please choose a different name or select a different warehouse.`,
+          message: `A material with the name "${cleanedData.name}" and size "${cleanedData.size}" already exists in this warehouse. Please choose a different name, size, or select a different warehouse.`,
           field: 'name'
         });
       }
@@ -254,7 +256,8 @@ router.post('/inventory', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Update material
-router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Update Inventory Item - Store Manager, Admin, Engineer HO can update
+router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('name').optional().trim().isLength({ min: 2 }),
   body('additional_specification').optional().trim(),
   body('category').optional().trim(),
@@ -321,7 +324,8 @@ router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project
 });
 
 // Delete material
-router.delete('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
+// Delete Inventory Item - Store Manager, Admin, Engineer HO can delete
+router.delete('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), async (req, res) => {
   try {
     const material = await Material.findByPk(req.params.id);
     if (!material) {
@@ -407,7 +411,8 @@ router.get('/issues', authenticateToken, async (req, res) => {
 });
 
 // Create material issue (unified for MRR and direct issues)
-router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Create Material Issue - Store Manager, Admin, Engineer HO can issue
+router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity_issued').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
@@ -541,7 +546,8 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Project Manag
 });
 
 // Update material issue
-router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Update Material Issue - Store Manager, Admin, Engineer HO can update
+router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('quantity_issued').optional().isInt({ min: 1 }),
   body('issue_date').optional().isDate(),
   body('location').optional().trim().isLength({ min: 1 }),
@@ -592,7 +598,8 @@ router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Ma
 });
 
 // Delete material issue
-router.delete('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), async (req, res) => {
+// Delete Material Issue - Store Manager, Admin, Engineer HO can delete
+router.delete('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), async (req, res) => {
   try {
     const issue = await MaterialIssue.findByPk(req.params.id);
     if (!issue) {

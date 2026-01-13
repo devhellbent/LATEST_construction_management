@@ -308,11 +308,24 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
         return;
       }
 
+      // Validate required fields: size and stock_qty
+      if (!formData.size || formData.size.trim() === '') {
+        setError('Size is required. Please select a size for the material.');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.stock_qty || formData.stock_qty === '' || parseFloat(formData.stock_qty) < 0) {
+        setError('Stock quantity is required and must be a non-negative number.');
+        setLoading(false);
+        return;
+      }
+
       const submitData = {
         ...formData,
         item_id: formData.item_id ? parseInt(formData.item_id) : null,
         cost_per_unit: formData.cost_per_unit ? parseFloat(formData.cost_per_unit) : null,
-        stock_qty: formData.stock_qty ? parseInt(formData.stock_qty) : 0,
+        stock_qty: parseFloat(formData.stock_qty),
         minimum_stock_level: formData.minimum_stock_level ? parseInt(formData.minimum_stock_level) : 0,
         maximum_stock_level: formData.maximum_stock_level ? parseInt(formData.maximum_stock_level) : 1000,
         reorder_point: formData.reorder_point ? parseInt(formData.reorder_point) : 0,
@@ -510,7 +523,7 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
 
             <div>
               <SearchableDropdown
-                label="Size"
+                label="Size *"
                 options={sizeOptions}
                 value={formData.size}
                 onChange={(value) => setFormData(prev => ({ ...prev, size: value as string }))}
@@ -607,14 +620,17 @@ const MaterialForm: React.FC<MaterialFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Stock Quantity
+                Stock Quantity * (Decimal allowed)
               </label>
               <input
                 type="number"
                 name="stock_qty"
                 value={formData.stock_qty}
                 onChange={handleInputChange}
+                step="0.01"
                 min="0"
+                required
+                placeholder="Enter quantity (e.g., 10.5, 25.75)"
                 className="input"
               />
             </div>

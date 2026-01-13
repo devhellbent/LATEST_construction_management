@@ -133,7 +133,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // =====================================================
 
 // Create Material Receipt for a PO
-router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Create Material Receipt - Store Manager, Admin, Engineer HO can create
+router.post('/', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('po_id').isInt().withMessage('PO ID must be an integer'),
   body('received_date').isISO8601().withMessage('Received date must be a valid date'),
   body('delivery_date').optional().custom((value) => {
@@ -146,7 +147,10 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
   body('condition_status').optional().isIn(['GOOD', 'DAMAGED', 'PARTIAL', 'REJECTED']),
   body('notes').optional().trim(),
   body('delivery_notes').optional().trim(),
-  body('warehouse_id').isInt().withMessage('Warehouse ID must be an integer'),
+  body('warehouse_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '' || value === 0) return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  }).withMessage('Warehouse ID must be an integer'),
   body('project_id').optional().custom((value) => {
     if (value === null || value === undefined || value === '') return true;
     return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
@@ -236,52 +240,93 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
       projectId = defaultProject ? defaultProject.project_id : 1;
     }
 
+    // Validate and format delivery_date
+    let formattedDeliveryDate = null;
+    if (delivery_date) {
+      if (delivery_date !== 'Invalid date' && delivery_date !== '' && delivery_date !== null) {
+        const parsedDate = new Date(delivery_date);
+        if (!isNaN(parsedDate.getTime())) {
+          formattedDeliveryDate = parsedDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        }
+      }
+    }
+
+    // Validate warehouse_id - convert 0 or empty to null
+    const validWarehouseId = (warehouse_id && warehouse_id !== 0 && warehouse_id !== '0' && warehouse_id !== '') 
+      ? parseInt(warehouse_id) 
+      : null;
+
     // Create material receipt
     const receipt = await MaterialReceipt.create({
       po_id,
       project_id: projectId,
       received_date,
-      delivery_date,
+      delivery_date: formattedDeliveryDate,
       received_by_user_id: userId,
-      supplier_delivery_note,
-      vehicle_number,
-      driver_name,
+      supplier_delivery_note: supplier_delivery_note && supplier_delivery_note.trim() !== '' ? supplier_delivery_note.trim() : null,
+      vehicle_number: vehicle_number && vehicle_number.trim() !== '' ? vehicle_number.trim() : null,
+      driver_name: driver_name && driver_name.trim() !== '' ? driver_name.trim() : null,
       condition_status: condition_status || 'GOOD',
       status: 'PENDING',
-      notes,
-      delivery_notes,
-      warehouse_id,
+      notes: notes && notes.trim() !== '' ? notes.trim() : null,
+      delivery_notes: delivery_notes && delivery_notes.trim() !== '' ? delivery_notes.trim() : null,
+      warehouse_id: validWarehouseId,
       total_items: 0
     });
 
     // Create receipt items from the request data
     const receiptItems = [];
     for (const item of items) {
+      // Validate required fields
+      if (!item.po_item_id || !item.item_id || !item.quantity_received || !item.unit_id || !item.unit_price) {
+        console.error('Invalid item data:', item);
+        throw new Error(`Invalid item data: missing required fields for item ${item.item_id || 'unknown'}`);
+      }
+
       // Find the corresponding PO item to get GST values
-      const poItem = po.items.find(poItem => poItem.po_item_id === item.po_item_id);
+      const poItem = po.items.find(poItem => poItem.po_item_id === parseInt(item.po_item_id));
+      
+      if (!poItem) {
+        console.error('PO item not found for po_item_id:', item.po_item_id);
+        console.error('Available PO items:', po.items.map(i => i.po_item_id));
+        throw new Error(`PO item not found for po_item_id: ${item.po_item_id}. Available items: ${po.items.map(i => i.po_item_id).join(', ')}`);
+      }
       
       // Calculate GST amounts
-      const totalPrice = item.unit_price * item.quantity_received;
-      const cgstRate = item.cgst_rate !== undefined ? item.cgst_rate : (poItem ? poItem.cgst_rate : 0);
-      const sgstRate = item.sgst_rate !== undefined ? item.sgst_rate : (poItem ? poItem.sgst_rate : 0);
-      const igstRate = item.igst_rate !== undefined ? item.igst_rate : (poItem ? poItem.igst_rate : 0);
+      const totalPrice = parseFloat(item.unit_price) * parseInt(item.quantity_received);
+      const cgstRate = item.cgst_rate !== undefined ? parseFloat(item.cgst_rate) : (poItem ? parseFloat(poItem.cgst_rate || 0) : 0);
+      const sgstRate = item.sgst_rate !== undefined ? parseFloat(item.sgst_rate) : (poItem ? parseFloat(poItem.sgst_rate || 0) : 0);
+      const igstRate = item.igst_rate !== undefined ? parseFloat(item.igst_rate) : (poItem ? parseFloat(poItem.igst_rate || 0) : 0);
       
       const cgstAmount = (totalPrice * cgstRate) / 100;
       const sgstAmount = (totalPrice * sgstRate) / 100;
       const igstAmount = (totalPrice * igstRate) / 100;
       
+      // Validate and format expiry_date
+      let expiryDate = null;
+      if (item.expiry_date) {
+        // Check if it's a valid date string
+        if (item.expiry_date !== 'Invalid date' && item.expiry_date !== '' && item.expiry_date !== null) {
+          const parsedDate = new Date(item.expiry_date);
+          if (!isNaN(parsedDate.getTime())) {
+            // Format as YYYY-MM-DD for DATEONLY type
+            expiryDate = parsedDate.toISOString().split('T')[0];
+          }
+        }
+      }
+
       const receiptItem = await MaterialReceiptItem.create({
         receipt_id: receipt.receipt_id,
-        po_item_id: item.po_item_id,
-        item_id: item.item_id,
-        quantity_received: item.quantity_received,
-        unit_id: item.unit_id,
-        unit_price: item.unit_price,
+        po_item_id: parseInt(item.po_item_id),
+        item_id: parseInt(item.item_id),
+        quantity_received: parseInt(item.quantity_received),
+        unit_id: parseInt(item.unit_id),
+        unit_price: parseFloat(item.unit_price),
         total_price: totalPrice,
         condition_status: item.condition_status || 'GOOD',
-        batch_number: item.batch_number,
-        expiry_date: item.expiry_date,
-        notes: item.notes,
+        batch_number: item.batch_number && item.batch_number.trim() !== '' ? item.batch_number.trim() : null,
+        expiry_date: expiryDate,
+        notes: item.notes && item.notes.trim() !== '' ? item.notes.trim() : null,
         delivery_status: 'PENDING',
         delivery_quantity: 0,
         delivery_condition: 'GOOD',
@@ -291,7 +336,7 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
         cgst_amount: cgstAmount,
         sgst_amount: sgstAmount,
         igst_amount: igstAmount,
-        size: item.size || (poItem ? poItem.size : null)
+        size: (item.size && item.size.trim() !== '') ? item.size.trim() : (poItem && poItem.size ? poItem.size : null)
       });
       receiptItems.push(receiptItem);
     }
@@ -310,7 +355,32 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
     });
   } catch (error) {
     console.error('Create material receipt error:', error);
-    res.status(500).json({ message: 'Failed to create material receipt' });
+    
+    // Provide more specific error messages
+    if (error.name === 'SequelizeDatabaseError') {
+      if (error.message && error.message.includes('date')) {
+        return res.status(400).json({ 
+          message: 'Invalid date format. Please check expiry dates and delivery dates.',
+          error: error.message 
+        });
+      }
+      return res.status(400).json({ 
+        message: 'Database error: ' + (error.message || 'Invalid data format'),
+        error: error.message 
+      });
+    }
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({ 
+        message: 'Validation error: ' + error.errors.map(e => e.message).join(', '),
+        errors: error.errors 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Failed to create material receipt',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -319,7 +389,8 @@ router.post('/', authenticateToken, authorizeRoles('Admin', 'Project Manager', '
 // =====================================================
 
 // Update material receipt with received quantities
-router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Project On-site Team', 'Inventory Manager'), [
+// Receive Material - Store Manager, Admin, Engineer HO can receive
+router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.receipt_item_id').isInt().withMessage('Receipt item ID must be an integer'),
   body('items.*.quantity_actually_received').isInt({ min: 0 }).withMessage('Quantity received must be a non-negative integer'),
@@ -379,7 +450,8 @@ router.put('/:id/receive', authenticateToken, authorizeRoles('Admin', 'Project M
 // =====================================================
 
 // Complete material receipt and update inventory
-router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Inventory Manager'), [
+// Complete Material Receipt - Store Manager, Admin, Engineer HO can complete
+router.put('/:id/complete', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('completion_notes').optional().trim()
 ], async (req, res) => {
   try {
@@ -560,7 +632,8 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
 // =====================================================
 
 // Verify Material Receipt (triggers inventory update)
-router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Project Manager', 'Store Manager', 'Inventory Manager'), [
+// Verify Material Receipt - Store Manager, Admin, Engineer HO can verify
+router.post('/:id/verify', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), [
   body('verification_notes').optional().trim(),
   body('items').isArray({ min: 1 }).withMessage('At least one item is required'),
   body('items.*.receipt_item_id').isInt().withMessage('Receipt item ID must be an integer'),

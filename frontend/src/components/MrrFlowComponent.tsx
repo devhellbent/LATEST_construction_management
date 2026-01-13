@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { mrrAPI, projectsAPI, materialsAPI, subcontractorsAPI } from '../services/api';
 import MrrInventoryCheck from './MrrInventoryCheck';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +56,7 @@ interface MaterialRequirementRequest {
 
 const MrrFlowComponent: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [mrrs, setMrrs] = useState<MaterialRequirementRequest[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
@@ -239,8 +241,19 @@ const MrrFlowComponent: React.FC = () => {
   };
 
   const handleCreatePO = (mrrId: number) => {
-    // Navigate to Create Purchase Order page with MRR ID
-    window.location.href = `/create-purchase-order?mrrId=${mrrId}`;
+    try {
+      // Navigate to Create Purchase Order page with MRR ID
+      console.log('Navigating to create PO with MRR ID:', mrrId);
+      const targetPath = `/create-purchase-order?mrrId=${mrrId}`;
+      console.log('Target path:', targetPath);
+      
+      // Navigate using React Router
+      navigate(targetPath);
+    } catch (error) {
+      console.error('Error in handleCreatePO:', error);
+      // Fallback navigation method if navigate fails
+      window.location.href = `/create-purchase-order?mrrId=${mrrId}`;
+    }
   };
 
   const handleUpdateStatus = async () => {
@@ -395,8 +408,14 @@ const MrrFlowComponent: React.FC = () => {
                     </button>
                     {mrr.status === 'APPROVED' && (
                       <button
-                        onClick={() => handleCreatePO(mrr.mrr_id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Create PO button clicked for MRR:', mrr.mrr_id);
+                          handleCreatePO(mrr.mrr_id);
+                        }}
                         className="btn btn-primary text-xs sm:text-sm w-full sm:w-auto"
+                        type="button"
                       >
                         Create PO
                       </button>
@@ -977,8 +996,23 @@ const MrrFlowComponent: React.FC = () => {
               </div>
             </div>
 
-            {/* Close Button */}
-            <div className="flex justify-end pt-6 border-t border-gray-200">
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+              {detailsTarget.status === 'APPROVED' && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleCreatePO(detailsTarget.mrr_id);
+                    setShowDetailsModal(false);
+                    setDetailsTarget(null);
+                  }}
+                  className="btn btn-primary"
+                  type="button"
+                >
+                  Create PO
+                </button>
+              )}
               <button
                 onClick={() => { setShowDetailsModal(false); setDetailsTarget(null); }}
                 className="btn btn-secondary"

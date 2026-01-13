@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
+import { hasRouteAccess, canAccessAdmin, isAdmin } from '../utils/rolePermissions';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -53,10 +54,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isConnected } = useSocket();
   const location = useLocation();
 
+  // Filter navigation items based on user role
+  const filterNavigationItems = (items: any[]) => {
+    if (!user) return [];
+    return items.filter(item => hasRouteAccess(user, item.href));
+  };
+
   const commercialSubItems = [
     { name: 'Petty Cash', href: '/commercial/petty-cash', icon: IndianRupee },
     { name: 'Subcontractor Ledger', href: '/commercial/subcontractor-ledger', icon: Building2 },
-  ];
+  ].filter(item => !user || hasRouteAccess(user, item.href));
 
   const materialManagementSubItems = [
     { name: 'Dashboard', href: '/material-management', icon: LayoutDashboard },
@@ -68,15 +75,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Material Receipts', href: '/material-management/receipts', icon: Truck },
     { name: 'Supplier Ledger', href: '/material-management/supplier-ledger', icon: CreditCard },
     { name: 'Workflow Tracking', href: '/material-management/workflow', icon: Workflow },
-  ];
+  ].filter(item => !user || hasRouteAccess(user, item.href));
 
   const adminSubItems = [
     { name: 'Suppliers', href: '/admin/suppliers', icon: Building },
     { name: 'Users', href: '/admin/users', icon: UserPlus },
     { name: 'Items', href: '/admin/items', icon: PackageCheck },
-  ];
+  ].filter(item => !user || hasRouteAccess(user, item.href));
 
-  const navigation = [
+  // Build navigation array based on role permissions
+  const allNavigationItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Projects', href: '/projects', icon: FolderOpen },
     { name: 'Project Associated Members', href: '/project-members', icon: UserCheck },
@@ -105,42 +113,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Expenses', href: '/expenses', icon: IndianRupee },
   ];
 
-  // Check if user is admin
-  const isAdmin = () => {
-    if (!user?.role) return false;
+  // Filter navigation items based on role
+  const navigation = allNavigationItems.filter(item => {
+    if (!user) return false;
     
-    // Handle old string format
-    if (typeof user.role === 'string') {
-      return user.role === 'OWNER' || user.role === 'ADMIN';
+    // If item has subItems, check if user has access to the main route or any sub-item
+    if (item.subItems && item.subItems.length > 0) {
+      return hasRouteAccess(user, item.href) || item.subItems.length > 0;
     }
     
-    // Handle new object format
-    if (typeof user.role === 'object') {
-      return user.role.name === 'Admin';
-    }
-    
-    return false;
-  };
+    return hasRouteAccess(user, item.href);
+  });
 
-  // Check if user is admin or manager
-  const isAdminOrManager = () => {
-    if (!user?.role) return false;
-    
-    // Handle old string format
-    if (typeof user.role === 'string') {
-      return user.role === 'OWNER' || user.role === 'PROJECT_MANAGER' || user.role === 'ADMIN';
-    }
-    
-    // Handle new object format
-    if (typeof user.role === 'object') {
-      return user.role.name === 'Admin' || user.role.name === 'Project Manager' || user.role.name === 'Inventory Manager';
-    }
-    
-    return false;
-  };
-
-  // Add Admin section for admin users only
-  if (isAdmin()) {
+  // Add Admin section for users who can access admin routes
+  if (user && canAccessAdmin(user) && adminSubItems.length > 0) {
     navigation.push({ 
       name: 'Admin', 
       href: '/admin', 

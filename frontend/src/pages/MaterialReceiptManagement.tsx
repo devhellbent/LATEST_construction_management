@@ -306,22 +306,62 @@ const MaterialReceiptManagement: React.FC = () => {
               receipt_item_id: item.receipt_item_id || item.po_item_id,
               quantity_actually_received: item.quantity_received,
               received_condition: item.condition_status,
-              received_notes: item.notes
+              received_notes: item.notes && item.notes.trim() !== '' ? item.notes.trim() : null
             })),
-          notes: formData.notes
+          notes: formData.notes && formData.notes.trim() !== '' ? formData.notes.trim() : null
         };
         
         await materialReceiptsAPI.updateReceiptReceive(existingReceipt.receipt_id, receiveData);
         alert('Material receipt updated successfully! Inventory will be updated when verified.');
       } else {
         // Create new receipt - this should NOT update inventory
+        // Clean up items data - convert invalid dates to null
+        const cleanedItems = formData.items
+          .filter(item => item.quantity_received > 0)
+          .map(item => {
+            let expiryDate = null;
+            if (item.expiry_date && item.expiry_date.trim() !== '' && item.expiry_date !== 'Invalid date') {
+              const date = new Date(item.expiry_date);
+              if (!isNaN(date.getTime())) {
+                expiryDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+              }
+            }
+            
+            return {
+              ...item,
+              expiry_date: expiryDate,
+              batch_number: item.batch_number && item.batch_number.trim() !== '' ? item.batch_number.trim() : null,
+              notes: item.notes && item.notes.trim() !== '' ? item.notes.trim() : null
+            };
+          });
+
+        // Format delivery_date
+        let formattedDeliveryDate = null;
+        if (formData.delivery_date && formData.delivery_date.trim() !== '' && formData.delivery_date !== 'Invalid date') {
+          const date = new Date(formData.delivery_date);
+          if (!isNaN(date.getTime())) {
+            formattedDeliveryDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+          }
+        }
+
+        // Validate warehouse_id
+        const validWarehouseId = (formData.warehouse_id && formData.warehouse_id !== 0) 
+          ? formData.warehouse_id 
+          : null;
+
         await materialReceiptsAPI.createReceipt({
-          ...formData,
           po_id: formData.po_id,
-          project_id: formData.project_id,
+          project_id: formData.project_id || null,
           received_date: formData.received_date,
-          delivery_date: formData.delivery_date,
-          items: formData.items.filter(item => item.quantity_received > 0)
+          delivery_date: formattedDeliveryDate,
+          supplier_delivery_note: formData.supplier_delivery_note && formData.supplier_delivery_note.trim() !== '' ? formData.supplier_delivery_note.trim() : null,
+          vehicle_number: formData.vehicle_number && formData.vehicle_number.trim() !== '' ? formData.vehicle_number.trim() : null,
+          driver_name: formData.driver_name && formData.driver_name.trim() !== '' ? formData.driver_name.trim() : null,
+          condition_status: formData.condition_status || 'GOOD',
+          notes: formData.notes && formData.notes.trim() !== '' ? formData.notes.trim() : null,
+          delivery_notes: formData.delivery_notes && formData.delivery_notes.trim() !== '' ? formData.delivery_notes.trim() : null,
+          warehouse_id: validWarehouseId,
+          items: cleanedItems
         });
         alert('Material receipt created successfully! Inventory will be updated when verified.');
       }
@@ -330,9 +370,21 @@ const MaterialReceiptManagement: React.FC = () => {
       setSelectedPo(null);
       loadPendingPos();
       loadExistingReceipts();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving receipt:', error);
-      alert('Error saving material receipt. Please try again.');
+      console.error('Error response:', error.response?.data);
+      
+      // Show specific error message if available
+      let errorMessage = 'Error saving material receipt. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
