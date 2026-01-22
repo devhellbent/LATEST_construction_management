@@ -3,7 +3,8 @@ import { AlertTriangle, Plus, Filter, Download, Clipboard, UserCheck, MessageSqu
 import ProjectSelector from '../components/ProjectSelector';
 import { issuesAPI } from '../services/api';
 import CreateIssueModal from '../components/CreateIssueModal';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 
 interface Issue {
   issue_id: number;
@@ -75,38 +76,59 @@ const Issues: React.FC = () => {
     fetchIssues(); // Refresh the issues list
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (issues.length === 0) {
       alert('No issues to export');
       return;
     }
 
-    // Prepare data for Excel export
-    const exportData = issues.map(issue => ({
-      'Issue ID': issue.issue_id,
-      'Project ID': issue.project_id,
-      'Description': issue.description,
-      'Priority': issue.priority,
-      'Status': issue.status,
-      'Date Raised': new Date(issue.date_raised).toLocaleDateString(),
-      'Date Resolved': issue.date_resolved ? new Date(issue.date_resolved).toLocaleDateString() : 'Not resolved',
-      'Raised By User ID': issue.raised_by_user_id,
-      'Assigned To User ID': issue.assigned_to_user_id || 'Not assigned'
-    }));
-
     // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Issues');
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Issues');
+    // Define columns
+    worksheet.columns = [
+      { header: 'Issue ID', key: 'issue_id', width: 12 },
+      { header: 'Project ID', key: 'project_id', width: 12 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Priority', key: 'priority', width: 12 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Date Raised', key: 'date_raised', width: 15 },
+      { header: 'Date Resolved', key: 'date_resolved', width: 15 },
+      { header: 'Raised By User ID', key: 'raised_by_user_id', width: 18 },
+      { header: 'Assigned To User ID', key: 'assigned_to_user_id', width: 20 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    // Add data rows
+    issues.forEach(issue => {
+      worksheet.addRow({
+        issue_id: issue.issue_id,
+        project_id: issue.project_id,
+        description: issue.description,
+        priority: issue.priority,
+        status: issue.status,
+        date_raised: new Date(issue.date_raised).toLocaleDateString(),
+        date_resolved: issue.date_resolved ? new Date(issue.date_resolved).toLocaleDateString() : 'Not resolved',
+        raised_by_user_id: issue.raised_by_user_id,
+        assigned_to_user_id: issue.assigned_to_user_id || 'Not assigned'
+      });
+    });
 
     // Generate filename with current date
     const currentDate = new Date().toISOString().split('T')[0];
     const filename = `issues_export_${currentDate}.xlsx`;
 
     // Save file
-    XLSX.writeFile(wb, filename);
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), filename);
   };
 
   const getPriorityColor = (priority: string) => {

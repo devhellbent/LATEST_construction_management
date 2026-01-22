@@ -1,4 +1,4 @@
-const { Material, InventoryHistory, User } = require('../models');
+const { Material, InventoryHistory, User, Warehouse } = require('../models');
 
 class InventoryService {
   /**
@@ -76,17 +76,15 @@ class InventoryService {
           }, { transaction });
         }
 
-        quantity_before = material.stock_qty;
-        quantity_after = quantity_before + quantity_change;
+        // Ensure numeric values for calculation
+        quantity_before = parseFloat(material.stock_qty) || 0;
+        const numericQuantityChange = parseFloat(quantity_change) || 0;
+        quantity_after = quantity_before + numericQuantityChange;
 
-        // Check if the transaction would result in negative stock
-        if (quantity_after < 0) {
-          throw new Error(`Insufficient stock in warehouse. Available: ${quantity_before}, Requested: ${Math.abs(quantity_change)}`);
-        }
-
+        // Note: Stock availability is checked at MRR time, so we allow negative stock here
         // Update material stock in specific warehouse
         await material.update(
-          { stock_qty: quantity_after },
+          { stock_qty: parseFloat(quantity_after) },
           { transaction }
         );
       } else {
@@ -96,17 +94,15 @@ class InventoryService {
           throw new Error(`Material with ID ${material_id} not found`);
         }
 
-        quantity_before = material.stock_qty;
-        quantity_after = quantity_before + quantity_change;
+        // Ensure numeric values for calculation
+        quantity_before = parseFloat(material.stock_qty) || 0;
+        const numericQuantityChange = parseFloat(quantity_change) || 0;
+        quantity_after = quantity_before + numericQuantityChange;
 
-        // Check if the transaction would result in negative stock
-        if (quantity_after < 0) {
-          throw new Error(`Insufficient stock. Available: ${quantity_before}, Requested: ${Math.abs(quantity_change)}`);
-        }
-
+        // Note: Stock availability is checked at MRR time, so we allow negative stock here
         // Update material stock
         await material.update(
-          { stock_qty: quantity_after },
+          { stock_qty: parseFloat(quantity_after) },
           { transaction }
         );
       }
@@ -166,7 +162,14 @@ class InventoryService {
     const { count, rows: history } = await InventoryHistory.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'unit'] },
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['material_id', 'name', 'unit', 'warehouse_id'],
+          include: [
+            { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name'] }
+          ]
+        },
         { model: User, as: 'performedBy', attributes: ['user_id', 'name'] }
       ],
       order: [['transaction_date', 'DESC']],
@@ -204,7 +207,14 @@ class InventoryService {
     const { count, rows: history } = await InventoryHistory.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'unit'] },
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['material_id', 'name', 'unit', 'warehouse_id'],
+          include: [
+            { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name'] }
+          ]
+        },
         { model: User, as: 'performedBy', attributes: ['user_id', 'name'] }
       ],
       order: [['transaction_date', 'DESC']],

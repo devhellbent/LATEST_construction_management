@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Plus, Filter } from 'lucide-react';
+import { FileText, Plus, Filter, Package, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import ProjectSelector from '../components/ProjectSelector';
 import { reportsAPI } from '../services/api';
 
@@ -70,6 +71,32 @@ const Reports: React.FC = () => {
           <Plus className="h-5 w-5 mr-2" />
           Generate Report
         </button>
+      </div>
+
+      {/* Quick Report Links */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Link
+          to="/reports/subcontractor-material-issues"
+          className="card p-6 hover:shadow-lg transition-shadow border-2 border-transparent hover:border-primary-300 cursor-pointer group"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                  <Package className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Subcontractor Material Issues</h3>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                View all material issues and returns for a specific subcontractor with detailed information about quantities, dates, and personnel.
+              </p>
+              <div className="flex items-center text-primary-600 font-medium text-sm group-hover:text-primary-700">
+                View Report
+                <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </div>
+        </Link>
       </div>
 
       {/* Project Filter */}

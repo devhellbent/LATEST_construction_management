@@ -471,7 +471,12 @@ const SupplierLedgerManagement: React.FC = () => {
                 </div>
 
                 {supplierDropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden">
+                  <>
+                    <div
+                      className="fixed inset-0 z-[99998]"
+                      onClick={() => setSupplierDropdownOpen(false)}
+                    />
+                    <div className="absolute z-[99999] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-hidden">
                     <div className="p-2 sm:p-3 border-b border-slate-200">
                       <div className="relative">
                         <Search className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
@@ -506,6 +511,7 @@ const SupplierLedgerManagement: React.FC = () => {
                       )}
                     </div>
                   </div>
+                  </>
                 )}
               </div>
             </div>

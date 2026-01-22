@@ -24,7 +24,7 @@ router.get('/test', (req, res) => {
 // Get all materials with comprehensive filtering
 router.get('/inventory', authenticateToken, [
   query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('limit').optional().isInt({ min: 1, max: 10000 }),
   query('project_id').optional().isInt(),
   query('warehouse_id').optional().isInt(),
   query('category').optional().trim(),
@@ -323,6 +323,93 @@ router.put('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Store M
   }
 });
 
+// Settle material stock to a physical count
+// Stock Settlement - Admin only
+router.post('/inventory/:id/settle', authenticateToken, authorizeRoles('Admin'), [
+  body('new_quantity').isFloat({ min: 0 }).withMessage('New quantity must be a non-negative number'),
+  body('reason').optional().trim(),
+  body('warehouse_id').optional().custom((value) => {
+    if (value === null || value === undefined || value === '') return true;
+    return !isNaN(parseInt(value)) && Number.isInteger(parseFloat(value));
+  })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const materialId = req.params.id;
+    const { new_quantity, reason, warehouse_id } = req.body;
+
+    let material;
+
+    if (warehouse_id) {
+      // Find material in specific warehouse
+      material = await Material.findOne({
+        where: {
+          material_id: materialId,
+          warehouse_id: warehouse_id
+        }
+      });
+
+      if (!material) {
+        return res.status(404).json({ message: 'Material not found in the specified warehouse' });
+      }
+    } else {
+      // Default: use material by primary key
+      material = await Material.findByPk(materialId);
+      if (!material) {
+        return res.status(404).json({ message: 'Material not found' });
+      }
+    }
+
+    const currentQty = parseFloat(material.stock_qty) || 0;
+    const targetQty = parseFloat(new_quantity) || 0;
+    const quantityDifference = targetQty - currentQty;
+
+    // If no change, just return
+    if (quantityDifference === 0) {
+      return res.json({
+        message: 'Stock is already at the specified quantity',
+        material
+      });
+    }
+
+    // Record inventory adjustment using InventoryService (this will also update stock)
+    await InventoryService.recordTransaction({
+      material_id: material.material_id,
+      project_id: material.project_id,
+      transaction_type: 'ADJUSTMENT',
+      transaction_id: null,
+      quantity_change: quantityDifference,
+      reference_number: `SETTLEMENT-${material.material_id}-${Date.now()}`,
+      description: reason || 'Stock settlement adjustment to physical count',
+      location: material.location || 'Store',
+      performed_by_user_id: req.user.user_id,
+      warehouse_id: warehouse_id || material.warehouse_id || null
+    });
+
+    // Refetch updated material
+    const updatedMaterial = warehouse_id
+      ? await Material.findOne({
+          where: {
+            material_id: materialId,
+            warehouse_id: warehouse_id
+          }
+        })
+      : await Material.findByPk(materialId);
+
+    res.status(200).json({
+      message: 'Stock settled successfully',
+      material: updatedMaterial
+    });
+  } catch (error) {
+    console.error('Settle material stock error:', error);
+    res.status(500).json({ message: 'Failed to settle material stock' });
+  }
+});
+
 // Delete material
 // Delete Inventory Item - Store Manager, Admin, Engineer HO can delete
 router.delete('/inventory/:id', authenticateToken, authorizeRoles('Admin', 'Store Manager', 'Engineer HO'), async (req, res) => {
@@ -416,8 +503,8 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
   body('project_id').isInt().withMessage('Project ID is required'),
   body('material_id').isInt().withMessage('Material ID is required'),
   body('quantity_issued').isInt({ min: 1 }).withMessage('Quantity must be a positive integer'),
-  body('issue_date').isDate().withMessage('Invalid issue date'),
-  body('location').trim().isLength({ min: 1 }).withMessage('Location is required'),
+  body('issue_date').notEmpty().withMessage('Issue date is required'),
+  body('location').optional().trim(),
   body('issued_by_user_id').isInt().withMessage('Issued by user ID is required'),
   body('received_by_user_id').isInt().withMessage('Received by user ID is required'),
   body('is_for_mrr').optional().isBoolean(),
@@ -436,6 +523,20 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
       issued_by_user_id, received_by_user_id, is_for_mrr, mrr_id, issue_purpose,
       component_id, subcontractor_id, warehouse_id
     } = req.body;
+
+    // Validate and format issue_date
+    let formattedIssueDate;
+    if (issue_date) {
+      formattedIssueDate = new Date(issue_date);
+      if (isNaN(formattedIssueDate.getTime())) {
+        return res.status(400).json({ message: 'Invalid issue date format' });
+      }
+    } else {
+      formattedIssueDate = new Date();
+    }
+
+    // Set default location if not provided
+    const issueLocation = location || 'Project Site';
 
     // Validate MRR requirement
     if (is_for_mrr && !mrr_id) {
@@ -462,29 +563,16 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Verify material exists and check stock
-    let material;
-    if (warehouse_id) {
-      // Check stock in specific warehouse
-      material = await Material.findOne({
-        where: { material_id, warehouse_id }
-      });
-      if (!material) {
-        return res.status(404).json({ message: 'Material not found in specified warehouse' });
-      }
-    } else {
-      // Check overall stock
-      material = await Material.findByPk(material_id);
-      if (!material) {
-        return res.status(404).json({ message: 'Material not found' });
-      }
+    // Verify material exists (check by material_id only, warehouse_id is optional for filtering)
+    const material = await Material.findByPk(material_id);
+    if (!material) {
+      return res.status(404).json({ message: 'Material not found' });
     }
     
-    if (material.stock_qty < quantity_issued) {
-      const warehouseInfo = warehouse_id ? ' in specified warehouse' : '';
-      return res.status(400).json({ 
-        message: `Insufficient stock for ${material.name}${warehouseInfo}. Available: ${material.stock_qty}, Requested: ${quantity_issued}` 
-      });
+    // If warehouse_id is provided, verify material exists in that warehouse (but don't block if it doesn't)
+    // This is informational only since availability is checked at MRR time
+    if (warehouse_id && material.warehouse_id !== warehouse_id) {
+      console.log(`Warning: Material ${material_id} is in warehouse ${material.warehouse_id}, but issue requested for warehouse ${warehouse_id}`);
     }
 
     // Verify users exist
@@ -499,9 +587,9 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
       project_id,
       material_id,
       quantity_issued,
-      issue_date,
+      issue_date: formattedIssueDate,
       issue_purpose: issue_purpose || '',
-      location,
+      location: issueLocation,
       issued_by_user_id,
       received_by_user_id,
       created_by: req.user.user_id,
@@ -514,18 +602,27 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
     });
 
     // Record inventory transaction
-    await InventoryService.recordTransaction({
-      material_id,
-      project_id,
-      transaction_type: 'ISSUE',
-      transaction_id: materialIssue.issue_id,
-      quantity_change: -quantity_issued,
-      reference_number: `ISSUE-${materialIssue.issue_id}`,
-      description: `Material issued: ${issue_purpose || 'No description'}`,
-      location,
-      performed_by_user_id: req.user.user_id,
-      warehouse_id
-    });
+    // Ensure quantity_issued is a number
+    const numericQuantityIssued = parseFloat(quantity_issued) || 0;
+    try {
+      await InventoryService.recordTransaction({
+        material_id,
+        project_id,
+        transaction_type: 'ISSUE',
+        transaction_id: materialIssue.issue_id,
+        quantity_change: -numericQuantityIssued,
+        reference_number: `ISSUE-${materialIssue.issue_id}`,
+        description: `Material issued: ${issue_purpose || 'No description'}`,
+        location: issueLocation,
+        performed_by_user_id: req.user.user_id,
+        warehouse_id: warehouse_id || null
+      });
+    } catch (inventoryError) {
+      console.error('Inventory transaction error:', inventoryError);
+      // If inventory transaction fails, delete the material issue record
+      await materialIssue.destroy();
+      throw new Error(`Failed to record inventory transaction: ${inventoryError.message}`);
+    }
 
     // Emit socket event
     socketService.emitToProject(project_id, 'materialIssue', {
@@ -541,7 +638,11 @@ router.post('/issues', authenticateToken, authorizeRoles('Admin', 'Store Manager
     });
   } catch (error) {
     console.error('Create material issue error:', error);
-    res.status(500).json({ message: 'Failed to create material issue' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to create material issue',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -573,13 +674,15 @@ router.put('/issues/:id', authenticateToken, authorizeRoles('Admin', 'Store Mana
 
     // Record inventory transaction if quantity changed
     if (req.body.quantity_issued && req.body.quantity_issued !== oldQuantity) {
-      const quantityDifference = req.body.quantity_issued - oldQuantity;
+      const oldQty = parseFloat(oldQuantity) || 0;
+      const newQty = parseFloat(req.body.quantity_issued) || 0;
+      const quantityDifference = newQty - oldQty;
       await InventoryService.recordTransaction({
         material_id: issue.material_id,
         project_id: issue.project_id,
         transaction_type: 'ISSUE',
         transaction_id: issue.issue_id,
-        quantity_change: -quantityDifference,
+        quantity_change: -parseFloat(quantityDifference),
         reference_number: `ISSUE-UPDATE-${issue.issue_id}`,
         description: 'Material issue quantity updated',
         location: issue.location,
@@ -1067,7 +1170,14 @@ router.get('/inventory-history', authenticateToken, async (req, res) => {
     const { count, rows: history } = await InventoryHistory.findAndCountAll({
       where: whereClause,
       include: [
-        { model: Material, as: 'material', attributes: ['material_id', 'name', 'type', 'unit'] },
+        { 
+          model: Material, 
+          as: 'material', 
+          attributes: ['material_id', 'name', 'type', 'unit', 'warehouse_id'],
+          include: [
+            { model: Warehouse, as: 'warehouse', attributes: ['warehouse_id', 'warehouse_name'] }
+          ]
+        },
         { model: Project, as: 'project', attributes: ['project_id', 'name'] },
         { model: User, as: 'performedBy', foreignKey: 'performed_by_user_id', attributes: ['user_id', 'name'] }
       ],

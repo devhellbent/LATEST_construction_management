@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, History, Package, TrendingUp, TrendingDown, Calendar, User, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, History, Package, TrendingUp, TrendingDown, Calendar, User, MapPin, Warehouse } from 'lucide-react';
 import { commercialAPI } from '../services/api';
 
 interface InventoryHistoryItem {
   history_id: number;
   material_id: number;
   project_id: number;
-  transaction_type: 'ISSUE' | 'RETURN' | 'ADJUSTMENT' | 'PURCHASE' | 'CONSUMPTION';
+  transaction_type: 'ISSUE' | 'RETURN' | 'ADJUSTMENT' | 'PURCHASE' | 'CONSUMPTION' | 'RESTOCK';
   transaction_id: number;
   quantity_change: number;
   quantity_before: number;
@@ -20,6 +20,11 @@ interface InventoryHistoryItem {
     material_id: number;
     name: string;
     unit: string;
+    warehouse_id?: number;
+    warehouse?: {
+      warehouse_id: number;
+      warehouse_name: string;
+    };
   };
   performedBy?: {
     user_id: number;
@@ -56,13 +61,7 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
     page: 1
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      fetchHistory();
-    }
-  }, [isOpen, materialId, projectId, filters]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -86,13 +85,19 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
         ...prev,
         ...response.data.pagination
       }));
-    } catch (error: any) {
-      console.error('Error fetching inventory history:', error);
-      setError(error.response?.data?.message || 'Failed to fetch inventory history');
+    } catch (err: any) {
+      console.error('Error fetching inventory history:', err);
+      setError(err.response?.data?.message || 'Failed to fetch inventory history');
     } finally {
       setLoading(false);
     }
-  };
+  }, [materialId, projectId, filters, pagination.itemsPerPage]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchHistory();
+    }
+  }, [isOpen, fetchHistory]);
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({
@@ -121,6 +126,8 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
         return 'bg-purple-100 text-purple-800';
       case 'CONSUMPTION':
         return 'bg-orange-100 text-orange-800';
+      case 'RESTOCK':
+        return 'bg-teal-100 text-teal-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -138,6 +145,8 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
         return <TrendingUp className="h-4 w-4" />;
       case 'CONSUMPTION':
         return <TrendingDown className="h-4 w-4" />;
+      case 'RESTOCK':
+        return <TrendingUp className="h-4 w-4" />;
       default:
         return <History className="h-4 w-4" />;
     }
@@ -189,6 +198,7 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
                 <option value="ADJUSTMENT">Adjustment</option>
                 <option value="PURCHASE">Purchase</option>
                 <option value="CONSUMPTION">Consumption</option>
+                <option value="RESTOCK">Restock</option>
               </select>
             </div>
           </div>
@@ -230,6 +240,9 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
                     <th className="text-xs sm:text-sm">
                       Stock After
                     </th>
+                    <th className="text-xs sm:text-sm hidden lg:table-cell">
+                      Warehouse
+                    </th>
                     <th className="text-xs sm:text-sm">
                       Performed By
                     </th>
@@ -269,6 +282,12 @@ const InventoryHistory: React.FC<InventoryHistoryProps> = ({
                       </td>
                       <td className="text-xs sm:text-sm text-gray-900">
                         {item.quantity_after} {item.material?.unit || ''}
+                      </td>
+                      <td className="text-xs sm:text-sm text-gray-900 hidden lg:table-cell">
+                        <div className="flex items-center">
+                          <Warehouse className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1 sm:mr-2" />
+                          <span>{item.material?.warehouse?.warehouse_name || 'N/A'}</span>
+                        </div>
                       </td>
                       <td className="text-xs sm:text-sm text-gray-900">
                         <div className="flex items-center">

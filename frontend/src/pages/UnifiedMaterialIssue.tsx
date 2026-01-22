@@ -5,6 +5,7 @@ import {
   projectsAPI,
   subcontractorsAPI
 } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import SearchableDropdown from '../components/SearchableDropdown';
 
 interface MrrOption {
@@ -87,12 +88,17 @@ interface IssueFormData {
     unit_name?: string;
     warehouse_id?: number;
     warehouse_name?: string;
+    mrr_item_id?: number;
+    item_id?: number;
   }>;
 }
 
 const UnifiedMaterialIssue: React.FC = () => {
+  const { user } = useAuth();
   const [mrrs, setMrrs] = useState<MrrOption[]>([]);
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
+  // Holds latest inventory check results for the selected MRR, straight from the database
+  const [mrrInventoryResults, setMrrInventoryResults] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
   const [subcontractors, setSubcontractors] = useState<any[]>([]);
@@ -125,7 +131,13 @@ const UnifiedMaterialIssue: React.FC = () => {
           include_items: true,
           include_project: true
         }),
-        materialManagementAPI.getInventory(),
+        // Load ALL materials without pagination for proper MRR matching
+        // Use a very high limit to get all materials, or make multiple requests if needed
+        materialManagementAPI.getInventory({ limit: 10000, page: 1 }).catch(async (err) => {
+          console.warn('Failed to load all materials in one request, trying with default limit:', err);
+          // Fallback: try to get materials without limit parameter
+          return materialManagementAPI.getInventory();
+        }),
         projectsAPI.getProjects(),
         import('../services/api').then(api => api.subcontractorsAPI.getSubcontractors()),
         materialManagementAPI.getWarehouses()
@@ -139,8 +151,20 @@ const UnifiedMaterialIssue: React.FC = () => {
           const itemsWithStock = await Promise.all(
             mrr.items.map(async (item: any) => {
               try {
+                // Get item_id from MRR item
+                const mrrItemId = item.item?.item_id;
+                
+                // Get all materials - handle both response structures
+                const allMaterials = materialsRes.data.materials || materialsRes.data.data?.materials || [];
+                
                 // Find all materials with this item_id and sum their stock
-                const materialsForItem = materialsRes.data.materials.filter((m: any) => m.item?.item_id === item.item_id);
+                const materialsForItem = allMaterials.filter((m: any) => {
+                  const materialItemId = m.item?.item_id;
+                  // Compare as numbers to avoid string/number mismatch
+                  return materialItemId && mrrItemId && 
+                         parseInt(materialItemId.toString()) === parseInt(mrrItemId.toString());
+                });
+                
                 const totalStock = materialsForItem.reduce((sum: number, material: any) => sum + (material.stock_qty || 0), 0);
                 const warehouseInfo = materialsForItem.map((m: any) => ({
                   warehouse_name: m.warehouse?.warehouse_name || 'Unknown Warehouse',
@@ -152,7 +176,8 @@ const UnifiedMaterialIssue: React.FC = () => {
                   available_stock: totalStock,
                   warehouse_breakdown: warehouseInfo
                 };
-              } catch {
+              } catch (error) {
+                console.error('Error processing MRR item stock:', error);
                 return { ...item, available_stock: 0, warehouse_breakdown: [] };
               }
             })
@@ -166,10 +191,16 @@ const UnifiedMaterialIssue: React.FC = () => {
       );
 
       setMrrs(mrrsWithStock);
-      setMaterials(materialsRes.data.materials || []);
+      
+      // Store all materials (handle both paginated and non-paginated responses)
+      const allMaterials = materialsRes.data.materials || materialsRes.data.data?.materials || [];
+      console.log('Loaded materials count:', allMaterials.length);
+      console.log('Sample material structure:', allMaterials[0]);
+      setMaterials(allMaterials);
+      
       setProjects(projectsRes.data.projects || []);
       setSubcontractors(subcontractorsRes.data.subcontractors || []);
-      setWarehouses(warehousesRes.data.warehouses || []);
+      setWarehouses(warehousesRes.data.warehouses || warehousesRes.data.data?.warehouses || []);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -227,44 +258,71 @@ const UnifiedMaterialIssue: React.FC = () => {
 
   const handleMrrSelection = async (mrrId: number) => {
     const selectedMrr = mrrs.find(mrr => mrr.mrr_id === mrrId);
-    if (selectedMrr) {
+    if (!selectedMrr) {
+      return;
+    }
+
+    try {
       // Load components and subcontractors for the project
       if (selectedMrr.project_id) {
         await loadComponents(selectedMrr.project_id);
         await loadSubcontractors(selectedMrr.project_id);
       }
-      
-      // Convert MRR items to material issue items
-      console.log('Selected MRR:', selectedMrr);
-      console.log('MRR items:', selectedMrr.items);
-      console.log('Available materials:', materials);
-      
-      const mrrItems = selectedMrr.items.map(item => {
-        // Find the actual material ID for this item
-        const material = materials.find(m => m.item?.item_id === item.item.item_id);
-        console.log(`Looking for material with item_id ${item.item.item_id}:`, material);
-        
-        // If no material found, use the first available material for this item
-        let materialId = material?.material_id;
-        if (!materialId) {
-          const firstMaterial = materials.find(m => m.item?.item_id === item.item.item_id);
-          materialId = firstMaterial?.material_id || item.item.item_id; // Fallback to item_id
-        }
-        
+
+      // Use the existing MRR inventory check endpoint so that
+      // Material Issue logic matches the "MRR Inventory Check" screen exactly.
+      console.log('Checking MRR inventory from backend (database)...');
+      const response = await mrrAPI.checkMrrInventory(mrrId, false);
+      const data = response.data;
+
+      const results = data.inventory_check_results || [];
+      console.log('MRR inventory check results:', results);
+
+      // Store for later use (e.g. dropdown options)
+      setMrrInventoryResults(results);
+
+      // Reload materials so we definitely have all inventory items
+      // that the inventory check has linked (including newly created ones)
+      try {
+        console.log('Reloading materials after MRR inventory check...');
+        const materialsRes = await materialManagementAPI.getInventory({ limit: 10000, page: 1 });
+        const allMaterials = materialsRes.data.materials || materialsRes.data.data?.materials || [];
+        console.log('Reloaded materials count:', allMaterials.length);
+        setMaterials(allMaterials);
+      } catch (reloadError) {
+        console.warn('Failed to reload materials after inventory check:', reloadError);
+      }
+
+      // Filter only items that have a linked material_id and some available stock
+      const itemsWithInventory = results.filter((r: any) =>
+        r.material_id && (r.available_stock || 0) > 0
+      );
+
+      if (itemsWithInventory.length === 0) {
+        alert('No items from this MRR are available in warehouse inventory.\n\nPlease ensure materials have been received in the warehouse first.');
+        return;
+      }
+
+      // Convert inventory check results into material issue items
+      const materialIssueItems = itemsWithInventory.map((item: any) => {
+        const quantityToIssue = Math.min(
+          item.required_quantity || item.quantity_requested || 0,
+          item.available_stock || 0
+        );
+
         return {
-          material_id: materialId,
-          quantity_issued: Math.min(item.quantity_requested, item.available_stock || 0),
-          item_name: item.item.item_name,
-          unit_name: item.unit.unit_name,
-          warehouse_id: material?.warehouse_id,
-          warehouse_name: material?.warehouse?.warehouse_name
+          material_id: item.material_id,
+          quantity_issued: quantityToIssue,
+          item_name: item.item_name,
+          unit_name: item.unit?.unit_name || item.unit?.unit_symbol || '',
+          warehouse_id: item.warehouse?.warehouse_id || null,
+          warehouse_name: item.warehouse?.warehouse_name || '',
+          mrr_item_id: item.mrr_item_id,
+          item_id: item.item_id
         };
       });
-      
-      console.log('MRR items before filtering:', mrrItems);
-      // Temporarily remove filter to see all items
-      const filteredMrrItems = mrrItems; // .filter(item => item.material_id > 0);
-      console.log('MRR items after filtering (no filter):', filteredMrrItems);
+
+      console.log('Material issue items prepared from inventory check:', materialIssueItems);
 
       setFormData(prev => ({
         ...prev,
@@ -273,8 +331,11 @@ const UnifiedMaterialIssue: React.FC = () => {
         project_id: selectedMrr.project_id,
         component_id: selectedMrr.component_id || 0,
         subcontractor_id: selectedMrr.subcontractor_id || 0,
-        items: filteredMrrItems
+        items: materialIssueItems
       }));
+    } catch (error: any) {
+      console.error('Error checking MRR inventory:', error);
+      alert(`Failed to load MRR items from inventory: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -358,14 +419,15 @@ const UnifiedMaterialIssue: React.FC = () => {
       return;
     }
     
-    // Check if there are any items with material selected
-    console.log('Form data items for validation:', formData.items);
-    const hasValidItems = formData.items.some(item => {
-      console.log('Checking item:', { material_id: item.material_id, item_name: item.item_name });
-      return item.material_id && item.material_id > 0;
+    // Filter out completely empty items (no material and no quantity)
+    const itemsToProcess = formData.items.filter(item => {
+      return (item.material_id && item.material_id > 0) || (item.quantity_issued && item.quantity_issued > 0);
     });
-    console.log('Has valid items:', hasValidItems);
-    if (!hasValidItems) {
+
+    console.log('All form items:', formData.items);
+    console.log('Items to process:', itemsToProcess);
+
+    if (itemsToProcess.length === 0) {
       alert('Please add at least one material item');
       return;
     }
@@ -375,43 +437,83 @@ const UnifiedMaterialIssue: React.FC = () => {
       return;
     }
 
-    // Validate each material item
-    for (let i = 0; i < formData.items.length; i++) {
-      const item = formData.items[i];
-      console.log(`Validating item ${i + 1}:`, { material_id: item.material_id, item_name: item.item_name });
+    // Filter out invalid items and validate - only items with both material_id > 0 AND quantity > 0
+    const validItems = itemsToProcess.filter(item => {
+      const hasMaterial = item.material_id && item.material_id > 0;
+      const hasQuantity = item.quantity_issued && item.quantity_issued > 0;
+      const isValid = hasMaterial && hasQuantity;
+      console.log('Item validation:', { 
+        material_id: item.material_id, 
+        quantity: item.quantity_issued, 
+        item_name: item.item_name,
+        hasMaterial,
+        hasQuantity,
+        isValid
+      });
+      return isValid;
+    });
+
+    console.log('Valid items after filtering:', validItems);
+
+    if (validItems.length === 0) {
+      // Check if there are items with material but no quantity, or quantity but no material
+      const itemsWithMaterialButNoQty = itemsToProcess.filter(item => 
+        item.material_id && item.material_id > 0 && (!item.quantity_issued || item.quantity_issued <= 0)
+      );
+      const itemsWithQtyButNoMaterial = itemsToProcess.filter(item => 
+        (!item.material_id || item.material_id === 0) && item.quantity_issued && item.quantity_issued > 0
+      );
       
-      // Skip validation for empty items (no material selected and no quantity)
-      if ((!item.material_id || item.material_id === 0) && (!item.quantity_issued || item.quantity_issued === 0)) {
-        continue;
-      }
-      
-      if (!item.material_id || item.material_id === 0) {
-        alert(`Please select a material for item ${i + 1}`);
+      if (itemsWithMaterialButNoQty.length > 0) {
+        alert(`Please enter quantities for ${itemsWithMaterialButNoQty.length} material(s).`);
         return;
       }
-      if (!item.quantity_issued || item.quantity_issued <= 0) {
-        alert(`Please enter a valid quantity for item ${i + 1}`);
+      if (itemsWithQtyButNoMaterial.length > 0) {
+        alert('Please select materials for all items with quantities. Some materials may need to be received first.');
         return;
       }
+      alert('Please add at least one valid material item with material selected and quantity > 0');
+      return;
+    }
+
+    // Validate each valid item
+    // Note: Material existence and stock availability are checked at MRR time, 
+    // so we skip those checks here and let the backend handle validation
+    for (let i = 0; i < validItems.length; i++) {
+      const item = validItems[i];
+      console.log(`Processing item ${i + 1}:`, { material_id: item.material_id, item_name: item.item_name, quantity: item.quantity_issued });
+    }
+
+    // Check if user is authenticated
+    if (!user?.user_id) {
+      alert('User not authenticated. Please log in again.');
+      return;
     }
 
     setLoading(true);
     try {
-      // Create separate material issues for each item
-      const issuePromises = formData.items.map(async (item) => {
+      // Filter to only valid items before creating issues
+      const validItems = formData.items.filter(item => {
+        return item.material_id && item.material_id > 0 && item.quantity_issued && item.quantity_issued > 0;
+      });
+
+      console.log('Creating material issues for valid items:', validItems);
+
+      // Create separate material issues for each valid item
+      const issuePromises = validItems.map(async (item) => {
         const issueData: any = {
           project_id: parseInt(formData.project_id.toString()),
           material_id: parseInt(item.material_id.toString()),
           quantity_issued: parseInt(item.quantity_issued.toString()),
-          issue_date: formData.issue_date,
+          issue_date: formData.issue_date || new Date().toISOString().split('T')[0],
           issue_purpose: formData.notes || '',
           location: 'Project Site',
-          issued_by_user_id: 1, // This should come from auth context
-          received_by_user_id: 1, // This should come from auth context
+          issued_by_user_id: user.user_id,
+          received_by_user_id: user.user_id, // Using same user for now, can be changed later
           is_for_mrr: Boolean(formData.is_mrr_based),
-          component_id: formData.component_id,
-          subcontractor_id: formData.subcontractor_id,
-          warehouse_id: item.warehouse_id || null
+          component_id: formData.component_id && formData.component_id > 0 ? formData.component_id : null,
+          subcontractor_id: formData.subcontractor_id && formData.subcontractor_id > 0 ? formData.subcontractor_id : null,
+          warehouse_id: item.warehouse_id && item.warehouse_id > 0 ? item.warehouse_id : null
         };
 
         // Only add mrr_id if it's actually needed
@@ -654,30 +756,56 @@ const UnifiedMaterialIssue: React.FC = () => {
                       </label>
                       <SearchableDropdown
                         options={formData.is_mrr_based && formData.mrr_id ? (
-                          // Show only MRR items when MRR is selected
-                          mrrs.find(mrr => mrr.mrr_id === formData.mrr_id)?.items.map((mrrItem) => {
-                            const material = materials.find(m => m.item?.item_id === mrrItem.item.item_id);
-                            // Use material_id if found, otherwise use item_id as fallback
-                            const materialId = material?.material_id || mrrItem.item.item_id;
-                            return {
-                              value: materialId.toString(),
-                              label: mrrItem.item.item_name,
-                              searchText: mrrItem.item.item_name,
-                              material_id: materialId
-                            };
-                          }) || []
+                          // For MRR-based issues, drive options from the last inventory check
+                          (() => {
+                            const currentItem = formData.items[index];
+
+                            // Find inventory check result for this row
+                            const invResult = mrrInventoryResults.find(r =>
+                              (currentItem.mrr_item_id && r.mrr_item_id === currentItem.mrr_item_id) ||
+                              (currentItem.item_id && r.item_id === currentItem.item_id)
+                            );
+
+                            if (!invResult) {
+                              return [{
+                                value: '0',
+                                label: `${currentItem.item_name || 'Selected item'} (No material available - needs to be received first)`,
+                                searchText: currentItem.item_name || ''
+                              }];
+                            }
+
+                            if (!invResult.material_id || (invResult.available_stock || 0) <= 0) {
+                              return [{
+                                value: '0',
+                                label: `${invResult.item_name} (No material available - needs to be received first)`,
+                                searchText: invResult.item_name
+                              }];
+                            }
+
+                            // Single material coming from inventory check
+                            return [{
+                              value: invResult.material_id.toString(),
+                              label: `${invResult.item_name}${invResult.warehouse ? ` - ${invResult.warehouse.warehouse_name}` : ''} (Stock: ${invResult.available_stock || 0})`,
+                              searchText: `${invResult.item_name} ${invResult.warehouse?.warehouse_name || ''}`
+                            }];
+                          })()
                         ) : (
                           // Show all materials when not MRR-based
                           materials.map((material) => ({
                             value: material.material_id.toString(),
-                            label: material.item?.item_name || material.name,
-                            searchText: material.item?.item_name || material.name
+                            label: `${material.item?.item_name || material.name}${material.warehouse ? ` - ${material.warehouse.warehouse_name}` : ''} (Stock: ${material.stock_qty})`,
+                            searchText: `${material.item?.item_name || material.name} ${material.warehouse?.warehouse_name || ''}`
                           }))
                         )}
                         value={item.material_id?.toString() || ''}
                         onChange={(value) => {
-                          console.log('Material selection changed:', { value, parsed: parseInt(value.toString()) });
-                          updateMaterialItem(index, 'material_id', parseInt(value.toString()));
+                          const materialId = parseInt(value.toString());
+                          console.log('Material selection changed:', { value, materialId, itemIndex: index });
+                          if (materialId > 0) {
+                            updateMaterialItem(index, 'material_id', materialId);
+                          } else {
+                            alert('Please select a valid material. The material may need to be received first.');
+                          }
                         }}
                         placeholder="Select Material"
                         searchPlaceholder="Search materials..."
@@ -745,7 +873,9 @@ const UnifiedMaterialIssue: React.FC = () => {
                         // Show warehouse breakdown for MRR-based issues
                         (() => {
                           const selectedMrr = mrrs.find(mrr => mrr.mrr_id === formData.mrr_id);
-                          const mrrItem = selectedMrr?.items.find(mrrItem => mrrItem.item.item_id === item.material_id);
+                          const selectedMaterial = materials.find(m => m.material_id === item.material_id);
+                          const itemId = selectedMaterial?.item?.item_id || item.item_id || 0;
+                          const mrrItem = selectedMrr?.items.find(mrrItem => mrrItem.item?.item_id === itemId);
                           const warehouseBreakdown = mrrItem?.warehouse_breakdown || [];
                           
                           return (
@@ -762,6 +892,11 @@ const UnifiedMaterialIssue: React.FC = () => {
                                     </p>
                                   ))}
                                 </div>
+                              )}
+                              {selectedMaterial && (
+                                <p className="text-xs text-slate-500 mt-2">
+                                  <span className="font-semibold">Selected Material Stock:</span> {selectedMaterial.stock_qty} {item.unit_name || ''}
+                                </p>
                               )}
                             </div>
                           );

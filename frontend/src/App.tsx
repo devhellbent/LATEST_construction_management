@@ -27,6 +27,7 @@ import Profile from './pages/Profile';
 import Commercial from './pages/Commercial';
 import CommercialPettyCash from './pages/CommercialPettyCash';
 import SubcontractorLedger from './pages/SubcontractorLedger';
+import SubcontractorMaterialIssueReport from './pages/SubcontractorMaterialIssueReport';
 // New Material Management Pages
 import MaterialManagementDashboard from './pages/MaterialManagementDashboard';
 import MrrFlowComponent from './components/MrrFlowComponent';
@@ -93,6 +94,7 @@ function App() {
                             <Route path="/labours" element={<RoleBasedRoute><Labours /></RoleBasedRoute>} />
                             <Route path="/issues" element={<RoleBasedRoute><Issues /></RoleBasedRoute>} />
                             <Route path="/reports" element={<RoleBasedRoute><Reports /></RoleBasedRoute>} />
+                            <Route path="/reports/subcontractor-material-issues" element={<RoleBasedRoute><SubcontractorMaterialIssueReport /></RoleBasedRoute>} />
                             <Route path="/documents" element={<RoleBasedRoute><Documents /></RoleBasedRoute>} />
                             <Route path="/expenses" element={<RoleBasedRoute><Expenses /></RoleBasedRoute>} />
                             <Route path="/profile" element={<RoleBasedRoute><Profile /></RoleBasedRoute>} />

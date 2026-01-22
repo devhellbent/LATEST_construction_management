@@ -361,6 +361,15 @@ export const reportsAPI = {
     api.get(`/reports/restock/summary/${projectId}`, { 
       params: dateRange 
     }),
+  
+  // Subcontractor Material Issue Report
+  getSubcontractorMaterialIssuePreview: (params?: { project_id?: number, subcontractor_id?: number, date_from?: string, date_to?: string }) =>
+    api.get('/reports/subcontractor-material-issues/preview', { params }),
+  downloadSubcontractorMaterialIssueReport: (params?: { project_id?: number, subcontractor_id?: number, date_from?: string, date_to?: string }) =>
+    api.get('/reports/subcontractor-material-issues', {
+      params,
+      responseType: 'blob'
+    }),
 };
 
 // Documents API
@@ -474,6 +483,8 @@ export const materialManagementAPI = {
     api.put(`/material-management/inventory/${id}`, materialData),
   deleteMaterial: (id: number) =>
     api.delete(`/material-management/inventory/${id}`),
+  settleMaterialStock: (id: number, data: { new_quantity: number; reason?: string; warehouse_id?: number }) =>
+    api.post(`/material-management/inventory/${id}/settle`, data),
 
   // Material Issues
   getMaterialIssues: (params?: any) =>

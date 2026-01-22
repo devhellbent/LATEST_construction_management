@@ -11,6 +11,7 @@ import InventoryHistory from '../components/InventoryHistory';
 import WarehouseSelectionModal from '../components/WarehouseSelectionModal';
 import WarehouseMaterialEditModal from '../components/WarehouseMaterialEditModal';
 import { useSocket } from '../contexts/SocketContext';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { 
   AlertTriangle, 
@@ -95,7 +96,7 @@ interface MasterData {
   warehouses: Warehouse[];
 }
 
-interface InventoryHistory {
+interface InventoryHistoryRecord {
   history_id: number;
   material_id: number;
   project_id?: number;
@@ -113,6 +114,11 @@ interface InventoryHistory {
     name: string;
     type: string;
     unit: string;
+    warehouse_id?: number;
+    warehouse?: {
+      warehouse_id: number;
+      warehouse_name: string;
+    };
   };
   project?: {
     project_id: number;
@@ -126,7 +132,7 @@ interface InventoryHistory {
 
 const InventoryManagement: React.FC = () => {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [inventoryHistory, setInventoryHistory] = useState<InventoryHistory[]>([]);
+  const [inventoryHistory, setInventoryHistory] = useState<InventoryHistoryRecord[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [masterData, setMasterData] = useState<MasterData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -157,6 +163,10 @@ const InventoryManagement: React.FC = () => {
   
   // Socket integration
   const { socket } = useSocket();
+  
+  // Auth - check if user is Admin
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin' || (typeof user?.role === 'object' && user?.role?.name === 'Admin');
   
   // Low stock materials state
   const [lowStockMaterials, setLowStockMaterials] = useState<InventoryItem[]>([]);
@@ -384,6 +394,46 @@ const InventoryManagement: React.FC = () => {
     
     // Navigate to create PO page
     window.location.href = '/create-purchase-order?restock=true';
+  };
+
+  const handleSettleStock = async (item: InventoryItem) => {
+    // Check if user is Admin
+    if (!isAdmin) {
+      toast.error('Access denied. Only Admin users can perform stock settlement.');
+      return;
+    }
+
+    const current = item.stock_qty;
+    const input = window.prompt(
+      `Enter physical counted quantity for "${item.name}" (current: ${current} ${item.unit || ''}):`,
+      String(current)
+    );
+    if (input === null) return;
+
+    const newQty = parseFloat(input);
+    if (isNaN(newQty) || newQty < 0) {
+      toast.error('Please enter a valid non-negative number');
+      return;
+    }
+
+    const reason = window.prompt('Reason for stock settlement (optional):', '');
+
+    try {
+      await materialManagementAPI.settleMaterialStock(item.material_id, {
+        new_quantity: newQty,
+        reason: reason || undefined,
+        warehouse_id: item.warehouse_id,
+      });
+      toast.success('Stock settled successfully');
+      loadData();
+    } catch (error: any) {
+      console.error('Error settling stock:', error);
+      if (error.response?.status === 403) {
+        toast.error('Access denied. Only Admin users can perform stock settlement.');
+      } else {
+        toast.error('Failed to settle stock');
+      }
+    }
   };
 
 
@@ -628,6 +678,15 @@ const InventoryManagement: React.FC = () => {
                               >
                                 <History className="h-3 w-3 sm:h-4 sm:w-4" />
                               </button>
+                              {isAdmin && (
+                                <button
+                                  onClick={() => handleSettleStock(item)}
+                                  className="text-blue-600 hover:text-blue-800 transition-colors"
+                                  title="Settle Stock to Physical Count (Admin Only)"
+                                >
+                                  <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteMaterial(item.material_id)}
                                 className="text-red-600 hover:text-red-800 transition-colors"
@@ -697,10 +756,16 @@ const InventoryManagement: React.FC = () => {
                               <span className="ml-2 sm:ml-4">Desc: {history.description}</span>
                             )}
                           </div>
-                          <div className="mt-1 text-xs sm:text-sm text-slate-500">
+                          <div className="mt-1 text-xs sm:text-sm text-slate-500 flex flex-wrap items-center gap-2 sm:gap-4">
                             <span>By: {history.performedBy?.name || 'System'}</span>
+                            {history.material?.warehouse && (
+                              <span className="flex items-center text-blue-600">
+                                <Package className="h-3 w-3 mr-1" />
+                                {history.material.warehouse.warehouse_name}
+                              </span>
+                            )}
                             {history.location && (
-                              <span className="ml-2 sm:ml-4 flex items-center">
+                              <span className="flex items-center">
                                 <MapPin className="h-3 w-3 mr-1" />
                                 {history.location}
                               </span>

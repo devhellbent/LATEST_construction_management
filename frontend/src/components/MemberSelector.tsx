@@ -120,10 +120,10 @@ const MemberSelector: React.FC<MemberSelectorProps> = ({
       {isOpen && projectId && (
         <>
           <div
-            className="fixed inset-0 z-[9998]"
+            className="fixed inset-0 z-[99998]"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-[9999] w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl max-h-60 overflow-auto">
+          <div className="absolute z-[99999] w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl max-h-60 overflow-auto">
             <div className="p-2">
               <button
                 onClick={handleClearSelection}

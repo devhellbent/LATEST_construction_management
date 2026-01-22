@@ -200,7 +200,12 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+        <>
+          <div
+            className="fixed inset-0 z-[99998]"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute z-[99999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
           {/* Search Input */}
           {showSearch && (
             <div className="p-2 border-b border-gray-200">
@@ -254,6 +259,7 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

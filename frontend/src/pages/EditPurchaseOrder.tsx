@@ -224,11 +224,11 @@ const EditPurchaseOrder: React.FC = () => {
       
       setPurchaseOrder(po);
       setFormData({
-        mrr_id: po.mrr?.mrr_id?.toString() || '',
-        project_id: po.project?.project_id?.toString() || '',
+        mrr_id: po.mrr?.mrr_id?.toString() || po.mrr_id?.toString() || '',
+        project_id: po.project?.project_id?.toString() || po.project_id?.toString() || '',
         component_id: po.component_id?.toString() || '',
         subcontractor_id: po.subcontractor_id?.toString() || '',
-        supplier_id: po.supplier.supplier_id?.toString() || '',
+        supplier_id: po.supplier_id?.toString() || po.supplier?.supplier_id?.toString() || '',
         po_date: po.po_date ? po.po_date.split('T')[0] : '',
         expected_delivery_date: po.expected_delivery_date ? po.expected_delivery_date.split('T')[0] : '',
         payment_terms: po.payment_terms || '',
@@ -244,26 +244,29 @@ const EditPurchaseOrder: React.FC = () => {
       }
 
       // Convert PO items to editable format
-      const editableItems = (po.items || []).map((item: any) => ({
-        po_item_id: item.po_item_id,
-        item_id: item.item.item_id,
-        item_name: item.item.item_name,
-        item_code: item.item.item_code,
-        unit_id: item.unit.unit_id,
-        unit_name: item.unit.unit_name,
-        unit_symbol: item.unit.unit_symbol,
-        quantity_ordered: Number(item.quantity_ordered) || 0,
-        unit_price: Number(item.unit_price) || 0,
-        total_price: Number(item.total_price) || (Number(item.quantity_ordered) || 0) * (Number(item.unit_price) || 0),
-        specifications: item.specifications || '',
-        cgst_rate: Number(item.cgst_rate) || 0,
-        sgst_rate: Number(item.sgst_rate) || 0,
-        igst_rate: Number(item.igst_rate) || 0,
-        cgst_amount: Number(item.cgst_amount) || 0,
-        sgst_amount: Number(item.sgst_amount) || 0,
-        igst_amount: Number(item.igst_amount) || 0,
-        size: item.size || ''
-      }));
+      const editableItems = (po.items || []).map((item: any) => {
+        return {
+          po_item_id: item.po_item_id,
+          item_id: item.item_id || (item.item?.item_id || 0), // item_id is on PurchaseOrderItem directly
+          item_name: item.item?.item_name || '',
+          item_code: item.item?.item_code || '',
+          unit_id: item.unit_id || (item.unit?.unit_id || 0), // unit_id is on PurchaseOrderItem directly
+          unit_name: item.unit?.unit_name || '',
+          unit_symbol: item.unit?.unit_symbol || '',
+          quantity_ordered: Number(item.quantity_ordered) || 0,
+          unit_price: Number(item.unit_price) || 0,
+          total_price: Number(item.total_price) || (Number(item.quantity_ordered) || 0) * (Number(item.unit_price) || 0),
+          specifications: item.specifications || '',
+          cgst_rate: Number(item.cgst_rate) || 0,
+          sgst_rate: Number(item.sgst_rate) || 0,
+          igst_rate: Number(item.igst_rate) || 0,
+          cgst_amount: Number(item.cgst_amount) || 0,
+          sgst_amount: Number(item.sgst_amount) || 0,
+          igst_amount: Number(item.igst_amount) || 0,
+          size: item.size || ''
+        };
+      });
+      
       setPoItems(editableItems);
     } catch (error: any) {
       console.error('Error fetching purchase order:', error);
@@ -416,50 +419,158 @@ const EditPurchaseOrder: React.FC = () => {
       return;
     }
 
+    // Validate items
+    for (let i = 0; i < poItems.length; i++) {
+      const item = poItems[i];
+      if (!item.item_id || item.item_id === 0) {
+        setError(`Item ${i + 1}: Please select an item`);
+        return;
+      }
+      if (!item.unit_id || item.unit_id === 0) {
+        setError(`Item ${i + 1}: Please select a unit`);
+        return;
+      }
+      if (!item.quantity_ordered || item.quantity_ordered <= 0) {
+        setError(`Item ${i + 1}: Quantity must be greater than 0`);
+        return;
+      }
+      if (!item.unit_price || item.unit_price < 0 || isNaN(item.unit_price)) {
+        setError(`Item ${i + 1}: Unit price must be a valid number`);
+        return;
+      }
+    }
+
+    // Validate supplier
+    if (!formData.supplier_id) {
+      setError('Please select a supplier');
+      return;
+    }
+
+    const supplierId = parseInt(formData.supplier_id);
+    if (isNaN(supplierId)) {
+      setError('Invalid supplier selected');
+      return;
+    }
+
+    // Validate date
+    if (!formData.po_date) {
+      setError('PO date is required');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
-      const submitData = {
-        mrr_id: formData.mrr_id ? parseInt(formData.mrr_id) : null,
-        project_id: formData.project_id ? parseInt(formData.project_id) : null,
-        component_id: formData.component_id ? parseInt(formData.component_id) : null,
-        subcontractor_id: formData.subcontractor_id ? parseInt(formData.subcontractor_id) : null,
-        supplier_id: parseInt(formData.supplier_id),
-        po_date: formData.po_date,
-        expected_delivery_date: formData.expected_delivery_date || null,
-        payment_terms: formData.payment_terms || null,
-        delivery_terms: formData.delivery_terms || null,
-        notes: formData.notes || null,
-        subwork_project_id: formData.subwork_project_id ? parseInt(formData.subwork_project_id) : null,
-        items: poItems.map(item => ({
-          po_item_id: item.po_item_id,
-          item_id: item.item_id,
-          quantity_ordered: item.quantity_ordered,
-          unit_price: item.unit_price,
-          specifications: item.specifications || null,
-          cgst_rate: item.cgst_rate || 0,
-          sgst_rate: item.sgst_rate || 0,
-          igst_rate: item.igst_rate || 0,
-          cgst_amount: item.cgst_amount || 0,
-          sgst_amount: item.sgst_amount || 0,
-          igst_amount: item.igst_amount || 0,
-          size: item.size || null
-        }))
+      // Helper function to safely parse integer or return undefined
+      const parseOptionalInt = (value: string): number | undefined => {
+        if (!value || value.trim() === '') return undefined;
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? undefined : parsed;
       };
+
+      const submitData: any = {
+        supplier_id: supplierId,
+        // Note: po_date is typically not updated, only set on creation
+      };
+
+      // Only include optional fields if they have valid values
+      const mrrId = parseOptionalInt(formData.mrr_id);
+      if (mrrId !== undefined) submitData.mrr_id = mrrId;
+
+      const projectId = parseOptionalInt(formData.project_id);
+      if (projectId !== undefined) submitData.project_id = projectId;
+
+      const componentId = parseOptionalInt(formData.component_id);
+      if (componentId !== undefined) submitData.component_id = componentId;
+
+      const subcontractorId = parseOptionalInt(formData.subcontractor_id);
+      if (subcontractorId !== undefined) submitData.subcontractor_id = subcontractorId;
+
+      const subworkProjectId = parseOptionalInt(formData.subwork_project_id);
+      if (subworkProjectId !== undefined) submitData.subwork_project_id = subworkProjectId;
+
+      // Add optional string fields
+      if (formData.expected_delivery_date) submitData.expected_delivery_date = formData.expected_delivery_date;
+      if (formData.payment_terms) submitData.payment_terms = formData.payment_terms;
+      if (formData.delivery_terms) submitData.delivery_terms = formData.delivery_terms;
+      if (formData.notes) submitData.notes = formData.notes;
+
+      // Add items - ensure proper data types
+      submitData.items = poItems.map(item => {
+        const itemId = Number(item.item_id);
+        const unitId = Number(item.unit_id);
+        const quantity = Math.floor(Number(item.quantity_ordered)); // Must be integer
+        const unitPrice = parseFloat(Number(item.unit_price).toFixed(2)); // Must be float with 2 decimals
+        
+        if (isNaN(itemId) || itemId === 0 || !Number.isInteger(itemId)) {
+          throw new Error(`Item ${item.item_name || 'Unknown'}: Invalid item ID`);
+        }
+        if (isNaN(unitId) || unitId === 0 || !Number.isInteger(unitId)) {
+          throw new Error(`Item ${item.item_name || 'Unknown'}: Invalid unit ID`);
+        }
+        if (isNaN(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+          throw new Error(`Item ${item.item_name || 'Unknown'}: Quantity must be a positive integer`);
+        }
+        if (isNaN(unitPrice) || unitPrice < 0) {
+          throw new Error(`Item ${item.item_name || 'Unknown'}: Invalid unit price`);
+        }
+        
+        // Ensure GST rates are valid floats between 0 and 100
+        const cgstRate = Math.max(0, Math.min(100, parseFloat(Number(item.cgst_rate || 0).toFixed(2))));
+        const sgstRate = Math.max(0, Math.min(100, parseFloat(Number(item.sgst_rate || 0).toFixed(2))));
+        const igstRate = Math.max(0, Math.min(100, parseFloat(Number(item.igst_rate || 0).toFixed(2))));
+        
+        return {
+          po_item_id: item.po_item_id || undefined,
+          item_id: itemId,
+          unit_id: unitId,
+          quantity_ordered: quantity, // Integer
+          unit_price: unitPrice, // Float
+          specifications: item.specifications || null,
+          cgst_rate: cgstRate,
+          sgst_rate: sgstRate,
+          igst_rate: igstRate,
+          cgst_amount: Number(item.cgst_amount) || 0,
+          sgst_amount: Number(item.sgst_amount) || 0,
+          igst_amount: Number(item.igst_amount) || 0,
+          size: item.size || null
+        };
+      });
+
+      // Debug: Log the data being sent
+      console.log('Submitting purchase order update:', JSON.stringify(submitData, null, 2));
 
       await purchaseOrdersAPI.updatePurchaseOrder(poId, submitData);
       navigate(`/purchase-orders/${id}`);
     } catch (error: any) {
       console.error('Error updating purchase order:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Full error:', JSON.stringify(error.response?.data, null, 2));
+      
       if (error.code === 'ECONNABORTED') {
         setError('Request timed out. Please check your connection and try again.');
       } else if (error.response?.status === 404) {
         setError('Purchase order not found');
       } else if (error.response?.status === 403) {
         setError('You do not have permission to edit this purchase order');
+      } else if (error.response?.status === 400) {
+        // Show validation errors from backend
+        const errorData = error.response?.data;
+        if (errorData?.errors && Array.isArray(errorData.errors)) {
+          const errorMessages = errorData.errors.map((err: any) => {
+            const field = err.param || err.path || '';
+            const msg = err.msg || err.message || 'Validation error';
+            return `${field}: ${msg}`;
+          }).join('\n');
+          setError(`Validation errors:\n${errorMessages}`);
+        } else if (errorData?.message) {
+          setError(errorData.message);
+        } else {
+          setError('Invalid data. Please check all fields and try again.');
+        }
       } else {
-        setError('Failed to update purchase order. Please try again.');
+        setError(error.message || 'Failed to update purchase order. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -798,13 +909,13 @@ const EditPurchaseOrder: React.FC = () => {
                         </label>
                         <SearchableDropdown
                           options={units.map((unit) => ({
-                            value: unit.unit_id.toString(),
+                            value: (unit.unit_id || 0).toString(),
                             label: `${unit.unit_name} (${unit.unit_symbol})`,
                             searchText: `${unit.unit_name} ${unit.unit_symbol}`
                           }))}
-                          value={item.unit_id.toString()}
+                          value={(item.unit_id || 0).toString()}
                           onChange={(value) => {
-                            const selectedUnit = units.find(u => u.unit_id.toString() === value.toString());
+                            const selectedUnit = units.find(u => (u.unit_id || 0).toString() === value.toString());
                             if (selectedUnit) {
                               updateItem(index, 'unit_id', selectedUnit.unit_id);
                               updateItem(index, 'unit_name', selectedUnit.unit_name);
@@ -825,8 +936,11 @@ const EditPurchaseOrder: React.FC = () => {
                         <input
                           type="number"
                           min="1"
-                          value={item.quantity_ordered}
-                          onChange={(e) => updateItem(index, 'quantity_ordered', parseInt(e.target.value))}
+                          value={item.quantity_ordered || ''}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 0;
+                            updateItem(index, 'quantity_ordered', val);
+                          }}
                           required
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -840,8 +954,11 @@ const EditPurchaseOrder: React.FC = () => {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={item.unit_price}
-                          onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value))}
+                          value={item.unit_price || ''}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0;
+                            updateItem(index, 'unit_price', val);
+                          }}
                           required
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -922,8 +1039,11 @@ const EditPurchaseOrder: React.FC = () => {
                             min="0"
                             max="100"
                             step="0.01"
-                            value={item.cgst_rate || 0}
-                            onChange={(e) => updateItem(index, 'cgst_rate', parseFloat(e.target.value) || 0)}
+                            value={item.cgst_rate || ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateItem(index, 'cgst_rate', val);
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
@@ -937,8 +1057,11 @@ const EditPurchaseOrder: React.FC = () => {
                             min="0"
                             max="100"
                             step="0.01"
-                            value={item.sgst_rate || 0}
-                            onChange={(e) => updateItem(index, 'sgst_rate', parseFloat(e.target.value) || 0)}
+                            value={item.sgst_rate || ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateItem(index, 'sgst_rate', val);
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
@@ -952,8 +1075,11 @@ const EditPurchaseOrder: React.FC = () => {
                             min="0"
                             max="100"
                             step="0.01"
-                            value={item.igst_rate || 0}
-                            onChange={(e) => updateItem(index, 'igst_rate', parseFloat(e.target.value) || 0)}
+                            value={item.igst_rate || ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              updateItem(index, 'igst_rate', val);
+                            }}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>

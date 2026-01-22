@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from 'react-query';
 import { 
   Users, 
@@ -29,53 +29,150 @@ const Dashboard: React.FC = () => {
   const materials = materialsData?.data?.materials || [];
   const expenses = expensesData?.data?.expenses || [];
 
-  // Calculate statistics
+  // ===== Summary statistics (driven by database) =====
+  const totalProjects = projects.length || 0;
   const ongoingProjects = projects.filter((p: any) => p.status === 'ACTIVE').length;
   const completedProjects = projects.filter((p: any) => p.status === 'COMPLETED').length;
   const delayedProjects = projects.filter((p: any) => p.status === 'ON_HOLD').length;
+
+  const totalTasks = tasks.length || 0;
   const openTasks = tasks.filter((t: any) => t.status === 'TODO').length;
 
-  // Material utilization data
-  const materialUtilizationData = [
-    { name: 'Cement', value: 30, color: '#7B61FF' },
-    { name: 'Sand', value: 25, color: '#FFC107' },
-    { name: 'Steel', value: 20, color: '#4CAF50' },
-    { name: 'Other Materials', value: 25, color: '#9C27B0' }
-  ];
+  const ongoingProjectsPercent = totalProjects ? Math.round((ongoingProjects / totalProjects) * 100) : 0;
+  const completedProjectsPercent = totalProjects ? Math.round((completedProjects / totalProjects) * 100) : 0;
+  const delayedProjectsPercent = totalProjects ? Math.round((delayedProjects / totalProjects) * 100) : 0;
+  const openTasksPercent = totalTasks ? Math.round((openTasks / totalTasks) * 100) : 0;
 
-  // Task completion data
-  const taskCompletionData = [
-    { name: 'City Mall Development', completion: 85 },
-    { name: 'Horizon Towers Construction', completion: 64 },
-    { name: 'Metro Station Renovation', completion: 42 },
-    { name: 'Business Park Expansion', completion: 35 },
-    { name: 'Green Heights Residential Complex', completion: 15 }
-  ];
+  // Clamp percentages between 0 and 100
+  const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 
-  // Recent notifications
-  const notifications = [
-    {
-      type: 'assignment',
-      title: 'Site Inspection Required',
-      time: '10 minutes ago',
-      icon: FileText,
-      color: 'text-primary-600'
+  const displayOngoingPercent = clampPercent(ongoingProjectsPercent);
+  const displayCompletedPercent = clampPercent(completedProjectsPercent);
+  const displayDelayedPercent = clampPercent(delayedProjectsPercent);
+  const displayOpenTasksPercent = clampPercent(openTasksPercent);
+
+  // ===== Material utilization (grouped by category using stock quantity) =====
+  const MATERIAL_COLORS = ['#7B61FF', '#FFC107', '#4CAF50', '#9C27B0', '#FF7043', '#26C6DA'];
+
+  const materialUtilizationData = useMemo(() => {
+    if (!materials || materials.length === 0) return [];
+
+    const totalsByCategory = new Map<string, number>();
+
+    materials.forEach((m: any) => {
+      const category = m.category || 'Uncategorized';
+      const quantity = typeof m.stock_qty === 'number' ? m.stock_qty : 0;
+      totalsByCategory.set(category, (totalsByCategory.get(category) || 0) + quantity);
+    });
+
+    const totalQuantity = Array.from(totalsByCategory.values()).reduce((sum, qty) => sum + qty, 0) || 1;
+
+    const sortedCategories = Array.from(totalsByCategory.entries()).sort((a, b) => b[1] - a[1]);
+
+    const topCategories = sortedCategories.slice(0, 4).map(([name, qty], index) => ({
+      name,
+      value: Math.round((qty / totalQuantity) * 100),
+      color: MATERIAL_COLORS[index % MATERIAL_COLORS.length],
+    }));
+
+    return topCategories;
+  }, [materials]);
+
+  const activeMaterialsPercent = useMemo(() => {
+    if (!materials || materials.length === 0) return 0;
+    const activeCount = materials.filter((m: any) => (typeof m.stock_qty === 'number' ? m.stock_qty : 0) > 0).length;
+    return clampPercent(Math.round((activeCount / materials.length) * 100));
+  }, [materials]);
+
+  // ===== Task completion per project (top 5 projects) =====
+  const taskCompletionData = useMemo(() => {
+    if (!tasks || tasks.length === 0) return [];
+
+    const perProject = new Map<number, { total: number; completed: number }>();
+
+    tasks.forEach((t: any) => {
+      if (!t.project_id) return;
+      const existing = perProject.get(t.project_id) || { total: 0, completed: 0 };
+      existing.total += 1;
+
+      const status = (t.status || '').toUpperCase();
+      if (['COMPLETED', 'DONE', 'FINISHED', 'CLOSED'].includes(status)) {
+        existing.completed += 1;
+      }
+
+      perProject.set(t.project_id, existing);
+    });
+
+    const data = Array.from(perProject.entries()).map(([projectId, { total, completed }]) => {
+      const project = projects.find((p: any) => p.project_id === projectId);
+      const completion = total ? Math.round((completed / total) * 100) : 0;
+      return {
+        name: project?.name || `Project ${projectId}`,
+        completion: clampPercent(completion),
+      };
+    });
+
+    // Sort by completion percentage (descending) and take top 5
+    return data.sort((a, b) => b.completion - a.completion).slice(0, 5);
+  }, [tasks, projects]);
+
+  // ===== Recent notifications from issues & tasks (latest few records) =====
+  const notifications = useMemo(
+    () => {
+      const items: Array<{
+        type: string;
+        title: string;
+        time: string;
+        icon: any;
+        color: string;
+      }> = [];
+
+      // Use latest issues as risk / alert notifications
+      if (Array.isArray(issues) && issues.length > 0) {
+        issues.slice(0, 3).forEach((issue: any) => {
+          items.push({
+            type: 'issue',
+            title: issue.description || `Issue #${issue.issue_id}`,
+            time: issue.date_raised ? `Raised on ${new Date(issue.date_raised).toLocaleDateString()}` : 'Issue',
+            icon: AlertTriangle,
+            color: 'text-warning-600',
+          });
+        });
+      }
+
+      // Use latest tasks as assignment / completion notifications
+      if (Array.isArray(tasks) && tasks.length > 0) {
+        tasks.slice(0, 3).forEach((task: any) => {
+          const status = (task.status || '').toUpperCase();
+          const isCompleted = ['COMPLETED', 'DONE', 'FINISHED', 'CLOSED'].includes(status);
+          items.push({
+            type: 'task',
+            title: task.title || `Task #${task.task_id}`,
+            time: task.end_date
+              ? `Due on ${new Date(task.end_date).toLocaleDateString()}`
+              : status ? status : 'Task',
+            icon: isCompleted ? CheckCircle : FileText,
+            color: isCompleted ? 'text-secondary-600' : 'text-primary-600',
+          });
+        });
+      }
+
+      // Fallback to at least one message so card never looks empty
+      if (items.length === 0) {
+        items.push({
+          type: 'info',
+          title: 'No recent tasks or issues',
+          time: 'You are all caught up!',
+          icon: TrendingUp,
+          color: 'text-primary-600',
+        });
+      }
+
+      // Limit to 5 most recent-style items
+      return items.slice(0, 5);
     },
-    {
-      type: 'inventory',
-      title: 'Cement Supply Low',
-      time: '2 hours ago',
-      icon: AlertTriangle,
-      color: 'text-warning-600'
-    },
-    {
-      type: 'completion',
-      title: 'City Mall Development',
-      time: '1 day ago',
-      icon: CheckCircle,
-      color: 'text-secondary-600'
-    }
-  ];
+    [issues, tasks]
+  );
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -106,10 +203,12 @@ const Dashboard: React.FC = () => {
                   <div className="progress-bar flex-1">
                     <div 
                       className="progress-fill" 
-                      style={{ width: '60%' }}
+                      style={{ width: `${displayOngoingPercent}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">60%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                    {displayOngoingPercent}%
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">in progress</p>
               </div>
@@ -130,10 +229,12 @@ const Dashboard: React.FC = () => {
                   <div className="progress-bar flex-1">
                     <div 
                       className="h-full bg-gradient-to-r from-success-500 to-success-600 rounded-full transition-all duration-500 ease-out" 
-                      style={{ width: '100%' }}
+                      style={{ width: `${displayCompletedPercent}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">100%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                    {displayCompletedPercent}%
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">completed</p>
               </div>
@@ -154,10 +255,12 @@ const Dashboard: React.FC = () => {
                   <div className="progress-bar flex-1">
                     <div 
                       className="h-full bg-gradient-to-r from-warning-500 to-warning-600 rounded-full transition-all duration-500 ease-out" 
-                      style={{ width: '40%' }}
+                      style={{ width: `${displayDelayedPercent}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">40%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                    {displayDelayedPercent}%
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">delayed</p>
               </div>
@@ -178,10 +281,12 @@ const Dashboard: React.FC = () => {
                   <div className="progress-bar flex-1">
                     <div 
                       className="progress-fill" 
-                      style={{ width: '70%' }}
+                      style={{ width: `${displayOpenTasksPercent}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs sm:text-sm font-medium text-slate-600">70%</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-600">
+                    {displayOpenTasksPercent}%
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">assigned</p>
               </div>
@@ -222,10 +327,12 @@ const Dashboard: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900">65%</div>
-                  <div className="text-xs sm:text-sm text-gray-600">Utilized</div>
-                </div>
+                  <div className="text-center">
+                    <div className="text-lg sm:text-2xl font-bold text-gray-900">
+                      {activeMaterialsPercent}%
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-600">Active Items</div>
+                  </div>
               </div>
             </div>
           </div>

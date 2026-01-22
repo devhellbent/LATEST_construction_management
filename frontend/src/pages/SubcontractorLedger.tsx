@@ -576,7 +576,12 @@ const SubcontractorLedger: React.FC = () => {
                 </button>
 
                 {subcontractorDropdownOpen && (
-                  <div className="absolute z-[9999] w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl">
+                  <>
+                    <div
+                      className="fixed inset-0 z-[99998]"
+                      onClick={() => setSubcontractorDropdownOpen(false)}
+                    />
+                    <div className="absolute z-[99999] w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl">
                     <div className="p-3 border-b border-slate-200">
                       <input
                         type="text"
@@ -604,6 +609,7 @@ const SubcontractorLedger: React.FC = () => {
                       ))}
                     </div>
                   </div>
+                  </>
                 )}
               </div>
             </div>

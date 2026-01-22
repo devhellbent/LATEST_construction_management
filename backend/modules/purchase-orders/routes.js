@@ -631,7 +631,7 @@ router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin', 'Acc
     const purchaseOrder = await PurchaseOrder.findByPk(req.params.id, {
       include: [
         { model: Project, as: 'project', attributes: ['name'] },
-        { model: Supplier, as: 'supplier', attributes: ['supplier_name', 'contact_person', 'phone'] },
+        { model: Supplier, as: 'supplier', attributes: ['supplier_id', 'supplier_name', 'contact_person', 'phone'] },
         { model: PurchaseOrderItem, as: 'items', include: [
           { model: ItemMaster, as: 'item', attributes: ['item_name', 'item_code'] },
           { model: Unit, as: 'unit', attributes: ['unit_name', 'unit_symbol'] }
@@ -652,6 +652,58 @@ router.patch('/:id/place-order', authenticateToken, authorizeRoles('Admin', 'Acc
       status: 'PLACED',
       placed_at: new Date()
     });
+
+    // ================================
+    // Create / ensure Supplier Ledger PURCHASE entry
+    // ================================
+    try {
+      if (!purchaseOrder.supplier_id || !purchaseOrder.total_amount) {
+        console.warn('Skipping supplier ledger entry for PO - missing supplier_id or total_amount', {
+          po_id: purchaseOrder.po_id,
+          supplier_id: purchaseOrder.supplier_id,
+          total_amount: purchaseOrder.total_amount
+        });
+      } else {
+        // Check if a PURCHASE entry already exists for this PO to avoid duplicates
+        const existingLedgerEntry = await SupplierLedger.findOne({
+          where: {
+            po_id: purchaseOrder.po_id,
+            supplier_id: purchaseOrder.supplier_id,
+            transaction_type: 'PURCHASE'
+          }
+        });
+
+        if (!existingLedgerEntry) {
+          // Get current balance for supplier
+          const lastEntry = await SupplierLedger.findOne({
+            where: { supplier_id: purchaseOrder.supplier_id },
+            order: [['transaction_date', 'DESC'], ['ledger_id', 'DESC']]
+          });
+
+          const currentBalance = lastEntry ? parseFloat(lastEntry.balance) : 0;
+          const purchaseAmount = parseFloat(purchaseOrder.total_amount) || 0;
+          const newBalance = currentBalance + purchaseAmount;
+
+          await SupplierLedger.create({
+            supplier_id: purchaseOrder.supplier_id,
+            po_id: purchaseOrder.po_id,
+            transaction_type: 'PURCHASE',
+            transaction_date: purchaseOrder.po_date || new Date(),
+            reference_number: purchaseOrder.po_number,
+            description: `Purchase Order ${purchaseOrder.po_number}`,
+            debit_amount: purchaseAmount,
+            credit_amount: 0,
+            balance: newBalance,
+            payment_status: 'PENDING',
+            due_date: purchaseOrder.expected_delivery_date || null,
+            created_by_user_id: req.user.user_id
+          });
+        }
+      }
+    } catch (ledgerError) {
+      console.error('Failed to create supplier ledger entry for PO placement:', ledgerError);
+      // Do not fail placing the PO if ledger creation fails
+    }
 
     // Send WhatsApp message to supplier
     try {

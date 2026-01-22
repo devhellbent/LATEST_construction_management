@@ -141,6 +141,7 @@ MaterialReturn.belongsTo(User, { foreignKey: 'returned_by_user_id', as: 'returne
 MaterialReturn.belongsTo(User, { foreignKey: 'approved_by_user_id', as: 'approved_by' });
 MaterialReturn.belongsTo(MaterialIssue, { foreignKey: 'issue_id', as: 'material_issue' });
 MaterialReturn.belongsTo(Warehouse, { foreignKey: 'warehouse_id', as: 'warehouse' });
+MaterialReturn.belongsTo(ProjectComponent, { foreignKey: 'component_id', as: 'component' });
 
 // MaterialConsumption associations
 MaterialConsumption.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
