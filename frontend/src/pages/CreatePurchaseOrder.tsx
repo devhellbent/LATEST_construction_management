@@ -160,10 +160,10 @@ const CreatePurchaseOrder: React.FC = () => {
     try {
       console.log('Fetching initial data...');
       const [projectsRes, suppliersRes, itemsRes, mrrsRes] = await Promise.all([
-        projectsAPI.getProjects(),
-        suppliersAPI.getSuppliers({ limit: 0 }), // Fetch all suppliers for dropdown
+        projectsAPI.getProjects({ limit: 100, page: 1 }), // Fetch projects for dropdown
+        suppliersAPI.getSuppliers({ limit: 100, page: 1 }), // Fetch suppliers for dropdown
         materialManagementAPI.getMasterData(),
-        mrrAPI.getMrrs()
+        mrrAPI.getMrrs({ limit: 100, page: 1 }) // Fetch MRRs for dropdown
       ]);
 
       console.log('Projects:', projectsRes.data);
@@ -190,9 +190,14 @@ const CreatePurchaseOrder: React.FC = () => {
       });
       setItemsWithUnits(itemsWithUnitsData);
       setInitialLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching initial data:', error);
-      setError('Failed to load initial data');
+      console.error('Error response:', error.response?.data);
+      console.error('Error config:', error.config);
+      const errorMessage = error.response?.data?.errors?.[0]?.msg || 
+                          error.response?.data?.message || 
+                          'Failed to load initial data';
+      setError(errorMessage);
       setInitialLoading(false);
     }
   };

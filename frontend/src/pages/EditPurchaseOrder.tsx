@@ -158,10 +158,10 @@ const EditPurchaseOrder: React.FC = () => {
     try {
       setInitialLoading(true);
       const [projectsRes, suppliersRes, masterDataRes, mrrsRes] = await Promise.all([
-        projectsAPI.getProjects(),
-        suppliersAPI.getSuppliers({ limit: 0 }), // Fetch all suppliers for dropdown
+        projectsAPI.getProjects({ limit: 100, page: 1 }), // Fetch projects for dropdown
+        suppliersAPI.getSuppliers({ limit: 100, page: 1 }), // Fetch suppliers for dropdown
         materialManagementAPI.getMasterData(),
-        mrrAPI.getMrrs()
+        mrrAPI.getMrrs({ limit: 100, page: 1 }) // Fetch MRRs for dropdown
       ]);
 
       setProjects(projectsRes.data.projects || []);

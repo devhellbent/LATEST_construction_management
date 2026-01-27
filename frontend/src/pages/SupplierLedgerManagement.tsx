@@ -105,7 +105,7 @@ const SupplierLedgerManagement: React.FC = () => {
       const [summaryRes, ledgerRes, suppliersRes] = await Promise.all([
         supplierLedgerAPI.getLedgerSummary(),
         supplierLedgerAPI.getLedgerEntries({ limit: 100 }),
-        suppliersAPI.getSuppliers({ limit: 0 }) // Fetch all suppliers for dropdown
+        suppliersAPI.getSuppliers({ limit: 100, page: 1 }) // Fetch suppliers for dropdown
       ]);
 
       console.log('Summary response:', summaryRes.data);
